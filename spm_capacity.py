@@ -1,7 +1,6 @@
 import pybamm
 import numpy as np
 import sys
-from utils import sphere_area_by_volume
 
 # assuming particles behave identically. Only boundary conditions are different
 
@@ -23,9 +22,8 @@ class SingleParticle:
 
         self.conc_0 = pybamm.Parameter(name + " pInitial Concentration")
 
-        ## HELP
-        self.aL = pybamm.Parameter(name + " pParticle Section")
-        ## HELP
+        self.L = pybamm.Parameter(name + "pElectrode Thickness")
+        self.eps_n = pybamm.Parameter(name + "pElectrode Porosity")
 
         self.conc = pybamm.Variable(name + " vConcentration", domain=self.domain)
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
@@ -49,7 +47,7 @@ class SingleParticle:
         model.boundary_conditions.update({
             self.conc: {
                 "left":  (0, "Neumann"),
-                "right": (I / (self.charge * F * D * self.aL), "Neumann")
+                "right": (I / (self.charge * F * D * self.L * ((3 * (1 - self.eps_n)) / R)), "Neumann")
             },
         })
         model.variables.update({
@@ -63,40 +61,38 @@ class SingleParticle:
         geo.update({
             self.domain: {self.r: {"min": 0, "max": R}}
         })
+    
+    def process_parameters(self, params: dict, model, geo: dict):
+        create_params = {key.name : value for key, value in params.items()}
+        param = pybamm.ParameterValues(create_params)
+        param.process_model(model)
+        param.process_geometry(geometry)
 
 
 model = pybamm.BaseModel()
-positive = SingleParticle("Positive Electrode", +1)
-negative = SingleParticle("Negative Electrode", -1)
+positive = SingleParticle("Positive Particle", +1)
 
 positive.process_model(model)
-negative.process_model(model)
 
 geometry = {}
 positive.process_geometry(geometry)
-negative.process_geometry(geometry)
 
-param = pybamm.ParameterValues({
-    I.name: 5, #[input]
-    positive.conc_0.name: 2.5e4,
-    negative.conc_0.name: 1.5e4,
-    ##
-    positive.aL.name: (3 * (1-0.33) / R) * 7.56e-05,
-    negative.aL.name: (3 * (1-0.23) / R) * 8.52e-05 
-    ##
-})
+positive.process_parameters({
+    I: 5,
+    positive.conc_0: 2.5e4,
+    positive.L: 7.56e-05,
+    positive.eps_n: 0.33
+}, model, geometry)
 
-param.process_model(model)
-param.process_geometry(geometry)
 
 PTS = 10
 mesh = pybamm.Mesh(geometry, 
-    {positive.domain: pybamm.Uniform1DSubMesh, negative.domain: pybamm.Uniform1DSubMesh}, 
-    {positive.r: PTS, negative.r: PTS}
+    {positive.domain: pybamm.Uniform1DSubMesh}, 
+    {positive.r: PTS}
 )
 
 disc = pybamm.Discretisation(mesh, 
-    {positive.domain: pybamm.FiniteVolume(), negative.domain: pybamm.FiniteVolume()}
+    {positive.domain: pybamm.FiniteVolume()}
 )
 disc.process_model(model)
 
