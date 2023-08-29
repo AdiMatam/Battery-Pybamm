@@ -20,6 +20,10 @@
     -> Geometry
     -> Too many string based parameters / variables. Difficult to maintain
 
+# Done @ 08/28
+- Capacity simulation w/c-rate
+- Messed with parameters... better parameterization (separate file)
+
 # Done @ 08/14
 - Rough meeting notes on SPM parameters (porosity etc) and capacity calculation 
 - Fix/Debug model --> removed polar term (1/r2) as already accounted for in "spherical" domain paramter
