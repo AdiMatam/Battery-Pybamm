@@ -13,6 +13,7 @@
 
 
 # Thoughts
+-- observation -- charging too fast creates the surface concentration issue? 
 
 - May want wrappers for some of these... 
     -> Boundary Conditions
