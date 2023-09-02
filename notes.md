@@ -20,6 +20,10 @@
     -> Geometry
     -> Too many string based parameters / variables. Difficult to maintain
 
+# @ 09/01
+- Re-incorp simulation of both particles simulatenously (with limiting condition on capacity)
+- Need better API -- even if it's just temporary for my "ground-up" approach
+
 # Done @ 08/28
 - Capacity simulation w/c-rate
 - Messed with parameters... better parameterization (separate file)

@@ -1,6 +1,5 @@
 import pybamm
 import numpy as np
-import sys
 
 import consts as c
 
@@ -116,7 +115,7 @@ capacity = min(pos_capacity, neg_capacity) * (c.F / 3600) # conversion into Ah
 
 solver = pybamm.ScipySolver()
 
-seconds = c.RUNTIME_HOURS * 3600 # int(sys.argv[1])
+seconds = c.RUNTIME_HOURS * 3600
 time_steps = np.linspace(0, seconds, 60)
 
 # Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
@@ -126,11 +125,3 @@ print(f"Discharging @ {calc_current:.3f} A, maxing electrode in {seconds} second
 
 solution = solver.solve(model, time_steps, inputs={current_param.name: calc_current})
 solution.plot(list(model.variables.keys()))
-
-
-"""
-
-if len(sys.argv) > 1:
-    seconds = int(sys.argv[1])
-    time_steps = np.linspace(0, seconds, seconds // int(sys.argv[2]))
-"""
