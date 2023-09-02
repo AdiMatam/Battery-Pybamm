@@ -4,7 +4,6 @@ import sys
 
 import consts as c
 
-out_current = pybamm.Parameter("Input Current") 
 
 class SingleParticle:
 
@@ -21,7 +20,7 @@ class SingleParticle:
         self.conc = pybamm.Variable(name + " vConcentration", domain=self.domain)
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
 
-    def process_model(self, model: pybamm.BaseModel, clear=False):
+    def process_model(self, model: pybamm.BaseModel, current, clear=False):
         if clear:
             model = pybamm.BaseModel()
 
@@ -40,7 +39,7 @@ class SingleParticle:
         model.boundary_conditions.update({
             self.conc: {
                 "left":  (0, "Neumann"),
-                "right": (out_current / (self.charge * c.F * c.D * self.L * a_term), "Neumann")
+                "right": (current / (self.charge * c.F * c.D * self.L * a_term), "Neumann")
             },
         })
         model.variables.update({
@@ -55,57 +54,83 @@ class SingleParticle:
             self.domain: {self.r: {"min": 0, "max": c.R}}
         })
     
-    def process_parameters(self, params: dict, model, geo: dict):
-        create_params = {key.name : value for key, value in params.items()}
-        param = pybamm.ParameterValues(create_params)
-        param.process_model(model)
-        param.process_geometry(geo)
+    def process_parameters(self, all_params: dict, particle_params: dict, clear=False):
+        if clear:
+            all_params.clear()
 
+        all_params.update(
+            {key.name : value for key, value in particle_params.items()}
+        )
+
+
+
+current_param = pybamm.Parameter("Input Current") 
 
 model = pybamm.BaseModel()
 positive = SingleParticle("Positive Particle", +1)
+negative = SingleParticle("Negative Particle", -1)
 
-positive.process_model(model)
+positive.process_model(model, current=current_param)
+negative.process_model(model, current=current_param)
 
-geometry = {}
-positive.process_geometry(geometry)
+geo = {}
+positive.process_geometry(geo)
+negative.process_geometry(geo)
 
-positive.process_parameters({
-    out_current: "[input]", 
+param_dict = {}
+positive.process_parameters(param_dict, {
+    current_param: "[input]", 
     positive.conc_0: c.POS_CSN_INITIAL,
-    positive.L: c.ELEC_THICKNESS,
-    positive.eps_n: c.ELEC_POROSITY
-}, model, geometry)
+    positive.L: c.POS_ELEC_THICKNESS,
+    positive.eps_n: c.POS_ELEC_POROSITY
+})
+
+negative.process_parameters(param_dict, {
+    current_param: "[input]", 
+    negative.conc_0: c.NEG_CSN_INITIAL,
+    negative.L: c.NEG_ELEC_THICKNESS,
+    negative.eps_n: c.NEG_ELEC_POROSITY
+})
+
+param = pybamm.ParameterValues(param_dict)
+param.process_model(model)
+param.process_geometry(geo)
 
 PTS = 20
-mesh = pybamm.Mesh(geometry, 
-    { positive.domain: pybamm.Uniform1DSubMesh }, 
-    { positive.r: PTS }
+mesh = pybamm.Mesh(geo, 
+    { positive.domain: pybamm.Uniform1DSubMesh, negative.domain: pybamm.Uniform1DSubMesh }, 
+    { positive.r: PTS, negative.r: PTS }
 )
 
 disc = pybamm.Discretisation(mesh, 
-    { positive.domain: pybamm.FiniteVolume() }
+    { positive.domain: pybamm.FiniteVolume(), negative.domain: pybamm.FiniteVolume() }
 )
 disc.process_model(model)
 
 
 ### SETUP DONE ###
-capacity = (c.POS_CSN_MAX - c.POS_CSN_INITIAL) * c.ELEC_THICKNESS * (1-c.ELEC_POROSITY) 
-capacity *= (c.F / 3600) # A*h
+pos_capacity = (c.POS_CSN_MAX - c.POS_CSN_INITIAL) * c.POS_ELEC_THICKNESS * (1-c.POS_ELEC_POROSITY) 
+neg_capacity = (c.NEG_CSN_INITIAL - c.NEG_CSN_MIN) * c.NEG_ELEC_THICKNESS * (1-c.NEG_ELEC_POROSITY)
+
+capacity = min(pos_capacity, neg_capacity) * (c.F / 3600) # conversion into Ah
 
 solver = pybamm.ScipySolver()
 
-if len(sys.argv) > 1:
-    seconds = int(sys.argv[1])
-    time_steps = np.linspace(0, seconds, seconds // int(sys.argv[2]))
-else:
-    seconds = c.RUNTIME_HOURS * 3600 # int(sys.argv[1])
-    time_steps = np.linspace(0, seconds, 60)
+seconds = c.RUNTIME_HOURS * 3600 # int(sys.argv[1])
+time_steps = np.linspace(0, seconds, 60)
 
 # Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
 calc_current = (capacity / c.RUNTIME_HOURS)
 
 print(f"Discharging @ {calc_current:.3f} A, maxing electrode in {seconds} seconds")
 
-solution = solver.solve(model, time_steps, inputs={out_current.name: calc_current})
+solution = solver.solve(model, time_steps, inputs={current_param.name: calc_current})
 solution.plot(list(model.variables.keys()))
+
+
+"""
+
+if len(sys.argv) > 1:
+    seconds = int(sys.argv[1])
+    time_steps = np.linspace(0, seconds, seconds // int(sys.argv[2]))
+"""
