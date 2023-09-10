@@ -11,7 +11,6 @@ I = pybamm.Parameter("Input Current / Area")
 D = 3.9e-14 # pybamm.Parameter("pDiffusion Coefficient")
 F = 96485
 
-# assuming radius=1 particles (I think?)
 # not scaling radius at the moment... 
 R = 5.5e-06 
 
