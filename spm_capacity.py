@@ -16,33 +16,36 @@ class SingleParticle:
         self.L = pybamm.Parameter(name + " pElectrode Thickness")
         self.eps_n = pybamm.Parameter(name + " pElectrode Porosity")
 
-        self.conc = pybamm.Variable(name + " vConcentration", domain=self.domain)
+        self.conc_variable_name = name + " vConcentration"
+        self.flux_variable_name = name + " vFlux"
+
+        self.conc_variable = pybamm.Variable(self.conc_variable_name, domain=self.domain)
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
 
     def process_model(self, model: pybamm.BaseModel, current, clear=False):
         if clear:
             model = pybamm.BaseModel()
 
-        flux = c.D * -pybamm.grad(self.conc)
+        flux = c.D * -pybamm.grad(self.conc_variable)
         dcdt = -pybamm.div(flux)
 
         model.rhs.update({
-            self.conc: dcdt
+            self.conc_variable: dcdt,
         })
 
         model.initial_conditions.update({
-            self.conc: self.conc_0
+            self.conc_variable: self.conc_0,
         }) 
         
         a_term = (3 * (1 - self.eps_n)) / c.R
         model.boundary_conditions.update({
-            self.conc: {
+            self.conc_variable: {
                 "left":  (0, "Neumann"),
                 "right": (current / (self.charge * c.F * c.D * self.L * a_term), "Neumann")
             },
         })
         model.variables.update({
-            self.conc.name: self.conc, f"{self.name} Flux": flux
+            self.conc_variable_name: self.conc_variable, self.flux_variable_name: flux
         })
     
     def process_geometry(self, geo: dict, clear=False):
@@ -116,7 +119,7 @@ capacity = min(pos_capacity, neg_capacity) * (c.F / 3600) # conversion into Ah
 solver = pybamm.ScipySolver()
 
 seconds = c.RUNTIME_HOURS * 3600
-time_steps = np.linspace(0, seconds, 60)
+time_steps = np.linspace(0, seconds, int(seconds) // 30)
 
 # Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
 calc_current = (capacity / c.RUNTIME_HOURS)
@@ -124,4 +127,9 @@ calc_current = (capacity / c.RUNTIME_HOURS)
 print(f"Discharging @ {calc_current:.3f} A, maxing electrode in {seconds} seconds")
 
 solution = solver.solve(model, time_steps, inputs={current_param.name: calc_current})
+print(solution.t)
+print(solution[positive.conc_variable_name].entries)
+print(solution[negative.conc_variable_name].entries)
+
+
 solution.plot(list(model.variables.keys()))

@@ -103,6 +103,7 @@ disc.process_model(model)
 # solve
 solver = pybamm.ScipySolver()
 seconds = int(sys.argv[1])
+# args [] = time, how often do create discrete 'node'
 time_steps = np.linspace(0, seconds, (seconds // int(sys.argv[2])) or 100)
 
 # Evaluate concentration @ each <time_steps> steps @ at 10 locations from r=0->1

@@ -4,6 +4,8 @@ F = 96485
 
 # not scaling radius at the moment... 
 R = 5.5e-06 
+R_GAS = 8.314
+T = 298 # kelvin
 
 POS_CSN_MAX = 63104.0
 POS_CSN_INITIAL = 2.5e4
