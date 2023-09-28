@@ -131,5 +131,4 @@ print(solution.t)
 print(solution[positive.conc_variable_name].entries)
 print(solution[negative.conc_variable_name].entries)
 
-
 solution.plot(list(model.variables.keys()))

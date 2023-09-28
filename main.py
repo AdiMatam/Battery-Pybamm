@@ -1,9 +1,11 @@
 import pybamm
 import numpy as np
+import inspect
+
 
 model = pybamm.lithium_ion.SPM()
 
-print(model.variables.keys())
+# print(model.variables.keys())
 param = model.default_parameter_values
 
 geo = model.default_geometry
@@ -17,17 +19,17 @@ disc.process_model(model)
 solver = model.default_solver
 n = 250
 t_eval = np.linspace(0, 3600, n)
-print('Solving using',type(solver).__name__,'solver...')
+# print('Solving using',type(solver).__name__,'solver...')
 solution = solver.solve(model, t_eval)
-print('Finished.')
+# print('Finished.')
 
-a = solution['Negative electrode open-circuit potential [V]'].entries
-print(a)
+a = solution['Positive electrode open-circuit potential [V]'].entries
+# print(len(a[0]))
 
 # param = model.default_parameter_values
 # print(param)
-print(param['Positive electrode OCP [V]'])
-
+pos_ocp = param['Positive electrode OCP [V]'](0)
+print(pos_ocp)
 
 # parameter_values = pybamm.ParameterValues("Chen2020")
 
