@@ -3,7 +3,6 @@ import numpy as np
 
 import consts as c
 
-
 class SingleParticle:
 
     def __init__(self, name: str, charge: int):
@@ -29,6 +28,8 @@ class SingleParticle:
         flux = c.D * -pybamm.grad(self.conc_variable)
         dcdt = -pybamm.div(flux)
 
+        self.surf_conc = pybamm.surf(self.conc_variable)
+
         model.rhs.update({
             self.conc_variable: dcdt,
         })
@@ -38,14 +39,18 @@ class SingleParticle:
         }) 
         
         a_term = (3 * (1 - self.eps_n)) / c.R
+
+        self.j0 = pybamm.sqrt(self.surf_conc) * pybamm.sqrt(1 - self.surf_conc)
+        self.j = current / (self.L * a_term)
+
         model.boundary_conditions.update({
             self.conc_variable: {
                 "left":  (0, "Neumann"),
-                "right": (current / (self.charge * c.F * c.D * self.L * a_term), "Neumann")
+                "right": (self.j / (self.charge * c.F * c.D), "Neumann")
             },
         })
         model.variables.update({
-            self.conc_variable_name: self.conc_variable, self.flux_variable_name: flux
+            self.conc_variable_name: self.conc_variable, self.flux_variable_name: flux,
         })
     
     def process_geometry(self, geo: dict, clear=False):
@@ -74,6 +79,31 @@ negative = SingleParticle("Negative Particle", -1)
 
 positive.process_model(model, current=current_param)
 negative.process_model(model, current=current_param)
+
+def add_voltage(model: pybamm.BaseModel, positive, negative):
+
+    RTF = 2 * c.R_GAS * c.T / c.F
+    volmer_p = RTF * pybamm.arcsinh(positive.j / (2 * positive.j0)) 
+    volmer_n = RTF * pybamm.arcsinh(negative.j / (2 * negative.j0)) 
+
+    up = func(positive.surf_conc / positive. c.T)
+    v = volmer_p + up - volmer_n - un
+
+    """
+    RT_F = param.R * T / param.F
+    j0_n = param.n.prim.j0(param.c_e_init_av, c_s_surf_n, T)
+    j0_p = param.p.prim.j0(param.c_e_init_av, c_s_surf_p, T)
+    eta_n = (2 / param.n.prim.ne) * RT_F * pybamm.arcsinh(j_n / (2 * j0_n))
+    eta_p = (2 / param.p.prim.ne) * RT_F * pybamm.arcsinh(j_p / (2 * j0_p))
+    phi_s_n = 0
+
+    phi_e = -eta_n - param.n.prim.U(sto_surf_n, T)
+    phi_s_p = eta_p + phi_e + param.p.prim.U(sto_surf_p, T)
+    V = phi_s_p
+    """
+    pass
+
+add_voltage(model, positive, negative)
 
 geo = {}
 positive.process_geometry(geo)
@@ -121,11 +151,11 @@ solver = pybamm.ScipySolver()
 seconds = c.RUNTIME_HOURS * 3600
 time_steps = np.linspace(0, seconds, int(seconds) // 30)
 
-# Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
 calc_current = (capacity / c.RUNTIME_HOURS)
 
 print(f"Discharging @ {calc_current:.3f} A, maxing electrode in {seconds} seconds")
 
+# Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
 solution = solver.solve(model, time_steps, inputs={current_param.name: calc_current})
 print(solution.t)
 print(solution[positive.conc_variable_name].entries)

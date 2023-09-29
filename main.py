@@ -1,6 +1,5 @@
 import pybamm
 import numpy as np
-import inspect
 
 
 model = pybamm.lithium_ion.SPM()
@@ -30,8 +29,6 @@ a = solution['Positive electrode open-circuit potential [V]'].entries
 # print(param)
 pos_ocp = param['Positive electrode OCP [V]'](0)
 print(pos_ocp)
-
-# parameter_values = pybamm.ParameterValues("Chen2020")
 
 # sim = pybamm.Simulation(model)
 # sim.solve([0, 3600])
