@@ -1,5 +1,6 @@
 import pybamm
 import numpy as np
+import pickle
 
 
 model = pybamm.lithium_ion.SPM()
@@ -27,8 +28,19 @@ a = solution['Positive electrode open-circuit potential [V]'].entries
 
 # param = model.default_parameter_values
 # print(param)
-pos_ocp = param['Positive electrode OCP [V]'](0)
-print(pos_ocp)
+pos_ocp = param['Positive electrode OCP [V]']
+neg_ocp = param['Negative electrode OCP [V]']
+
+fle = open("Un_func.pkl", 'wb')
+pickle.dump(neg_ocp, fle)
+fle.close()
+
+fle = open("Up_func.pkl", 'wb')
+pickle.dump(pos_ocp, fle)
+fle.close()
+
+print(neg_ocp)
+print(type(pos_ocp))
 
 # sim = pybamm.Simulation(model)
 # sim.solve([0, 3600])
