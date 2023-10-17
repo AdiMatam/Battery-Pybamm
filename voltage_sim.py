@@ -2,6 +2,7 @@ import pickle
 import pybamm
 import consts as c
 from math import sqrt
+from single_particle import SingleParticle
 
 fle = open("Up_func.pkl", 'rb')
 Up = pickle.load(fle)
@@ -11,7 +12,7 @@ fle = open("Un_func.pkl", 'rb')
 Un = pickle.load(fle)
 fle.close()
 
-def post_process_voltage(positive, negative, solution):
+def post_process_voltage(solution: pybamm.Solution, positive: SingleParticle, negative: SingleParticle):
     global Up
     global Un
 
@@ -33,19 +34,19 @@ def post_process_voltage(positive, negative, solution):
     for i in range(time_steps):
         inst_surf_p = surf_p[i]
         scaled_surf_p = inst_surf_p / c.POS_CSN_MAX
-        j0_p = sqrt(scaled_surf_p) * sqrt(1 - scaled_surf_p)
+        j0_p = solution[positive.j0_name].entries[i] # sqrt(scaled_surf_p) * sqrt(1 - scaled_surf_p)
 
         volmer_p = 2 * RTF * pybamm.arcsinh(j_p / (2 * j0_p))
         up = Up(scaled_surf_p)
         
         inst_surf_n = surf_n[i]
         scaled_surf_n = inst_surf_n / c.NEG_CSN_MAX
-        j0_n = sqrt(scaled_surf_n) * sqrt(1 - scaled_surf_n)
+        j0_n = solution[negative.j0_name].entries[i] # sqrt(scaled_surf_n) * sqrt(1 - scaled_surf_n)
         
         volmer_n = 2 * RTF * pybamm.arcsinh(j_n / (2 * j0_n))
         un = Un(scaled_surf_n)
         
-        v = up + volmer_p - volmer_n - un
+        v = up + volmer_p - volmer_n - un # evaluation of pybamm.Scalar() objects
         voltages.append(v.value)
 
     return voltages

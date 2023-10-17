@@ -1,5 +1,5 @@
 # Setting up a Model -- High Level Concept:
-
+_Refer to `ref/heat_equation` for better line-by-line documentation
 1. Initialize a model (BaseModel is fundamental starting point) 
 2. Define variables to observe and parameters 
     - pybamm.Variable() --> to be computed

@@ -1,139 +1,50 @@
+# MAIN CODE, BUT EXTREMELY MESSY!
+## NEED TO CLEAN-UP ASAP
+
 import pybamm
 import numpy as np
 from math import sqrt
 from matplotlib import pyplot as plt
 import consts as c
 
-class SingleParticle:
+from single_particle import SingleParticle
 
-    def __init__(self, name: str, charge: int):
-        self.name = name
-        self.charge = charge
-        self.domain = name + " dDomain"
-
-        self.conc_0 = pybamm.Parameter(name + " pInitial Concentration")
-
-        self.L = pybamm.Parameter(name + " pElectrode Thickness")
-        self.eps_n = pybamm.Parameter(name + " pElectrode Porosity")
-
-        self.conc_name = name + " vConcentration"
-        self.flux_name = name + " vFlux"
-        self.surf_conc_name = name + " vSurface Concentration"
-
-        self.conc = pybamm.Variable(self.conc_name, domain=self.domain)
-        self.surf_conc = pybamm.surf(self.conc)
-        self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
-
-    def process_model(self, model: pybamm.BaseModel, current, clear=False):
-        if clear:
-            model = pybamm.BaseModel()
-
-        flux = c.D * -pybamm.grad(self.conc)
-        dcdt = -pybamm.div(flux)
-
-        model.rhs.update({
-            self.conc: dcdt,
-        })
-
-        model.initial_conditions.update({
-            self.conc: self.conc_0,
-        }) 
-        
-        a_term = (3 * (1 - self.eps_n)) / c.R
-
-        self.j0 = pybamm.sqrt(self.surf_conc) * pybamm.sqrt(1 - self.surf_conc)
-        self.j = current / (self.L * a_term)
-
-        self.j_name = self.name + " vCurrent Density"
-
-        model.boundary_conditions.update({
-            self.conc: {
-                "left":  (0, "Neumann"),
-                "right": (self.j / (self.charge * c.F * c.D), "Neumann")
-            },
-        })
-        model.variables.update({
-            self.conc_name: self.conc, 
-            self.surf_conc_name: self.surf_conc,
-            self.j_name: self.j
-        })
-    
-    def process_geometry(self, geo: dict, clear=False):
-        if clear:
-            geo.clear()
-
-        geo.update({
-            self.domain: {self.r: {"min": 0, "max": c.R}}
-        })
-    
-    def process_parameters(self, all_params: dict, particle_params: dict, clear=False):
-        if clear:
-            all_params.clear()
-
-        all_params.update(
-            {key.name : value for key, value in particle_params.items()}
-        )
-
-
-
-current_param = pybamm.Parameter("Input Current") 
+current_param = pybamm.Parameter("Input Current / Area") 
 
 model = pybamm.BaseModel()
-positive = SingleParticle("Positive Particle", +1)
-negative = SingleParticle("Negative Particle", -1)
+positive = SingleParticle("Positive Particle", current_param)
+negative = SingleParticle("Negative Particle", -current_param)
 
-positive.process_model(model, current=current_param)
-negative.process_model(model, current=current_param)
-
-# def add_voltage(model: pybamm.BaseModel, positive, negative):
-
-    # RTF = 2 * c.R_GAS * c.T / c.F
-    # volmer_p = RTF * pybamm.arcsinh(positive.j / (2 * positive.j0)) 
-    # volmer_n = RTF * pybamm.arcsinh(negative.j / (2 * negative.j0)) 
-
-    # up = func(positive.surf_conc / positive. c.T)
-    # v = volmer_p + up - volmer_n - un
-
-    # """ REFERENCE
-    # RT_F = param.R * T / param.F
-    # j0_n = param.n.prim.j0(param.c_e_init_av, c_s_surf_n, T)
-    # j0_p = param.p.prim.j0(param.c_e_init_av, c_s_surf_p, T)
-    # eta_n = (2 / param.n.prim.ne) * RT_F * pybamm.arcsinh(j_n / (2 * j0_n))
-    # eta_p = (2 / param.p.prim.ne) * RT_F * pybamm.arcsinh(j_p / (2 * j0_p))
-    # phi_s_n = 0
-
-    # phi_e = -eta_n - param.n.prim.U(sto_surf_n, T)
-    # phi_s_p = eta_p + phi_e + param.p.prim.U(sto_surf_p, T)
-    # V = phi_s_p
-    # """
-    # pass
-
-# add_voltage(model, positive, negative)
+positive.process_model(model)
+negative.process_model(model)
 
 geo = {}
 positive.process_geometry(geo)
 negative.process_geometry(geo)
 
+## TODO: improve how this is done. Parameters in a file? json or something may simplify? 
 param_dict = {}
 positive.process_parameters(param_dict, {
     current_param: "[input]", 
     positive.conc_0: c.POS_CSN_INITIAL,
     positive.L: c.POS_ELEC_THICKNESS,
-    positive.eps_n: c.POS_ELEC_POROSITY
+    positive.eps_n: c.POS_ELEC_POROSITY,
+    positive.conc_max: c.POS_CSN_MAX
 })
 
 negative.process_parameters(param_dict, {
-    current_param: "[input]", 
+    current_param: "[input]", # send value at solve-time
     negative.conc_0: c.NEG_CSN_INITIAL,
     negative.L: c.NEG_ELEC_THICKNESS,
-    negative.eps_n: c.NEG_ELEC_POROSITY
+    negative.eps_n: c.NEG_ELEC_POROSITY,
+    negative.conc_max: c.NEG_CSN_MAX
 })
 
 param = pybamm.ParameterValues(param_dict)
 param.process_model(model)
 param.process_geometry(geo)
 
-PTS = 20
+PTS = 50
 mesh = pybamm.Mesh(geo, 
     { positive.domain: pybamm.Uniform1DSubMesh, negative.domain: pybamm.Uniform1DSubMesh }, 
     { positive.r: PTS, negative.r: PTS }
@@ -154,7 +65,7 @@ capacity = min(pos_capacity, neg_capacity) * (c.F / 3600) # conversion into Ah
 solver = pybamm.ScipySolver()
 
 seconds = c.RUNTIME_HOURS * 3600
-time_steps = np.linspace(0, seconds, int(seconds) // 30)
+time_steps = np.linspace(0, seconds, int(seconds) // 60)
 print(f"Evaluating @ {len(time_steps)} timesteps")
 
 calc_current = (capacity / c.RUNTIME_HOURS)
@@ -162,12 +73,13 @@ calc_current = (capacity / c.RUNTIME_HOURS)
 print(f"Discharging @ {calc_current:.3f} A, maxing electrode in {seconds} seconds")
 
 # Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
-solution = solver.solve(model, time_steps, inputs={current_param.name: calc_current})
-# solution.plot([positive.conc_name, negative.conc_name])
+solution = solver.solve(model, time_steps, inputs={current_param.name: -calc_current})
+solution.plot([positive.conc.name, negative.conc.name])
 
 from voltage_sim import post_process_voltage
 
-voltages = post_process_voltage(positive, negative, solution)
+voltages = post_process_voltage(solution, positive, negative)
 
 plt.plot(list(solution.t), voltages)
 plt.show()
+

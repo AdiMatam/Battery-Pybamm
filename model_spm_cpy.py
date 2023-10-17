@@ -31,13 +31,13 @@ a = solution['Positive electrode open-circuit potential [V]'].entries
 pos_ocp = param['Positive electrode OCP [V]']
 neg_ocp = param['Negative electrode OCP [V]']
 
-fle = open("Un_func.pkl", 'wb')
-pickle.dump(neg_ocp, fle)
-fle.close()
+# fle = open("Un_func.pkl", 'wb')
+# pickle.dump(neg_ocp, fle)
+# fle.close()
 
-fle = open("Up_func.pkl", 'wb')
-pickle.dump(pos_ocp, fle)
-fle.close()
+# fle = open("Up_func.pkl", 'wb')
+# pickle.dump(pos_ocp, fle)
+# fle.close()
 
 print(neg_ocp)
 print(type(pos_ocp))
