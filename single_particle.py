@@ -2,9 +2,10 @@ import pybamm
 import consts as c
 
 class SingleParticle:
-    def __init__(self, name: str, current: pybamm.Parameter):
+    def __init__(self, name: str, charge: int, current: pybamm.Parameter):
         self.name = name
         self.domain = name + " dDomain"
+        self.charge = charge
 
         self.conc_0 = pybamm.Parameter(name + " pInitial Concentration")
         self.L = pybamm.Parameter(name + " pElectrode Thickness")
@@ -31,30 +32,32 @@ class SingleParticle:
         })
 
         model.initial_conditions.update({
-            self.conc: self.conc_0,
+            self.conc: pybamm.x_average(self.conc_0),
         }) 
         
         a_term = (3 * (1 - self.eps_n)) / c.R
 
         self.sto = self.surf_conc / self.conc_max
 
-        self.j = self.current / (self.L * a_term)
+        self.j = (-self.charge * self.current) / (self.L * a_term)
         self.j0 = pybamm.sqrt(self.sto) * pybamm.sqrt(1 - self.sto)
 
+        self.sto_name = self.name + " vSurface Stoichometry"
         self.j_name = self.name + " vCurrent Density"
         self.j0_name = self.name + " vExchange Current Density"
 
         model.boundary_conditions.update({
             self.conc: {
                 "left":  (0, "Neumann"),
-                "right": (self.j / (c.F * c.D), "Neumann")
+                "right": (-self.j / (c.F * c.D), "Neumann")
             },
         })
         model.variables.update({
             self.conc_name: self.conc, 
             self.surf_conc_name: self.surf_conc,
             self.j_name: self.j,
-            self.j0_name: self.j0
+            self.j0_name: self.j0,
+            self.sto_name: self.sto
         })
     
     def process_geometry(self, geo: dict, clear=False):

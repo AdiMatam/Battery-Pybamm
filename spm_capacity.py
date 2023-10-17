@@ -1,9 +1,5 @@
-# MAIN CODE, BUT EXTREMELY MESSY!
-## NEED TO CLEAN-UP ASAP
-
 import pybamm
 import numpy as np
-from math import sqrt
 from matplotlib import pyplot as plt
 import consts as c
 
@@ -12,8 +8,8 @@ from single_particle import SingleParticle
 current_param = pybamm.Parameter("Input Current / Area") 
 
 model = pybamm.BaseModel()
-positive = SingleParticle("Positive Particle", current_param)
-negative = SingleParticle("Negative Particle", -current_param)
+positive = SingleParticle("Positive Particle", +1, current_param)
+negative = SingleParticle("Negative Particle", -1, current_param)
 
 positive.process_model(model)
 negative.process_model(model)
@@ -70,11 +66,11 @@ print(f"Evaluating @ {len(time_steps)} timesteps")
 
 calc_current = (capacity / c.RUNTIME_HOURS)
 
-print(f"Discharging @ {calc_current:.3f} A, maxing electrode in {seconds} seconds")
+print(f"Discharging @ {calc_current:.3f} A/m2; Runtime: {seconds} seconds")
 
 # Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
-solution = solver.solve(model, time_steps, inputs={current_param.name: -calc_current})
-solution.plot([positive.conc.name, negative.conc.name])
+solution = solver.solve(model, time_steps, inputs={current_param.name: calc_current})
+solution.plot([positive.conc_name, positive.j0_name, positive.sto_name])
 
 from voltage_sim import post_process_voltage
 

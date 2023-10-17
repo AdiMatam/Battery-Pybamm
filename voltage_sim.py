@@ -46,7 +46,7 @@ def post_process_voltage(solution: pybamm.Solution, positive: SingleParticle, ne
         volmer_n = 2 * RTF * pybamm.arcsinh(j_n / (2 * j0_n))
         un = Un(scaled_surf_n)
         
-        v = up + volmer_p - volmer_n - un # evaluation of pybamm.Scalar() objects
+        v = up - volmer_p - volmer_n - un # evaluation of pybamm.Scalar() objects
         voltages.append(v.value)
 
     return voltages
