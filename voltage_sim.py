@@ -1,28 +1,17 @@
 import pickle
 import pybamm
 import consts as c
-from math import sqrt
 from single_particle import SingleParticle
-
-fle = open("Up_func.pkl", 'rb')
-Up = pickle.load(fle)
-fle.close()
-
-fle = open("Un_func.pkl", 'rb')
-Un = pickle.load(fle)
-fle.close()
+from Up import lico2_ocp_Dualfoil1998 as Up
+from Un import graphite_mcmb2528_ocp_Dualfoil1998 as Un
 
 def post_process_voltage(solution: pybamm.Solution, positive: SingleParticle, negative: SingleParticle):
-    global Up
-    global Un
-
-    ### NAIVE METHOD OF VOLTAGE CALCULATION (post processing)
-    # Voltage = UP + VOL_P - UN - VOL_N
-
     voltages = []
     RTF = c.R_GAS * c.T / c.F
 
-    surf_p = solution[positive.surf_conc_name].entries # length 24 (one at each time)
+    # length of entries == # of time steps (600)
+    # surface concentration @ each time step
+    surf_p = solution[positive.surf_conc_name].entries
     surf_n = solution[negative.surf_conc_name].entries
 
     ## j (electrode current density is constant throughout?)
@@ -32,21 +21,31 @@ def post_process_voltage(solution: pybamm.Solution, positive: SingleParticle, ne
     time_steps = len(solution.t)
 
     for i in range(time_steps):
+        # get surface concentration @ each time step
         inst_surf_p = surf_p[i]
         scaled_surf_p = inst_surf_p / c.POS_CSN_MAX
         j0_p = solution[positive.j0_name].entries[i] # sqrt(scaled_surf_p) * sqrt(1 - scaled_surf_p)
 
+        # jp is negative. overpotential decreases when pos electrode being lithiated, 
+        # so correct signs
         volmer_p = 2 * RTF * pybamm.arcsinh(j_p / (2 * j0_p))
+        
+        # default function (given in pybamm basicSPM code)
         up = Up(scaled_surf_p)
         
         inst_surf_n = surf_n[i]
         scaled_surf_n = inst_surf_n / c.NEG_CSN_MAX
         j0_n = solution[negative.j0_name].entries[i] # sqrt(scaled_surf_n) * sqrt(1 - scaled_surf_n)
         
+        # jn is positive. overpotential increases when neg electrode being de-lithiated (discharge),
+        # so, correct signs.
         volmer_n = 2 * RTF * pybamm.arcsinh(j_n / (2 * j0_n))
+
+        # default function (given in pybamm basicSPM code)
         un = Un(scaled_surf_n)
         
-        v = up - volmer_p - volmer_n - un # evaluation of pybamm.Scalar() objects
-        voltages.append(v.value)
+        pos_v = up + volmer_p 
+        v = pos_v - (volmer_n + un)
+        voltages.append(v.value) # going from pybamm.Scalar() object to normal integer
 
     return voltages

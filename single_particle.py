@@ -27,6 +27,7 @@ class SingleParticle:
         flux = c.D * -pybamm.grad(self.conc)
         dcdt = -pybamm.div(flux)
 
+        # solve the diffusion equation (del * del(c))
         model.rhs.update({
             self.conc: dcdt,
         })
@@ -39,7 +40,12 @@ class SingleParticle:
 
         self.sto = self.surf_conc / self.conc_max
 
-        self.j = (-self.charge * self.current) / (self.L * a_term)
+        # self.charge = +1 for positive
+        #               -1 for negative
+        self.j = (self.charge * self.current) / (self.L * a_term)
+        
+        # exchange current density function given in pybamm doc --> sqrt(c) * sqrt(1-c)
+        # where 'c' is scaled concentration
         self.j0 = pybamm.sqrt(self.sto) * pybamm.sqrt(1 - self.sto)
 
         self.sto_name = self.name + " vSurface Stoichometry"
@@ -49,7 +55,7 @@ class SingleParticle:
         model.boundary_conditions.update({
             self.conc: {
                 "left":  (0, "Neumann"),
-                "right": (-self.j / (c.F * c.D), "Neumann")
+                "right": (-self.j / (c.F * c.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
             },
         })
         model.variables.update({
