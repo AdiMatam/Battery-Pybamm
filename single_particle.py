@@ -40,8 +40,8 @@ class SingleParticle:
 
         self.sto = self.surf_conc / self.conc_max
 
-        # self.charge = +1 for positive
-        #               -1 for negative
+        # self.charge = +1 for positive electrode
+        #               -1 for negative electrode
         self.j = (self.charge * self.current) / (self.L * a_term)
         
         # exchange current density function given in pybamm doc --> sqrt(c) * sqrt(1-c)
