@@ -24,24 +24,27 @@ def post_process_voltage(solution: pybamm.Solution, positive: SingleParticle, ne
         # get surface concentration @ each time step
         inst_surf_p = surf_p[i]
         scaled_surf_p = inst_surf_p / c.POS_CSN_MAX
-        j0_p = solution[positive.j0_name].entries[i] # sqrt(scaled_surf_p) * sqrt(1 - scaled_surf_p)
+        # get current j0 (at i-th timestep)
+        j0_p = solution[positive.j0_name].entries[i]
 
         # jp is negative. overpotential decreases when pos electrode being lithiated, 
         # so correct signs
         volmer_p = 2 * RTF * pybamm.arcsinh(j_p / (2 * j0_p))
         
-        # default function (given in pybamm basicSPM code)
+        # default function (given in pybamm basicSPM code -- check Up.py)
         up = Up(scaled_surf_p)
+        
+        # -------------------------------------
         
         inst_surf_n = surf_n[i]
         scaled_surf_n = inst_surf_n / c.NEG_CSN_MAX
-        j0_n = solution[negative.j0_name].entries[i] # sqrt(scaled_surf_n) * sqrt(1 - scaled_surf_n)
+        j0_n = solution[negative.j0_name].entries[i]
         
         # jn is positive. overpotential increases when neg electrode being de-lithiated (discharge),
         # so, correct signs.
         volmer_n = 2 * RTF * pybamm.arcsinh(j_n / (2 * j0_n))
 
-        # default function (given in pybamm basicSPM code)
+        # default function (given in pybamm basicSPM code -- check Un.py)
         un = Un(scaled_surf_n)
         
         pos_v = up + volmer_p 
