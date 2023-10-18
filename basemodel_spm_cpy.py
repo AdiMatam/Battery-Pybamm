@@ -4,7 +4,7 @@ import numpy as np
 model = pybamm.lithium_ion.BasicSPM()
 
 param = model.default_parameter_values
-print(param)
+print(param['Negative electrode diffusivity [m2.s-1]'](5, 298.15))
 
 geo = model.default_geometry
 param.process_model(model)
