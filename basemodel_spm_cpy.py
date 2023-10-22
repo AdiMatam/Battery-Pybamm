@@ -4,7 +4,6 @@ import numpy as np
 model = pybamm.lithium_ion.BasicSPM()
 
 param = model.default_parameter_values
-print(param['Negative electrode diffusivity [m2.s-1]'](5, 298.15))
 
 geo = model.default_geometry
 param.process_model(model)
@@ -19,3 +18,8 @@ n = 250
 t_eval = np.linspace(0, 3600, n)
 solution = solver.solve(model, t_eval)
 solution.plot(list(model.variables.keys()))
+
+# with open("compare_test.txt", 'w') as f:
+    # voltages = solution["Voltage [V]"].entries
+    # for v in voltages:
+        # f.write(str(v) + '\n')
