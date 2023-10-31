@@ -4,6 +4,8 @@ from matplotlib import pyplot as plt
 import consts as c
 
 from single_particle import SingleParticle
+from marquis import lico2_electrolyte_exchange_current_density_Dualfoil1998 as j0p
+from marquis import graphite_electrolyte_exchange_current_density_Dualfoil1998 as j0n
 
 current_param = pybamm.Parameter("Input Current / Area") 
 
@@ -25,7 +27,8 @@ positive.process_parameters(param_dict, {
     positive.conc_0: c.POS_CSN_INITIAL,
     positive.L: c.POS_ELEC_THICKNESS,
     positive.eps_n: c.POS_ELEC_POROSITY,
-    positive.conc_max: c.POS_CSN_MAX
+    positive.conc_max: c.POS_CSN_MAX,
+    positive.j0: j0p
 })
 
 negative.process_parameters(param_dict, {
@@ -52,53 +55,53 @@ disc = pybamm.Discretisation(mesh,
 disc.process_model(model)
 
 
-### SETUP DONE ###
-pos_capacity = (c.POS_CSN_MAX - c.POS_CSN_INITIAL) * c.POS_ELEC_THICKNESS * (1-c.POS_ELEC_POROSITY) 
-neg_capacity = (c.NEG_CSN_INITIAL - c.NEG_CSN_MIN) * c.NEG_ELEC_THICKNESS * (1-c.NEG_ELEC_POROSITY)
+# ### SETUP DONE ###
+# pos_capacity = (c.POS_CSN_MAX - c.POS_CSN_INITIAL) * c.POS_ELEC_THICKNESS * (1-c.POS_ELEC_POROSITY) 
+# neg_capacity = (c.NEG_CSN_INITIAL - c.NEG_CSN_MIN) * c.NEG_ELEC_THICKNESS * (1-c.NEG_ELEC_POROSITY)
 
-capacity = min(pos_capacity, neg_capacity) 
-if (capacity == pos_capacity):
-    print("Pos electrode parameters LIMITING")
-else:
-    print("Neg electrode parameters LIMITING")
+# capacity = min(pos_capacity, neg_capacity) 
+# if (capacity == pos_capacity):
+    # print("Pos electrode parameters LIMITING")
+# else:
+    # print("Neg electrode parameters LIMITING")
 
-capacity *= (c.F / 3600) # conversion into Ah
+# capacity *= (c.F / 3600) # conversion into Ah
 
-solver = pybamm.ScipySolver()
+# solver = pybamm.ScipySolver()
 
-seconds = c.RUNTIME_HOURS * 3600
-time_steps = np.linspace(0, seconds, 250)
-print(f"Evaluating @ {len(time_steps)} timesteps")
+# seconds = c.RUNTIME_HOURS * 3600
+# time_steps = np.linspace(0, seconds, 250)
+# print(f"Evaluating @ {len(time_steps)} timesteps")
 
-calc_current = (capacity / c.RUNTIME_HOURS)
+# calc_current = (capacity / c.RUNTIME_HOURS)
 
-print(f"Discharging @ {calc_current:.3f} A/m2; Runtime: {seconds} seconds")
+# print(f"Discharging @ {calc_current:.3f} A/m2; Runtime: {seconds} seconds")
 
-# Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
-# use NEGATIVE CURRENT <-> REPRESENTING DISCHARGE
-solution = solver.solve(model, time_steps, inputs={current_param.name: -calc_current})
-solution.plot([positive.conc_name, positive.j0_name, positive.sto_name])
+# # Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
+# # use NEGATIVE CURRENT <-> REPRESENTING DISCHARGE
+# solution = solver.solve(model, time_steps, inputs={current_param.name: -calc_current})
+# solution.plot([positive.conc_name, positive.j0_name, positive.sto_name])
 
-from voltage_sim import post_process_voltage
+# from voltage_sim import post_process_voltage
 
-voltages = post_process_voltage(solution, positive, negative)
+# voltages = post_process_voltage(solution, positive, negative)
 
-## COMPARE WITH PYBAMM-GENERATED
+# ## COMPARE WITH PYBAMM-GENERATED
 
-pyb_voltages = []
-with open("compare_test.txt", 'r') as f:
-    for line in f:
-        if line:
-            pyb_voltages.append(float(line))
+# pyb_voltages = []
+# with open("compare_test.txt", 'r') as f:
+    # for line in f:
+        # if line:
+            # pyb_voltages.append(float(line))
 
 
-plt.plot(list(solution.t), voltages, label='My Model', color='r')
-plt.plot(list(solution.t), pyb_voltages, label='Pybamm Model', color='b')
-plt.xlabel("Time (s)")
-plt.ylabel("Voltage (V)")
+# plt.plot(list(solution.t), voltages, label='My Model', color='r')
+# plt.plot(list(solution.t), pyb_voltages, label='Pybamm Model', color='b')
+# plt.xlabel("Time (s)")
+# plt.ylabel("Voltage (V)")
 
-plt.legend()
-plt.show()
+# plt.legend()
+# plt.show()
 
 
 
