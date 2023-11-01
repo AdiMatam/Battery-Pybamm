@@ -77,7 +77,7 @@ print(f"Discharging @ {calc_current:.3f} A/m2; Runtime: {seconds} seconds")
 # Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
 # use NEGATIVE CURRENT <-> REPRESENTING DISCHARGE
 solution = solver.solve(model, time_steps, inputs={current_param.name: -calc_current})
-solution.plot([positive.conc_name, positive.j0_name, positive.sto_name])
+solution.plot([positive.conc_name, positive.j0_name])
 
 from voltage_sim import post_process_voltage
 

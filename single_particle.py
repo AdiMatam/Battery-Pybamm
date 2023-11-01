@@ -1,5 +1,6 @@
 import pybamm
 import consts as c
+import numpy as np
 
 class SingleParticle:
     def __init__(self, name: str, charge: int, current: pybamm.Parameter):
@@ -38,17 +39,18 @@ class SingleParticle:
         
         a_term = (3 * (1 - self.eps_n)) / c.R
 
-        self.sto = self.surf_conc / self.conc_max
-
         # self.charge = +1 for positive electrode
         #               -1 for negative electrode
         self.j = (self.charge * self.current) / (self.L * a_term)
         
-        # exchange current density function given in pybamm doc --> sqrt(c) * sqrt(1-c)
-        # where 'c' is scaled concentration
-        self.j0 = pybamm.sqrt(self.sto) * pybamm.sqrt(1 - self.sto)
+        ## TEMPORARY, TAKEN FROM PYBAMM CODE
+        if self.charge == 1:
+            m_ref = 6 * 10 ** (-7)  # (A/m2)(m3/mol)**1.5 - includes ref concentrations
+            self.j0 = m_ref * 1000**0.5 * self.surf_conc**0.5 * (self.conc_max - self.surf_conc) ** 0.5
+        else:
+            m_ref = 2 * 10 ** (-5)  # (A/m2)(m3/mol)**1.5 - includes ref concentrations
+            self.j0 = m_ref * 1000**0.5 * self.surf_conc**0.5 * (self.conc_max - self.surf_conc) ** 0.5
 
-        self.sto_name = self.name + " vSurface Stoichometry"
         self.j_name = self.name + " vCurrent Density"
         self.j0_name = self.name + " vExchange Current Density"
 
@@ -63,7 +65,6 @@ class SingleParticle:
             self.surf_conc_name: self.surf_conc,
             self.j_name: self.j,
             self.j0_name: self.j0,
-            self.sto_name: self.sto
         })
     
     def process_geometry(self, geo: dict, clear=False):

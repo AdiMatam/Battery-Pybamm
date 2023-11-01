@@ -29,7 +29,7 @@ def post_process_voltage(solution: pybamm.Solution, positive: SingleParticle, ne
 
         # jp is negative. overpotential decreases when pos electrode being lithiated, 
         # so correct signs
-        volmer_p = 2 * RTF * pybamm.arcsinh(j_p / (2 * j0_p))
+        volmer_p = 2 * RTF * pybamm.arcsinh(j_p / (2 * j0_p)) # im getting higher overpot.
         
         # default function (given in pybamm basicSPM code -- check Up.py)
         up = Up(scaled_surf_p)
