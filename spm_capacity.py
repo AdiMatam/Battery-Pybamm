@@ -36,7 +36,8 @@ negative.process_parameters(param_dict, {
     negative.conc_0: c.NEG_CSN_INITIAL,
     negative.L: c.NEG_ELEC_THICKNESS,
     negative.eps_n: c.NEG_ELEC_POROSITY,
-    negative.conc_max: c.NEG_CSN_MAX
+    negative.conc_max: c.NEG_CSN_MAX,
+    negative.j0: j0n
 })
 
 param = pybamm.ParameterValues(param_dict)
