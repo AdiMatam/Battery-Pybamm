@@ -47,22 +47,22 @@ def graphite_mcmb2528_ocp_Dualfoil1998(sto):
 
     u_eq = (
         0.194
-        + 1.5 * np.exp(-120.0 * sto)
-        + 0.0351 * np.tanh((sto - 0.286) / 0.083)
-        - 0.0045 * np.tanh((sto - 0.849) / 0.119)
-        - 0.035 * np.tanh((sto - 0.9233) / 0.05)
-        - 0.0147 * np.tanh((sto - 0.5) / 0.034)
-        - 0.102 * np.tanh((sto - 0.194) / 0.142)
-        - 0.022 * np.tanh((sto - 0.9) / 0.0164)
-        - 0.011 * np.tanh((sto - 0.124) / 0.0226)
-        + 0.0155 * np.tanh((sto - 0.105) / 0.029)
+        + 1.5 * pybamm.exp(-120.0 * sto)
+        + 0.0351 * pybamm.tanh((sto - 0.286) / 0.083)
+        - 0.0045 * pybamm.tanh((sto - 0.849) / 0.119)
+        - 0.035 * pybamm.tanh((sto - 0.9233) / 0.05)
+        - 0.0147 * pybamm.tanh((sto - 0.5) / 0.034)
+        - 0.102 * pybamm.tanh((sto - 0.194) / 0.142)
+        - 0.022 * pybamm.tanh((sto - 0.9) / 0.0164)
+        - 0.011 * pybamm.tanh((sto - 0.124) / 0.0226)
+        + 0.0155 * pybamm.tanh((sto - 0.105) / 0.029)
     )
 
     return u_eq
 
 
 def graphite_electrolyte_exchange_current_density_Dualfoil1998(
-    c_e, c_s_surf, c_s_max, T
+    c_e, c_s_surf, c_s_max
 ):
     """
     Exchange-current density for Butler-Volmer reactions between graphite and LiPF6 in
@@ -89,11 +89,11 @@ def graphite_electrolyte_exchange_current_density_Dualfoil1998(
         Exchange-current density [A.m-2]
     """
     m_ref = 2 * 10 ** (-5)  # (A/m2)(m3/mol)**1.5 - includes ref concentrations
-    E_r = 37480
-    arrhenius = np.exp(E_r / pybamm.constants.R * (1 / 298.15 - 1 / T))
+    # E_r = 37480
+    # arrhenius = np.exp(E_r / pybamm.constants.R * (1 / 298.15 - 1 / T))
 
     return (
-        m_ref * arrhenius * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5
+        m_ref * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5
     )
 
 
@@ -183,18 +183,18 @@ def lico2_ocp_Dualfoil1998(sto):
 
     u_eq = (
         2.16216
-        + 0.07645 * np.tanh(30.834 - 54.4806 * sto)
-        + 2.1581 * np.tanh(52.294 - 50.294 * sto)
-        - 0.14169 * np.tanh(11.0923 - 19.8543 * sto)
-        + 0.2051 * np.tanh(1.4684 - 5.4888 * sto)
-        + 0.2531 * np.tanh((-sto + 0.56478) / 0.1316)
-        - 0.02167 * np.tanh((sto - 0.525) / 0.006)
+        + 0.07645 * pybamm.tanh(30.834 - 54.4806 * sto)
+        + 2.1581 * pybamm.tanh(52.294 - 50.294 * sto)
+        - 0.14169 * pybamm.tanh(11.0923 - 19.8543 * sto)
+        + 0.2051 * pybamm.tanh(1.4684 - 5.4888 * sto)
+        + 0.2531 * pybamm.tanh((-sto + 0.56478) / 0.1316)
+        - 0.02167 * pybamm.tanh((sto - 0.525) / 0.006)
     )
 
     return u_eq
 
 
-def lico2_electrolyte_exchange_current_density_Dualfoil1998(c_e, c_s_surf, c_s_max, T):
+def lico2_electrolyte_exchange_current_density_Dualfoil1998(c_e, c_s_surf, c_s_max):
     """
     Exchange-current density for Butler-Volmer reactions between lico2 and LiPF6 in
     EC:DMC.

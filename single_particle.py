@@ -20,15 +20,23 @@ class SingleParticle:
         self.surf_conc = pybamm.surf(self.conc)
 
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
-        self.voltage_name = self.name + " vVoltage"
+        self.voltage_name = self.name + " fVoltage"
 
     def j0_func(self, c_e, c_s_surf, c_s_max):
         return pybamm.FunctionParameter(
-            self.name + "fExchange Current Density",
+            self.name + " fExchange Current Density",
             {
                 "Electrolyte Concentration": c_e,
                 "Electrode Surface Concentration": c_s_surf,
                 "Electrode Max Concentration": c_s_max
+            }
+        )
+
+    def u_func(self, sto):
+        return pybamm.FunctionParameter(
+            self.voltage_name,
+            {
+                "Stoichiometry": sto
             }
         )
 
@@ -57,12 +65,10 @@ class SingleParticle:
         RTF = c.R_GAS * c.T / c.F
         
         self.j0 = self.j0_func(pybamm.Scalar(c.ELECTROLYTE_CONC), self.surf_conc, self.conc_max)
-        volmer_term = 2 * RTF * pybamm.arcsinh(self.j / (2 * self.j0))
+        overpotential = 2 * RTF * pybamm.arcsinh(self.j / (2 * self.j0))
 
-        if self.charge == 1:
-            self.voltage = volmer_term + Up(self.surf_conc / self.conc_max)
-        else:
-            self.voltage = volmer_term + Un(self.surf_conc / self.conc_max)
+        self.ocp = self.u_func(self.surf_conc / self.conc_max) 
+        self.voltage = overpotential + self.ocp
         
         model.boundary_conditions.update({
             self.conc: {
@@ -72,7 +78,6 @@ class SingleParticle:
         })
         model.variables.update({
             self.conc.name: self.conc, 
-            self.voltage_name: self.voltage
         })
     
     def process_geometry(self, geo: dict, clear=False):
