@@ -1,4 +1,8 @@
 1) They are accounting for separator... etc
+
 2) Current/m2 differences.
     -> Q (1/A) = di/dt (1/A) is weighted in capacity calculation?
     -> nominal capacity == current function (because Crate=1 assumed)
+    -> Does my formula calculate Ah or Ah/m2. How to contrast with what they've done
+
+3) Min concentration on my end (negative) is limiting variable in capacity calcs. 
