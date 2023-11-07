@@ -1,0 +1,4 @@
+1) They are accounting for separator... etc
+2) Current/m2 differences.
+    -> Q (1/A) = di/dt (1/A) is weighted in capacity calculation?
+    -> nominal capacity == current function (because Crate=1 assumed)

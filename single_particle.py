@@ -77,7 +77,9 @@ class SingleParticle:
             },
         })
         model.variables.update({
-            self.conc.name: self.conc, 
+            self.conc.name: pybamm.PrimaryBroadcast(
+                self.surf_conc, self.domain #self.conc, 
+            )
         })
     
     def process_geometry(self, geo: dict, clear=False):

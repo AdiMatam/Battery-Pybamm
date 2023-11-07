@@ -52,7 +52,7 @@ param = pybamm.ParameterValues(param_dict)
 param.process_model(model)
 param.process_geometry(geo)
 
-PTS = 50
+PTS = 30
 mesh = pybamm.Mesh(geo, 
     { positive.domain: pybamm.Uniform1DSubMesh, negative.domain: pybamm.Uniform1DSubMesh }, 
     { positive.r: PTS, negative.r: PTS }
@@ -75,45 +75,39 @@ else:
     print("Neg electrode parameters LIMITING")
 
 capacity *= (c.F / 3600) # conversion into Ah
-
-solver = pybamm.ScipySolver()
+calc_current = (capacity / c.RUNTIME_HOURS)
 
 seconds = c.RUNTIME_HOURS * 3600
 time_steps = np.linspace(0, seconds, 250)
 print(f"Evaluating @ {len(time_steps)} timesteps")
-
-calc_current = (capacity / c.RUNTIME_HOURS)
-
 print(f"Discharging @ {calc_current:.3f} A/m2; Runtime: {seconds} seconds")
 
 # Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
 # use NEGATIVE CURRENT <-> REPRESENTING DISCHARGE
+solver = pybamm.ScipySolver()
 solution = solver.solve(model, time_steps, inputs={current_param.name: -calc_current})
 solution.plot([
     *model.variables.keys(),
     "Voltage"
 ])
 
-# from voltage_sim import post_process_voltage
-
-# voltages = post_process_voltage(solution, positive, negative)
+voltages = solution["Voltage"].entries
 
 # ## COMPARE WITH PYBAMM-GENERATED
+pyb_voltages = []
+with open("compare_test.txt", 'r') as f:
+    for line in f:
+        if line:
+            pyb_voltages.append(float(line))
 
-# pyb_voltages = []
-# with open("compare_test.txt", 'r') as f:
-    # for line in f:
-        # if line:
-            # pyb_voltages.append(float(line))
 
+plt.plot(list(solution.t), voltages, label='My Model', color='r')
+plt.plot(list(solution.t), pyb_voltages, label='Pybamm Model', color='b')
+plt.xlabel("Time (s)")
+plt.ylabel("Voltage (V)")
 
-# plt.plot(list(solution.t), voltages, label='My Model', color='r')
-# plt.plot(list(solution.t), pyb_voltages, label='Pybamm Model', color='b')
-# plt.xlabel("Time (s)")
-# plt.ylabel("Voltage (V)")
-
-# plt.legend()
-# plt.show()
+plt.legend()
+plt.show()
 
 
 
