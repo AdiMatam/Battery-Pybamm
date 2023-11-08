@@ -1,9 +1,6 @@
 import pybamm
 import consts as c
 
-from marquis import lico2_ocp_Dualfoil1998 as Up
-from marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
-
 class SingleParticle:
     def __init__(self, name: str, charge: int, iapp: pybamm.Parameter):
         self.name = name
@@ -18,6 +15,7 @@ class SingleParticle:
 
         self.conc = pybamm.Variable(name + " vConcentration", domain=self.domain)
         self.surf_conc = pybamm.surf(self.conc)
+        self.surf_conc_name = name + " vSurface Concentration"
 
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
         self.voltage_name = self.name + " fVoltage"
@@ -77,8 +75,8 @@ class SingleParticle:
             },
         })
         model.variables.update({
-            self.conc.name: pybamm.PrimaryBroadcast(
-                self.surf_conc, self.domain #self.conc, 
+            self.surf_conc_name: pybamm.PrimaryBroadcast(
+                self.surf_conc, self.domain
             )
         })
     

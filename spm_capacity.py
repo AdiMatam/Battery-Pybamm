@@ -4,10 +4,6 @@ from matplotlib import pyplot as plt
 import consts as c
 
 from single_particle import SingleParticle
-from marquis import lico2_electrolyte_exchange_current_density_Dualfoil1998 as j0p
-from marquis import graphite_electrolyte_exchange_current_density_Dualfoil1998 as j0n
-from marquis import lico2_ocp_Dualfoil1998 as Up
-from marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
 
 current_param = pybamm.Parameter("Input Current / Area") 
 
@@ -21,30 +17,34 @@ model.variables.update({
     "Voltage": positive.voltage - negative.voltage
 })
 
+model.events += [
+    pybamm.Event("Voltage Min Cutoff", model.variables["Voltage"] - 3.0)
+]
+
 geo = {}
 positive.process_geometry(geo)
 negative.process_geometry(geo)
 
 ## TODO: improve how this is done. Parameters in a file? json or something may simplify? 
-param_dict = {}
+param_dict = {
+    current_param.name: "[input]"
+}
 positive.process_parameters(param_dict, {
-    current_param: "[input]", 
     positive.conc_0: c.POS_CSN_INITIAL,
     positive.L: c.POS_ELEC_THICKNESS,
     positive.eps_n: c.POS_ELEC_POROSITY,
     positive.conc_max: c.POS_CSN_MAX,
-    positive.j0: j0p,
-    positive.ocp: Up
+    positive.j0: c.POS_EXCHANGE_CURRENT_DENSITY,
+    positive.ocp: c.POS_OPEN_CIRCUIT_POTENTIAL
 })
 
 negative.process_parameters(param_dict, {
-    current_param: "[input]", # send value at solve-time
     negative.conc_0: c.NEG_CSN_INITIAL,
     negative.L: c.NEG_ELEC_THICKNESS,
     negative.eps_n: c.NEG_ELEC_POROSITY,
     negative.conc_max: c.NEG_CSN_MAX,
-    negative.j0: j0n,
-    negative.ocp: Un
+    negative.j0: c.NEG_EXCHANGE_CURRENT_DENSITY,
+    negative.ocp: c.NEG_OPEN_CIRCUIT_POTENTIAL
     
 })
 
@@ -91,42 +91,22 @@ solution.plot([
     "Voltage"
 ])
 
-voltages = solution["Voltage"].entries
-concs = solution[negative.conc.name].entries[0]
-pos_my_concs = solution[positive.conc.name].entries[0]
+# voltages = solution["Voltage"].entries
 
-# ## COMPARE WITH PYBAMM-GENERATED
-pyb_voltages = []
-with open("compare_test.txt", 'r') as f:
-    for line in f:
-        if line:
-            pyb_voltages.append(float(line))
+# # ## COMPARE WITH PYBAMM-GENERATED
+# pyb_voltages = []
+# with open("compare_test.txt", 'r') as f:
+    # for line in f:
+        # if line:
+            # pyb_voltages.append(float(line))
 
-neg_concentrations = []
-with open("negative_concentrations.txt", 'r') as f:
-    for line in f:
-        if line:
-            neg_concentrations.append(float(line))
+# plt.plot(list(solution.t), voltages, label='My Model', color='r')
+# plt.plot(list(solution.t), pyb_voltages, label='Pybamm Model', color='b')
+# plt.xlabel("Time (s)")
+# plt.ylabel("Voltage (V)")
 
-pos_concentrations = []
-with open("positive_concentrations.txt", 'r') as f:
-    for line in f:
-        if line:
-            pos_concentrations.append(float(line))
-
-# plt.plot(list(solution.t), concs, label="My Model", color='r')
-# plt.plot(list(solution.t), neg_concentrations, label="Pybamm Model", color='b')
-
-# plt.plot(list(solution.t), pos_my_concs, label="My Model", color='r')
-# plt.plot(list(solution.t), pos_concentrations, label="Pybamm Model", color='b')
-
-plt.plot(list(solution.t), voltages, label='My Model', color='r')
-plt.plot(list(solution.t), pyb_voltages, label='Pybamm Model', color='b')
-plt.xlabel("Time (s)")
-plt.ylabel("Voltage (V)")
-
-plt.legend()
-plt.show()
+# plt.legend()
+# plt.show()
 
 
 
