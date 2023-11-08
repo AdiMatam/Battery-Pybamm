@@ -30,21 +30,21 @@ param_dict = {
     current_param.name: "[input]"
 }
 positive.process_parameters(param_dict, {
-    positive.conc_0: c.POS_CSN_INITIAL,
-    positive.L: c.POS_ELEC_THICKNESS,
-    positive.eps_n: c.POS_ELEC_POROSITY,
-    positive.conc_max: c.POS_CSN_MAX,
-    positive.j0: c.POS_EXCHANGE_CURRENT_DENSITY,
-    positive.ocp: c.POS_OPEN_CIRCUIT_POTENTIAL
+    positive.conc_0:    c.POS_CSN_INITIAL,
+    positive.L:         c.POS_ELEC_THICKNESS,
+    positive.eps_n:     c.POS_ELEC_POROSITY,
+    positive.conc_max:  c.POS_CSN_MAX,
+    positive.j0:        c.POS_EXCHANGE_CURRENT_DENSITY,
+    positive.ocp:       c.POS_OPEN_CIRCUIT_POTENTIAL
 })
 
 negative.process_parameters(param_dict, {
-    negative.conc_0: c.NEG_CSN_INITIAL,
-    negative.L: c.NEG_ELEC_THICKNESS,
-    negative.eps_n: c.NEG_ELEC_POROSITY,
-    negative.conc_max: c.NEG_CSN_MAX,
-    negative.j0: c.NEG_EXCHANGE_CURRENT_DENSITY,
-    negative.ocp: c.NEG_OPEN_CIRCUIT_POTENTIAL
+    negative.conc_0:    c.NEG_CSN_INITIAL,
+    negative.L:         c.NEG_ELEC_THICKNESS,
+    negative.eps_n:     c.NEG_ELEC_POROSITY,
+    negative.conc_max:  c.NEG_CSN_MAX,
+    negative.j0:        c.NEG_EXCHANGE_CURRENT_DENSITY,
+    negative.ocp:       c.NEG_OPEN_CIRCUIT_POTENTIAL
     
 })
 
