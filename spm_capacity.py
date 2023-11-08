@@ -92,6 +92,8 @@ solution.plot([
 ])
 
 voltages = solution["Voltage"].entries
+concs = solution[negative.conc.name].entries[0]
+pos_my_concs = solution[positive.conc.name].entries[0]
 
 # ## COMPARE WITH PYBAMM-GENERATED
 pyb_voltages = []
@@ -100,6 +102,23 @@ with open("compare_test.txt", 'r') as f:
         if line:
             pyb_voltages.append(float(line))
 
+neg_concentrations = []
+with open("negative_concentrations.txt", 'r') as f:
+    for line in f:
+        if line:
+            neg_concentrations.append(float(line))
+
+pos_concentrations = []
+with open("positive_concentrations.txt", 'r') as f:
+    for line in f:
+        if line:
+            pos_concentrations.append(float(line))
+
+# plt.plot(list(solution.t), concs, label="My Model", color='r')
+# plt.plot(list(solution.t), neg_concentrations, label="Pybamm Model", color='b')
+
+# plt.plot(list(solution.t), pos_my_concs, label="My Model", color='r')
+# plt.plot(list(solution.t), pos_concentrations, label="Pybamm Model", color='b')
 
 plt.plot(list(solution.t), voltages, label='My Model', color='r')
 plt.plot(list(solution.t), pyb_voltages, label='Pybamm Model', color='b')

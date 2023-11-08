@@ -1,8 +1,12 @@
 1) They are accounting for separator... etc
+    nope. 
 
 2) Current/m2 differences.
     -> Q (1/A) = di/dt (1/A) is weighted in capacity calculation?
     -> nominal capacity == current function (because Crate=1 assumed)
     -> Does my formula calculate Ah or Ah/m2. How to contrast with what they've done
+
+    -> THE WAY WE ARE DOING IS RIGHT... 
+            HAD MISTAKES IN POROSITY PARAMETER, threw off capacity evaluation and electrode current density (j)
 
 3) Min concentration on my end (negative) is limiting variable in capacity calcs. 
