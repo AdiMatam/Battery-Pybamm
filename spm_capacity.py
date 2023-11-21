@@ -90,23 +90,3 @@ solution.plot([
     *model.variables.keys(),
     "Voltage"
 ])
-
-# voltages = solution["Voltage"].entries
-
-# # ## COMPARE WITH PYBAMM-GENERATED
-# pyb_voltages = []
-# with open("compare_test.txt", 'r') as f:
-    # for line in f:
-        # if line:
-            # pyb_voltages.append(float(line))
-
-# plt.plot(list(solution.t), voltages, label='My Model', color='r')
-# plt.plot(list(solution.t), pyb_voltages, label='Pybamm Model', color='b')
-# plt.xlabel("Time (s)")
-# plt.ylabel("Voltage (V)")
-
-# plt.legend()
-# plt.show()
-
-
-
