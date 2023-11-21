@@ -54,10 +54,9 @@ class SingleParticle:
             self.conc: pybamm.x_average(self.conc_0),
         }) 
         
-        a_term = (3 * (1 - self.eps_n)) / c.R
-
         # self.charge = +1 for positive electrode
         #               -1 for negative electrode
+        a_term = (3 * (1 - self.eps_n)) / c.R
         self.j = (self.charge * self.iapp) / (self.L * a_term)
 
         RTF = c.R_GAS * c.T / c.F
