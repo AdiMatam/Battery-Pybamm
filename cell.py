@@ -4,13 +4,12 @@ import consts as c
 
 class Cell:
     CELL_NAMES = set()
-    def __init__(self, name: str, model: pybamm.BaseModel, geo: dict, iapp: pybamm.Parameter):
+    def __init__(self, name: str, model: pybamm.BaseModel, geo:dict, iapp: pybamm.Parameter):
         if name in self.CELL_NAMES:
             raise ValueError("Must have unique cell names/IDs")
 
         self.name = name
         self.model = model
-        self.geo = geo
 
         self.pos = SingleParticle(name + " Pos Particle", +1, iapp)
         self.neg = SingleParticle(name + " Neg Particle", -1, iapp)
@@ -18,7 +17,7 @@ class Cell:
         self.pos.process_model(model)
         self.neg.process_model(model)
 
-        self.voltage = self.pos.voltage - self.neg.voltage
+        self.voltage = self.pos.particle_voltage - self.neg.particle_voltage
 
         model.variables.update({
             name + " Voltage": self.voltage
@@ -29,8 +28,18 @@ class Cell:
             pybamm.Event("Voltage Min Cutoff", self.voltage - 3.0)
         ]
 
-        self.pos.process_geometry(self.geo)
-        self.neg.process_geometry(self.geo)
+        self.pos.process_geometry(geo)
+        self.neg.process_geometry(geo)
+
+
+    def get_meshed_objects(self):
+        return { self.pos.domain: pybamm.Uniform1DSubMesh, self.neg.domain: pybamm.Uniform1DSubMesh } 
+
+    def get_radial_mesh(self, pts: int):
+        return { self.pos.r: pts, self.neg.r: pts }
+
+    def get_discretized(self):
+        return { self.pos.domain: pybamm.FiniteVolume(), self.neg.domain: pybamm.FiniteVolume() }
 
     def process_parameters(self, param_dict: dict):
         self.pos.process_parameters(param_dict, {

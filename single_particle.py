@@ -18,7 +18,7 @@ class SingleParticle:
         self.surf_conc_name = name + " vSurface Concentration"
 
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
-        self.voltage_name = self.name + " fVoltage"
+        self.particle_voltage_name = self.name + " fParticle Voltage"
 
     def j0_func(self, c_e, c_s_surf, c_s_max):
         return pybamm.FunctionParameter(
@@ -32,7 +32,7 @@ class SingleParticle:
 
     def u_func(self, sto):
         return pybamm.FunctionParameter(
-            self.voltage_name,
+            self.particle_voltage_name,
             {
                 "Stoichiometry": sto
             }
@@ -65,7 +65,7 @@ class SingleParticle:
         overpotential = 2 * RTF * pybamm.arcsinh(self.j / (2 * self.j0))
 
         self.ocp = self.u_func(self.surf_conc / self.conc_max) 
-        self.voltage = overpotential + self.ocp
+        self.particle_voltage = overpotential + self.ocp
         
         model.boundary_conditions.update({
             self.conc: {

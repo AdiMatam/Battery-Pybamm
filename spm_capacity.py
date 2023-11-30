@@ -2,7 +2,6 @@ import pybamm
 import numpy as np
 import consts as c
 
-from single_particle import SingleParticle
 from cell import Cell
 
 """
@@ -33,28 +32,38 @@ current_param = pybamm.Parameter("Input Current / Area")
 
 model = pybamm.BaseModel()
 geo = {}
-param_dict = {}
+param_dict = {
+    current_param.name: "[input]"
+}
+
+net_voltage = pybamm.Variable("Enforced Voltage") ## this shouldn't have a domain? 
 
 cell1 = Cell("Num1", model, geo, current_param)
-cell1.process_parameters(param_dict) ## hardcoded internally now
-
 cell2 = Cell("Num2", model, geo, current_param)
+CELLS = [cell1, cell2]
+
+model.algebraic = {
+    net_voltage: cell1.voltage - cell2.voltage
+}
+
+cell1.process_parameters(param_dict) ## hardcoded internally now
 cell2.process_parameters(param_dict) 
 
+# THE 'TOP LEVEL' CAN STILL BE ABSTRACTED? 
 param = pybamm.ParameterValues(param_dict)
 param.process_model(model)
 param.process_geometry(geo)
 
-# PTS = 30
-# mesh = pybamm.Mesh(geo, 
-    # { positive.domain: pybamm.Uniform1DSubMesh, negative.domain: pybamm.Uniform1DSubMesh }, 
-    # { positive.r: PTS, negative.r: PTS }
-# )
+PTS = 30
+mesh = pybamm.Mesh(geo, 
+    cell1.get_meshed_objects() | cell2.get_meshed_objects(),
+    cell1.get_radial_mesh(PTS) | cell2.get_radial_mesh(PTS)
+)
 
-# disc = pybamm.Discretisation(mesh, 
-    # { positive.domain: pybamm.FiniteVolume(), negative.domain: pybamm.FiniteVolume() }
-# )
-# disc.process_model(model)
+disc = pybamm.Discretisation(mesh, 
+    cell1.get_discretized() | cell2.get_discretized()
+)
+disc.process_model(model)
 
 
 # # Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
