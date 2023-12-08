@@ -35,7 +35,7 @@ NEG_OPEN_CIRCUIT_POTENTIAL = Un
 #-------------------
 ELECTROLYTE_CONC = 1000
 
-C_RATE = 1 
+C_RATE = 1 / 1
 RUNTIME_HOURS = 1 / C_RATE # hours
 
 # RUNTIME_HOURS = 10

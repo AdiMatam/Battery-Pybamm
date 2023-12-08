@@ -5,21 +5,22 @@ import consts as c
 
 from single_particle import SingleParticle
 
-current_param = pybamm.Parameter("Input Current / Area") 
+iapp = pybamm.Parameter("Input Current / Area") 
+cell_voltage = "Voltage"
 
 model = pybamm.BaseModel()
-positive = SingleParticle("Positive Particle", +1, current_param)
-negative = SingleParticle("Negative Particle", -1, current_param)
+positive = SingleParticle("Positive Particle", +1, iapp)
+negative = SingleParticle("Negative Particle", -1, iapp)
 
 positive.process_model(model)
 negative.process_model(model)
 model.variables.update({
-    "Voltage": positive.voltage - negative.voltage
+    cell_voltage: positive.voltage - negative.voltage
 })
 
-model.events += [
-    pybamm.Event("Voltage Min Cutoff", model.variables["Voltage"] - 3.0)
-]
+# model.events += [
+    # pybamm.Event("Voltage Min Cutoff", model.variables["Voltage"] - 3.0)
+# ]
 
 geo = {}
 positive.process_geometry(geo)
@@ -27,7 +28,7 @@ negative.process_geometry(geo)
 
 ## TODO: improve how this is done. Parameters in a file? json or something may simplify? 
 param_dict = {
-    current_param.name: "[input]"
+    iapp.name: "[input]"
 }
 positive.process_parameters(param_dict, {
     positive.conc_0:    c.POS_CSN_INITIAL,
@@ -85,8 +86,25 @@ print(f"Discharging @ {calc_current:.3f} A/m2; Runtime: {seconds} seconds")
 # Evaluate concentration @ each <time_steps> steps @ at <PTS> locations from r=0->R
 # use NEGATIVE CURRENT <-> REPRESENTING DISCHARGE
 solver = pybamm.ScipySolver()
-solution = solver.solve(model, time_steps, inputs={current_param.name: -calc_current})
-solution.plot([
-    *model.variables.keys(),
-    "Voltage"
-])
+solution = solver.solve(model, time_steps, inputs={iapp.name: -calc_current})
+# solution.plot([
+    # *model.variables.keys(),
+    # "Voltage"
+# ])
+
+
+### COMPARE EXERCISE
+
+from basemodel_spm_cpy import voltage_compare
+my_voltages = solution[cell_voltage].entries
+pyb_voltages = voltage_compare(calc_current)
+
+print(len(my_voltages))
+print(len(pyb_voltages))
+assert(len(my_voltages) == len(pyb_voltages))
+
+plt.plot(solution.t, my_voltages, label="My Model", color='r')
+plt.plot(solution.t, pyb_voltages, label="Pybamm Model", color='b')
+plt.legend()
+plt.show()
+
