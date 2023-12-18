@@ -18,10 +18,6 @@ model.variables.update({
     cell_voltage: positive.voltage - negative.voltage
 })
 
-# model.events += [
-    # pybamm.Event("Voltage Min Cutoff", model.variables["Voltage"] - 3.0)
-# ]
-
 geo = {}
 positive.process_geometry(geo)
 negative.process_geometry(geo)
@@ -92,19 +88,22 @@ solution = solver.solve(model, time_steps, inputs={iapp.name: -calc_current})
     # "Voltage"
 # ])
 
-
 ### COMPARE EXERCISE
-
-from basemodel_spm_cpy import voltage_compare
+from basemodel_spm_cpy import model_compare
 my_voltages = solution[cell_voltage].entries
-pyb_voltages = voltage_compare(calc_current)
+my_pos = solution[positive.surf_conc_name].entries[0]
+my_neg = solution[negative.surf_conc_name].entries[0]
+pyb_pos, pyb_neg, pyb_voltages = model_compare(calc_current)
 
-print(len(my_voltages))
-print(len(pyb_voltages))
-assert(len(my_voltages) == len(pyb_voltages))
+# print(len(my_voltages))
+# print(len(pyb_voltages))
+# assert(len(my_voltages) == len(pyb_voltages))
 
-plt.plot(solution.t, my_voltages, label="My Model", color='r')
-plt.plot(solution.t, pyb_voltages, label="Pybamm Model", color='b')
+plt.plot(solution.t, my_pos, label="My Model", color='r')
+plt.plot(solution.t, pyb_pos, label="Pybamm Model", color='b')
+
+plt.plot(solution.t, my_neg, label="My Model", color='r')
+plt.plot(solution.t, pyb_neg, label="Pybamm Model", color='b')
 plt.legend()
 plt.show()
 
