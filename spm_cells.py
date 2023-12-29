@@ -23,7 +23,6 @@ neg_phi2 = pybamm.Variable(name + " Neg Phi")
 pos2.process_model(model)
 neg2.process_model(model)
 
-volt_force = pybamm.Variable("Enforced Voltage")
 i_total = pybamm.Parameter("Input Current / Area") 
 
 RTF = c.R_GAS * c.T / c.F
@@ -34,6 +33,6 @@ model.algebraic = {
     pos_phi2: pos2.u_func(pos2.surf_conc / pos2.conc_max) + (2*RTF*pybamm.arcsinh(pos2.j / (2 * pos2.j0))) - pos_phi2,
     neg_phi2: neg2.u_func(neg2.surf_conc / neg2.conc_max) + (2*RTF*pybamm.arcsinh(neg2.j / (2 * neg2.j0))) - neg_phi2,
 
-    volt_force: (pos_phi1 - neg_phi1) - (pos_phi2 - neg_phi2),
-    pos2_iapp: i_total - pos1_iapp
+    pos2_iapp: (i_total - pos1_iapp) - pos2_iapp
 }
+
