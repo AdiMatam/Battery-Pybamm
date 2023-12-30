@@ -57,9 +57,11 @@ class SingleParticle:
         
         # self.charge = +1 for positive electrode
         #               -1 for negative electrode
-        a_term = (3 * (1 - self.eps_n)) / c.R
-        self.j = (self.charge * self.iapp) / (self.L * a_term)
+        self.a_term = (3 * (1 - self.eps_n)) / c.R
+        self.j = (self.charge * self.iapp) / (self.L * self.a_term)
         self.j0 = self.j0_func(pybamm.Scalar(c.ELECTROLYTE_CONC), self.surf_conc, self.conc_max)
+
+        self.ocp = self.u_func(self.surf_conc / self.conc_max)
         
         model.boundary_conditions.update({
             self.conc: {
