@@ -1,18 +1,22 @@
+from tkinter import W
 import pybamm
 from single_particle import SingleParticle
 import consts as c
 
 class Cell:
     CELL_NAMES = set()
-    def __init__(self, name: str, model: pybamm.BaseModel, geo:dict, iapp: pybamm.Parameter):
+    def __init__(self, name: str, model: pybamm.BaseModel, geo:dict):
         if name in self.CELL_NAMES:
             raise ValueError("Must have unique cell names/IDs")
 
+        self.CELL_NAMES.add(name)
         self.name = name
         self.model = model
 
-        self.pos = SingleParticle(name + " Pos Particle", +1, iapp)
-        self.neg = SingleParticle(name + " Neg Particle", -1, iapp)
+        self.iapp = pybamm.Variable(name + " Iapp")
+
+        self.pos = SingleParticle(name + " Pos Particle", +1, self.iapp)
+        self.neg = SingleParticle(name + " Neg Particle", -1, self.iapp)
 
         self.pos.process_model(model)
         self.neg.process_model(model)
@@ -23,10 +27,10 @@ class Cell:
             name + " Voltage": self.voltage
         })
 
-        ## PARAMETERIZE
-        model.events += [
-            pybamm.Event("Voltage Min Cutoff", self.voltage - 3.0)
-        ]
+        # ## PARAMETERIZE
+        # model.events += [
+            # pybamm.Event("Voltage Min Cutoff", self.voltage - 3.0)
+        # ]
 
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)

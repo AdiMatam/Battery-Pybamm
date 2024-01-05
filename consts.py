@@ -11,6 +11,7 @@ F = 96485
 R = 1e-05
 R_GAS = 8.314
 T = 298 # kelvin
+RTF = c.R_GAS * c.T / c.F
 
 POS_CSN_MAX = 51218  # 40104.0
 POS_CSN_INITIAL = 30730
