@@ -12,10 +12,6 @@ param_dict = {
 }
 geo = {}
 
-# cell1 = Cell("#1", model, geo)
-# cell2 = Cell("#2", model, geo)
-# cell3 = Cell("#3", model, geo)
-
 name = "Cell1"
 cell1_iapp = pybamm.Variable(name + " Iapp")
 pos1 = SingleParticle(name + " Pos Particle", +1, cell1_iapp)
@@ -54,16 +50,12 @@ neg4.process_model(model)
 
 i_total = pybamm.Parameter("Input Current / Area") 
 
-# Vcell1 - Vcell2 = 0
-# (pos_phi1 - neg_phi1) - (pos_phi2 - neg_phi2) - (pos_phi3 - neg_phi3)= 0
-# write as: 
-#       pos_phi1 = (neg_phi1 + pos_phi2 - neg_phi2 + pos_phi3 - neg_phi3) - pos_phi1
-
 model.algebraic = {
     pos_volt1: pos_volt2 - pos_volt1,
     pos_volt2: pos_volt3 - pos_volt2,
     pos_volt3: pos_volt4 - pos_volt3,
 
+    # pos_volt4: pos4.particle_voltage - neg4.particle_voltage - pos_volt4,
     pos_volt4: pos4.ocp + (2*c.RTF*pybamm.arcsinh(pos4.j / (2 * pos4.j0))) 
         - neg4.ocp - (2*c.RTF*pybamm.arcsinh(neg4.j / (2 * neg4.j0))) 
         - pos_volt4,
@@ -97,10 +89,10 @@ model.initial_conditions.update({
     pos_volt3: pos_phi_init - neg_phi_init,
     pos_volt4: pos_phi_init - neg_phi_init,
 
-    cell1_iapp: -1.2,
-    cell2_iapp: -1.2,
-    cell3_iapp: -1.2,
-    cell4_iapp: -1.2,
+    cell1_iapp: -4,
+    cell2_iapp: -4,
+    cell3_iapp: -4,
+    cell4_iapp: -4,
 })
 
 model.variables.update({

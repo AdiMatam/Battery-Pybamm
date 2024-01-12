@@ -18,12 +18,11 @@ class SingleParticle:
         self.surf_conc_name = name + " vSurface Concentration"
 
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
-        self.particle_voltage_name = name + " fParticle Voltage"
         self.j0_name = name + " fExchange Current Density"
 
     def u_func(self, sto):
         return pybamm.FunctionParameter(
-            self.particle_voltage_name,
+            "name + fParticleOCP",
             {
                 "Stoichiometry": sto
             }
@@ -62,6 +61,7 @@ class SingleParticle:
         self.j0 = self.j0_func(pybamm.Scalar(c.ELECTROLYTE_CONC), self.surf_conc, self.conc_max)
 
         self.ocp = self.u_func(self.surf_conc / self.conc_max)
+        self.particle_voltage = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
         
         model.boundary_conditions.update({
             self.conc: {
