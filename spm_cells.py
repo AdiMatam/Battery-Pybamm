@@ -8,7 +8,7 @@ model = pybamm.BaseModel()
 
 i_total = pybamm.Parameter("Input Current / Area") 
 param_dict = {
-    i_total.name: -4.8
+    i_total.name: -16
 }
 geo = {}
 
@@ -20,8 +20,8 @@ name = "Cell1"
 cell1_iapp = pybamm.Variable(name + " Iapp")
 pos1 = SingleParticle(name + " Pos Particle", +1, cell1_iapp)
 neg1 = SingleParticle(name + " Neg Particle", -1, cell1_iapp)
-pos_phi1 = pybamm.Variable(name + " Pos Phi")
-neg_phi1 = pybamm.Variable(name + " Neg Phi")
+pos_volt1 = pybamm.Variable(name + " Voltage")
+
 pos1.process_model(model)
 neg1.process_model(model)
 
@@ -29,8 +29,8 @@ name = "Cell2"
 cell2_iapp = pybamm.Variable(name + " Iapp")
 pos2 = SingleParticle(name + " Pos Particle", +1, cell2_iapp)
 neg2 = SingleParticle(name + " Neg Particle", -1, cell2_iapp)
-pos_phi2 = pybamm.Variable(name + " Pos Phi")
-neg_phi2 = pybamm.Variable(name + " Neg Phi")
+pos_volt2 = pybamm.Variable(name + " Voltage")
+
 pos2.process_model(model)
 neg2.process_model(model)
 
@@ -38,8 +38,8 @@ name = "Cell3"
 cell3_iapp = pybamm.Variable(name + " Iapp")
 pos3 = SingleParticle(name + " Pos Particle", +1, cell3_iapp)
 neg3 = SingleParticle(name + " Neg Particle", -1, cell3_iapp)
-pos_phi3 = pybamm.Variable(name + " Pos Phi")
-neg_phi3 = pybamm.Variable(name + " Neg Phi")
+pos_volt3 = pybamm.Variable(name + " Voltage")
+
 pos3.process_model(model)
 neg3.process_model(model)
 
@@ -47,8 +47,8 @@ name = "Cell4"
 cell4_iapp = pybamm.Variable(name + " Iapp")
 pos4 = SingleParticle(name + " Pos Particle", +1, cell4_iapp)
 neg4 = SingleParticle(name + " Neg Particle", -1, cell4_iapp)
-pos_phi4 = pybamm.Variable(name + " Pos Phi")
-neg_phi4 = pybamm.Variable(name + " Neg Phi")
+pos_volt4 = pybamm.Variable(name + " Voltage")
+
 pos4.process_model(model)
 neg4.process_model(model)
 
@@ -60,20 +60,25 @@ i_total = pybamm.Parameter("Input Current / Area")
 #       pos_phi1 = (neg_phi1 + pos_phi2 - neg_phi2 + pos_phi3 - neg_phi3) - pos_phi1
 
 model.algebraic = {
-    pos_phi1: (neg_phi1 + pos_phi2 - neg_phi2) - pos_phi1,
-    pos_phi2: (neg_phi2 + pos_phi3 - neg_phi3) - pos_phi2,
-    pos_phi3: (neg_phi3 + pos_phi4 - neg_phi4) - pos_phi3,
+    pos_volt1: pos_volt2 - pos_volt1,
+    pos_volt2: pos_volt3 - pos_volt2,
+    pos_volt3: pos_volt4 - pos_volt3,
 
-    cell1_iapp: pos1.ocp + 2*c.RTF*pybamm.arcsinh(pos1.j / (2 * pos1.j0)) - pos_phi1,
-    cell2_iapp: pos2.ocp + 2*c.RTF*pybamm.arcsinh(pos2.j / (2 * pos2.j0)) - pos_phi2,
-    cell3_iapp: pos3.ocp + 2*c.RTF*pybamm.arcsinh(pos3.j / (2 * pos3.j0)) - pos_phi3,
+    pos_volt4: pos4.ocp + (2*c.RTF*pybamm.arcsinh(pos4.j / (2 * pos4.j0))) 
+        - neg4.ocp - (2*c.RTF*pybamm.arcsinh(neg4.j / (2 * neg4.j0))) 
+        - pos_volt4,
 
-    neg_phi1: neg1.ocp + (2*c.RTF*pybamm.arcsinh(neg1.j / (2 * neg1.j0))) - neg_phi1,
-    neg_phi2: neg2.ocp + (2*c.RTF*pybamm.arcsinh(neg2.j / (2 * neg2.j0))) - neg_phi2,
-    neg_phi3: neg3.ocp + (2*c.RTF*pybamm.arcsinh(neg3.j / (2 * neg3.j0))) - neg_phi3,
+    cell1_iapp: pos1.ocp + 2*c.RTF*pybamm.arcsinh(pos1.j / (2 * pos1.j0))
+        - neg1.ocp - (2*c.RTF*pybamm.arcsinh(neg1.j / (2 * neg1.j0)))
+        - pos_volt1,
 
-    pos_phi4: pos4.ocp + (2*c.RTF*pybamm.arcsinh(pos4.j / (2 * pos4.j0))) - pos_phi4,
-    neg_phi4: neg4.ocp + (2*c.RTF*pybamm.arcsinh(neg4.j / (2 * neg4.j0))) - neg_phi4,
+    cell2_iapp: pos1.ocp + 2*c.RTF*pybamm.arcsinh(pos2.j / (2 * pos2.j0))
+        - neg2.ocp - (2*c.RTF*pybamm.arcsinh(neg2.j / (2 * neg2.j0)))
+        - pos_volt2,
+
+    cell3_iapp: pos3.ocp + 2*c.RTF*pybamm.arcsinh(pos3.j / (2 * pos3.j0))
+        - neg3.ocp - (2*c.RTF*pybamm.arcsinh(neg3.j / (2 * neg3.j0)))
+        - pos_volt3,
 
     cell4_iapp: (i_total - cell1_iapp - cell2_iapp - cell3_iapp) - cell4_iapp
 }
@@ -87,17 +92,10 @@ pos_phi_init = c.POS_OPEN_CIRCUIT_POTENTIAL(c.POS_CSN_INITIAL / c.POS_CSN_MAX)
 neg_phi_init = c.NEG_OPEN_CIRCUIT_POTENTIAL(c.NEG_CSN_INITIAL / c.NEG_CSN_MAX)
 
 model.initial_conditions.update({
-    pos_phi1: pos_phi_init,
-    neg_phi1: neg_phi_init,
-
-    pos_phi2: pos_phi_init,
-    neg_phi2: neg_phi_init,
-
-    pos_phi3: pos_phi_init,
-    neg_phi3: neg_phi_init,
-
-    pos_phi4: pos_phi_init,
-    neg_phi4: neg_phi_init,
+    pos_volt1: pos_phi_init - neg_phi_init,
+    pos_volt2: pos_phi_init - neg_phi_init,
+    pos_volt3: pos_phi_init - neg_phi_init,
+    pos_volt4: pos_phi_init - neg_phi_init,
 
     cell1_iapp: -1.2,
     cell2_iapp: -1.2,
@@ -106,17 +104,10 @@ model.initial_conditions.update({
 })
 
 model.variables.update({
-    pos_phi1.name: pos_phi1,
-    neg_phi1.name: neg_phi1,
-
-    pos_phi2.name: pos_phi2,
-    neg_phi2.name: neg_phi2,           
-
-    pos_phi3.name: pos_phi3,
-    neg_phi3.name: neg_phi3,           
-
-    pos_phi4.name: pos_phi4,
-    neg_phi4.name: neg_phi4,           
+    pos_volt1.name: pos_volt1,
+    pos_volt2.name: pos_volt2,
+    pos_volt3.name: pos_volt3,
+    pos_volt4.name: pos_volt4,
 
     cell1_iapp.name: cell1_iapp,
     cell2_iapp.name: cell2_iapp,
