@@ -1,8 +1,8 @@
 import pybamm
 import numpy as np
 import consts as c
-# from single_particle import SingleParticle
-from cell import Cell
+from single_particle import SingleParticle
+# from cell import Cell
 
 model = pybamm.BaseModel()
 
@@ -12,9 +12,9 @@ param_dict = {
 }
 geo = {}
 
-cell1 = Cell("#1", model, geo)
-cell2 = Cell("#2", model, geo)
-cell3 = Cell("#3", model, geo)
+# cell1 = Cell("#1", model, geo)
+# cell2 = Cell("#2", model, geo)
+# cell3 = Cell("#3", model, geo)
 
 name = "Cell1"
 cell1_iapp = pybamm.Variable(name + " Iapp")
@@ -54,14 +54,14 @@ model.algebraic = {
     pos_phi1: (neg_phi1 + pos_phi2 - neg_phi2) - pos_phi1,
     pos_phi2: (neg_phi2 + pos_phi3 - neg_phi3) - pos_phi2,
 
-    cell1_iapp: pos1.ocp + 2*RTF*pybamm.arcsinh(pos1.j / (2 * pos1.j0)) - pos_phi1,
-    cell2_iapp: pos2.ocp + 2*RTF*pybamm.arcsinh(pos2.j / (2 * pos2.j0)) - pos_phi2,
+    cell1_iapp: pos1.ocp + 2*c.RTF*pybamm.arcsinh(pos1.j / (2 * pos1.j0)) - pos_phi1,
+    cell2_iapp: pos2.ocp + 2*c.RTF*pybamm.arcsinh(pos2.j / (2 * pos2.j0)) - pos_phi2,
 
-    neg_phi1: neg1.ocp + (2*RTF*pybamm.arcsinh(neg1.j / (2 * neg1.j0))) - neg_phi1,
-    neg_phi2: neg2.ocp + (2*RTF*pybamm.arcsinh(neg2.j / (2 * neg2.j0))) - neg_phi2,
+    neg_phi1: neg1.ocp + (2*c.RTF*pybamm.arcsinh(neg1.j / (2 * neg1.j0))) - neg_phi1,
+    neg_phi2: neg2.ocp + (2*c.RTF*pybamm.arcsinh(neg2.j / (2 * neg2.j0))) - neg_phi2,
 
-    pos_phi3: pos3.ocp + (2*RTF*pybamm.arcsinh(pos3.j / (2 * pos3.j0))) - pos_phi3,
-    neg_phi3: neg3.ocp + (2*RTF*pybamm.arcsinh(neg3.j / (2 * neg3.j0))) - neg_phi3,
+    pos_phi3: pos3.ocp + (2*c.RTF*pybamm.arcsinh(pos3.j / (2 * pos3.j0))) - pos_phi3,
+    neg_phi3: neg3.ocp + (2*c.RTF*pybamm.arcsinh(neg3.j / (2 * neg3.j0))) - neg_phi3,
 
     cell3_iapp: (i_total - cell1_iapp - cell2_iapp) - cell3_iapp
 }
