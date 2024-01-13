@@ -1,15 +1,14 @@
-from tkinter import W
 import pybamm
 from single_particle import SingleParticle
 import consts as c
 
 class Cell:
-    CELL_NAMES = set()
+    CELLS = list()
     def __init__(self, name: str, model: pybamm.BaseModel, geo:dict):
-        if name in self.CELL_NAMES:
-            raise ValueError("Must have unique cell names/IDs")
+        # if self in self.CELL_NAMES:
+            # raise ValueError("Must have unique cell names/IDs")
 
-        self.CELL_NAMES.add(name)
+        self.CELLS.append(self)
         self.name = name
         self.model = model
 
@@ -21,10 +20,12 @@ class Cell:
         self.pos.process_model(model)
         self.neg.process_model(model)
 
-        self.voltage = self.pos.particle_voltage - self.neg.particle_voltage
+        self.voltage = pybamm.Variable(name + " Voltage")
+        # self.voltage = self.pos.phi - self.neg.phi
 
         model.variables.update({
-            name + " Voltage": self.voltage
+            self.voltage.name: self.voltage,
+            self.iapp.name: self.iapp
         })
 
         # ## PARAMETERIZE
@@ -45,7 +46,7 @@ class Cell:
     def get_discretized(self):
         return { self.pos.domain: pybamm.FiniteVolume(), self.neg.domain: pybamm.FiniteVolume() }
 
-    def process_parameters(self, param_dict: dict):
+    def set_parameters(self, param_dict: dict):
         self.pos.process_parameters(param_dict, {
             self.pos.conc_0:    c.POS_CSN_INITIAL,
             self.pos.L:         c.POS_ELEC_THICKNESS,

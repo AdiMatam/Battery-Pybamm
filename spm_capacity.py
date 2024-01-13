@@ -46,8 +46,8 @@ model.algebraic = {
     net_voltage: cell1.voltage - cell2.voltage
 }
 
-cell1.process_parameters(param_dict) ## hardcoded internally now
-cell2.process_parameters(param_dict) 
+cell1.set_parameters(param_dict) ## hardcoded internally now
+cell2.set_parameters(param_dict) 
 
 # THE 'TOP LEVEL' CAN STILL BE ABSTRACTED? 
 param = pybamm.ParameterValues(param_dict)

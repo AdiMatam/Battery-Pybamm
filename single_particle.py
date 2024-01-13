@@ -22,7 +22,7 @@ class SingleParticle:
 
     def u_func(self, sto):
         return pybamm.FunctionParameter(
-            "name + fParticleOCP",
+            self.name + " fParticle Voltage", #          self.particle_voltage_name,
             {
                 "Stoichiometry": sto
             }
@@ -61,7 +61,7 @@ class SingleParticle:
         self.j0 = self.j0_func(pybamm.Scalar(c.ELECTROLYTE_CONC), self.surf_conc, self.conc_max)
 
         self.ocp = self.u_func(self.surf_conc / self.conc_max)
-        self.particle_voltage = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
+        self.phi = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
         
         model.boundary_conditions.update({
             self.conc: {
