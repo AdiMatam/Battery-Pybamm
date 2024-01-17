@@ -20,11 +20,12 @@ class Cell:
         self.pos.process_model(model)
         self.neg.process_model(model)
 
+        ### FIGURE THIS OUT
         self.voltage = pybamm.Variable(name + " Voltage")
-        # self.voltage = self.pos.phi - self.neg.phi
 
         model.variables.update({
-            self.voltage.name: self.voltage,
+            self.pos.phi.name: self.pos.phi,
+            self.neg.phi.name: self.neg.phi,
             self.iapp.name: self.iapp
         })
 
