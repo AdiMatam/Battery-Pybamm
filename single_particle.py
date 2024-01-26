@@ -1,5 +1,6 @@
 import pybamm
 import consts as c
+import params as p
 
 class SingleParticle:
     def __init__(self, name: str, charge: int, iapp: pybamm.Variable):
@@ -40,7 +41,7 @@ class SingleParticle:
             }
         )
 
-    def process_model(self, model: pybamm.BaseModel, clear=False):
+    def process_model(self, model: pybamm.BaseModel, electrolyte_conc: float, clear=False):
         if clear:
             model = pybamm.BaseModel()
 
@@ -60,11 +61,11 @@ class SingleParticle:
         #               -1 for negative electrode
         self.a_term = (3 * (1 - self.eps_n)) / c.R
         self.j = (self.charge * self.iapp) / (self.L * self.a_term)
-        self.j0 = self.j0_func(pybamm.Scalar(c.ELECTROLYTE_CONC), self.surf_conc, self.conc_max)
+        self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_conc, self.conc_max)
 
         self.ocp = self.u_func(self.surf_conc / self.conc_max)
-        self.phi_expr = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
-        
+        self.bv_term = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
+
         model.boundary_conditions.update({
             self.conc: {
                 "left":  (0, "Neumann"),

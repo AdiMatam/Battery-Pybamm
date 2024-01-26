@@ -7,6 +7,7 @@ model = pybamm.lithium_ion.SPM()
 
 # print(model.variables.keys())
 param = model.default_parameter_values
+print(param)
 
 geo = model.default_geometry
 param.process_model(model)
@@ -24,7 +25,7 @@ solution = solver.solve(model, t_eval)
 # print('Finished.')
 
 a = solution['Positive electrode open-circuit potential [V]'].entries
-print(a)
+#print(a)
 # print(len(a[0]))
 
 # param = model.default_parameter_values

@@ -1,71 +1,67 @@
 C_RATE = 1/20 
-I_TOTAL = 0
-NUM_CELLS = 4
-DISCRETE_PTS = 30
-TIME_PTS = 250
-
 RUNTIME_HOURS = 1 / C_RATE # hours
+NUM_CELLS = 4
+DISCHARGE_CURRENT = -1.2
 
 
 import pybamm
 import numpy as np
+import consts as c
 from cell import Cell
 
 model = pybamm.BaseModel()
 geo = {}
+cells = [Cell(f"Cell {i + 1}", model, geo) for i in range(NUM_CELLS)]
 
 i_total = pybamm.Parameter("Input Current / Area") 
 
-parameters = {}
-cells = [Cell(f"Cell {i + 1}", model, geo, parameters) for i in range(NUM_CELLS)]
-
-# Vcell1 - Vcell2 = 0
-# (pos_phi1 - neg_phi1) - (pos_phi2 - neg_phi2) = 0
 for i in range(len(cells) - 1):
-    model.algebraic[cells[i].pos.phi] = cells[i + 1].pos.phi - cells[i].pos.phi
-    model.algebraic[cells[i].neg.phi] = cells[i + 1].neg.phi - cells[i].neg.phi
+    # BV
+    opp = len(cells) - i
 
-    model.algebraic[cells[i].iapp] = cells[i].pos.bv_term - cells[i].neg.bv_term - (cells[i].pos.phi - cells[i].neg.phi)
+    model.algebraic[cells[i].pos.phi] = opp * (cells[i].pos.bv_term - (cells[i].pos.phi))
+    model.algebraic[cells[i].neg.phi] = opp * (cells[i + 1].pos.phi - (cells[i].neg.phi))
+
+    model.algebraic[cells[i].iapp] = cells[i + 1].iapp - (cells[i].iapp)
 
 model.algebraic[cells[-1].pos.phi] = cells[-1].pos.bv_term - cells[-1].pos.phi
 model.algebraic[cells[-1].neg.phi] = cells[-1].neg.bv_term - cells[-1].neg.phi
-model.algebraic[cells[-1].iapp] = i_total - sum(cell.iapp for cell in cells)
-
-## CAPACITY CALCULATION
-capacity = NUM_CELLS * min(cell.capacity for cell in cells) # this is in Ah/m^2
-i_total_val = capacity / RUNTIME_HOURS
-print("Current:", -i_total_val)
-
-parameters[i_total.name] = I_TOTAL or -i_total_val # -10 # -i_total_val
+model.algebraic[cells[-1].iapp] = i_total - (cells[-1].iapp) # all same current
 
 
 # best guesses
-## current = input() / n
+## current = input() 
 ## pos_phi = p_OCP() @ t=0
 ## neg_phi = n_OCP() @ t=0
+pos_phi_init = c.POS_OPEN_CIRCUIT_POTENTIAL(c.POS_CSN_INITIAL / c.POS_CSN_MAX)
+neg_phi_init = c.NEG_OPEN_CIRCUIT_POTENTIAL(c.NEG_CSN_INITIAL / c.NEG_CSN_MAX)
+
+parameters = {
+    i_total.name: DISCHARGE_CURRENT
+}
+
 model.initial_conditions.update({
-    **{ cell.pos.phi: cell.pos_phi_init for cell in cells }, 
-    **{ cell.neg.phi: cell.neg_phi_init for cell in cells }, 
-    **{ cell.iapp: -i_total_val / NUM_CELLS for cell in cells }
+    **{ cells[i].pos.phi: pos_phi_init * (len(cells) - i) for i in range(len(cells)) }, 
+    **{ cells[i].neg.phi: neg_phi_init * (len(cells) - i) for i in range(len(cells)) }, 
+    **{ cell.iapp: DISCHARGE_CURRENT for cell in cells }
 })
 
-
 for cell in cells:
-    print(cell.pos_elec_porosity)
-
+    cell.set_parameters(parameters)
 
 param_ob = pybamm.ParameterValues(parameters)
 param_ob.process_model(model)
 param_ob.process_geometry(geo)
 
-particles = [] 
+PTS = 30
+particles = [] # (pos1, pos2, pos3, pos4, neg1, neg2, neg3, neg4)
 for cell in cells:
     particles.append(cell.pos)
     particles.append(cell.neg)
 
 mesh = pybamm.Mesh(geo, 
     { p.domain: pybamm.Uniform1DSubMesh for p in particles },
-    { p.r: DISCRETE_PTS for p in particles }
+    { p.r: PTS for p in particles }
 )
 
 disc = pybamm.Discretisation(mesh, 
@@ -74,12 +70,12 @@ disc = pybamm.Discretisation(mesh,
 disc.process_model(model)
 
 solver = pybamm.CasadiSolver()
-time_steps = np.linspace(0, 3600 * RUNTIME_HOURS, TIME_PTS)
+time_steps = np.linspace(0, 3600 * RUNTIME_HOURS, 250)
 solution = solver.solve(model, time_steps)
 
 solution.plot(list(model.variables.keys()))
 
-# SOLVED
+### SOLVED
 # from matplotlib import pyplot as plt
 
 # fig, axs = plt.subplots(1, 4, figsize=(13,13))
