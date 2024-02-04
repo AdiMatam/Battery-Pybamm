@@ -27,6 +27,7 @@ NEG_ELEC_POROSITY   = VariatedParameter.from_percent(0.40, 0)
 
 ELECTROLYTE_CONC    = VariatedParameter.from_percent(1000, 0)
 
+PARTICLE_RADIUS     = VariatedParameter.from_percent(1e-05, 0)
 
 from marquis import lico2_electrolyte_exchange_current_density_Dualfoil1998 as j0p
 from marquis import graphite_electrolyte_exchange_current_density_Dualfoil1998 as j0n

@@ -15,9 +15,10 @@ class Cell:
 
         self.iapp = pybamm.Variable(name + " Iapp")
 
-        self.pos = SingleParticle(name + " Pos Particle", +1, self.iapp)
-        self.neg = SingleParticle(name + " Neg Particle", -1, self.iapp)
+        self.pos = SingleParticle(name + " Pos Particle", +1, self.iapp, p.PARTICLE_RADIUS.rand_sample())
+        self.neg = SingleParticle(name + " Neg Particle", -1, self.iapp, p.PARTICLE_RADIUS.rand_sample())
 
+        ## TEMPORARILY ELECTROLYLTE HANDLED DONE THIS WAY
         self.electrolyte_conc    = p.ELECTROLYTE_CONC.rand_sample()
         self.__create_parameter_samples()
 

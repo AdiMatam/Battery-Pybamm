@@ -3,7 +3,7 @@ import consts as c
 import params as p
 
 class SingleParticle:
-    def __init__(self, name: str, charge: int, iapp: pybamm.Variable):
+    def __init__(self, name: str, charge: int, iapp: pybamm.Variable, r_val: float):
         self.name = name
         self.domain = name + " dDomain"
         self.charge = charge
@@ -19,9 +19,10 @@ class SingleParticle:
         self.surf_conc_name = name + " vSurface Concentration"
 
         self.phi = pybamm.Variable(name + " vPotential")
+        self.j0_name = name + " fExchange Current Density"
 
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
-        self.j0_name = name + " fExchange Current Density"
+        self.r_val = r_val
 
     def u_func(self, sto):
         return pybamm.FunctionParameter(
@@ -83,7 +84,7 @@ class SingleParticle:
             geo.clear()
 
         geo.update({
-            self.domain: {self.r: {"min": 0, "max": c.R}}
+            self.domain: {self.r: {"min": 0, "max": self.r_val}}
         })
     
     def process_parameters(self, all_params: dict, particle_params: dict, clear=False):
