@@ -1,6 +1,5 @@
 import pybamm
 import consts as c
-import params as p
 
 class SingleParticle:
     def __init__(self, name: str, charge: int, iapp: pybamm.Variable, r_val: float):
@@ -26,7 +25,7 @@ class SingleParticle:
 
     def u_func(self, sto):
         return pybamm.FunctionParameter(
-            self.name + " fParticle Voltage", #          self.particle_voltage_name,
+            self.name + " fParticle Voltage", 
             {
                 "Stoichiometry": sto
             }
@@ -74,6 +73,7 @@ class SingleParticle:
             },
         })
         model.variables.update({
+            self.conc.name: self.conc,
             self.surf_conc_name: pybamm.PrimaryBroadcast(
                 self.surf_conc, self.domain
             )
@@ -94,3 +94,17 @@ class SingleParticle:
         all_params.update(
             {key.name : value for key, value in particle_params.items()}
         )
+
+if __name__ == '__main__':
+    import params as p
+
+    I_TOTAL = -1.2
+    DISCRETE_PTS = 30
+    TIME_PTS = 250
+
+    iapp = pybamm.Variable("Iapp")
+
+    p = SingleParticle("Positive", +1, iapp, p.PARTICLE_RADIUS.get_value())
+
+
+    pass

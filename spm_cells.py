@@ -1,6 +1,6 @@
 C_RATE = 1/20 
 I_TOTAL = 0
-NUM_CELLS = 4
+NUM_CELLS = 1
 DISCRETE_PTS = 30
 TIME_PTS = 250
 
@@ -33,30 +33,11 @@ model.algebraic[cells[-1].iapp] = i_total - sum(cell.iapp for cell in cells)
 
 ## CAPACITY CALCULATION
 capacity = NUM_CELLS * min(cell.capacity for cell in cells) # this is in Ah/m^2
-i_total_val = capacity / RUNTIME_HOURS
-print("Current:", -i_total_val)
+i_from_capacity = capacity / RUNTIME_HOURS
+print("Current:", -i_from_capacity)
 
-parameters[i_total.name] = I_TOTAL or -i_total_val # -10 # -i_total_val
+parameters[i_total.name] = "[input]" # I_TOTAL or -i_total_val
 
-
-# best guesses
-## current = input() / n
-## pos_phi = p_OCP() @ t=0
-## neg_phi = n_OCP() @ t=0
-model.initial_conditions.update({
-    **{ cell.pos.phi: cell.pos_phi_init for cell in cells }, 
-    **{ cell.neg.phi: cell.neg_phi_init for cell in cells }, 
-    **{ cell.iapp: -i_total_val / NUM_CELLS for cell in cells }
-})
-
-
-for cell in cells:
-    print(cell.pos_elec_porosity)
-
-
-param_ob = pybamm.ParameterValues(parameters)
-param_ob.process_model(model)
-param_ob.process_geometry(geo)
 
 particles = [] 
 for cell in cells:
@@ -71,16 +52,37 @@ mesh = pybamm.Mesh(geo,
 disc = pybamm.Discretisation(mesh, 
     { p.domain: pybamm.FiniteVolume() for p in particles }
 )
+
+# best guesses
+## current = input() / n
+## pos_phi = p_OCP() @ t=0
+## neg_phi = n_OCP() @ t=0
+
+model.initial_conditions.update({
+    **{ cell.pos.conc: pybamm.x_average(cell.pos.conc_0) for cell in cells },
+    **{ cell.neg.conc: pybamm.x_average(cell.neg.conc_0) for cell in cells },
+}) 
+
+model.initial_conditions.update({
+    **{ cell.pos.phi: cell.pos_phi_init for cell in cells }, 
+    **{ cell.neg.phi: cell.neg_phi_init for cell in cells }, 
+    **{ cell.iapp: -i_from_capacity / NUM_CELLS for cell in cells }
+})
+
+param_ob = pybamm.ParameterValues(parameters)
+param_ob.process_model(model)
+param_ob.process_geometry(geo)
+
 disc.process_model(model)
 
 solver = pybamm.CasadiSolver()
 time_steps = np.linspace(0, 3600 * RUNTIME_HOURS, TIME_PTS)
-solution = solver.solve(model, time_steps)
+solution = solver.solve(model, time_steps, inputs={i_total.name: I_TOTAL or -i_from_capacity})
 
-solution.plot(list(model.variables.keys()))
+voltage = solution[cells[0].voltage].entries
 
-# SOLVED
-# from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
+plt.plot(solution.t, voltage)
 
 # fig, axs = plt.subplots(1, 4, figsize=(13,13))
 
@@ -92,5 +94,5 @@ solution.plot(list(model.variables.keys()))
     # ax.set_ylabel("I (A)")
     # ax.set_title(cells[i].iapp.name)
 
-# plt.tight_layout()
-# plt.show()
+plt.tight_layout()
+plt.show()

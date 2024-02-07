@@ -29,13 +29,13 @@ with open("compare_test.txt", 'w') as f:
         f.write(str(v) + '\n')
 
 
-with open("negative_concentrations.txt", 'w') as f:
-    voltages = solution["Negative particle surface concentration [mol.m-3]"].entries[0]
-    for v in voltages:
-        f.write(str(v) + '\n')
+#with open("negative_concentrations.txt", 'w') as f:
+    #voltages = solution["Negative particle surface concentration [mol.m-3]"].entries[0]
+    #for v in voltages:
+        #f.write(str(v) + '\n')
 
-with open("positive_concentrations.txt", 'w') as f:
-    voltages = solution["Positive particle surface concentration [mol.m-3]"].entries[0]
-    for v in voltages:
-        f.write(str(v) + '\n')
+#with open("positive_concentrations.txt", 'w') as f:
+    #voltages = solution["Positive particle surface concentration [mol.m-3]"].entries[0]
+    #for v in voltages:
+        #f.write(str(v) + '\n')
 

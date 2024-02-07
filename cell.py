@@ -15,8 +15,9 @@ class Cell:
 
         self.iapp = pybamm.Variable(name + " Iapp")
 
-        self.pos = SingleParticle(name + " Pos Particle", +1, self.iapp, p.PARTICLE_RADIUS.rand_sample())
-        self.neg = SingleParticle(name + " Neg Particle", -1, self.iapp, p.PARTICLE_RADIUS.rand_sample())
+        self.particle_radius = p.PARTICLE_RADIUS.rand_sample()
+        self.pos = SingleParticle(name + " Pos Particle", +1, self.iapp, self.particle_radius)
+        self.neg = SingleParticle(name + " Neg Particle", -1, self.iapp, self.particle_radius)
 
         ## TEMPORARILY ELECTROLYLTE HANDLED DONE THIS WAY
         self.electrolyte_conc    = p.ELECTROLYTE_CONC.rand_sample()
@@ -27,15 +28,18 @@ class Cell:
 
         self.__attach_parameters(parameters)
 
+        self.voltage = self.pos.phi - self.neg.phi
+        self.voltage_name = f"{self.name} Voltage"
         model.variables.update({
-            self.pos.phi.name: self.pos.phi,
-            self.neg.phi.name: self.neg.phi,
+            self.voltage_name: self.pos.phi - self.neg.phi,
             self.iapp.name: self.iapp
         })
 
         ## PARAMETERIZE
         model.events += [
-            pybamm.Event("Min Concentration Cutoff", self.neg.surf_conc - self.neg_csn_min)
+            pybamm.Event("Min Concentration Cutoff", self.neg.surf_conc - self.neg_csn_min),
+            pybamm.Event("Max Concentration Cutoff", self.pos_csn_max - self.pos.surf_conc),
+            pybamm.Event("Min Voltage Cutoff", (self.pos.phi-self.neg.phi) - 2.8)
         ]
 
         self.pos.process_geometry(geo)
