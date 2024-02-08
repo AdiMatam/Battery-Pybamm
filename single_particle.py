@@ -7,10 +7,10 @@ class SingleParticle:
         self.domain = name + " dDomain"
         self.charge = charge
 
-        self.conc_0 = pybamm.Parameter(name + " pInitial Concentration")
+        self.csn_initial = pybamm.Parameter(name + " pInitial Concentration")
         self.L = pybamm.Parameter(name + " pElectrode Thickness")
         self.eps_n = pybamm.Parameter(name + " pElectrode Porosity")
-        self.conc_max = pybamm.Parameter(name + " pMax Concentration")
+        self.csn_max = pybamm.Parameter(name + " pMax Concentration")
 
         self.iapp = iapp
         self.conc = pybamm.Variable(name + " vConcentration", domain=self.domain)
@@ -54,18 +54,18 @@ class SingleParticle:
             self.conc: dcdt,
         })
 
-        model.initial_conditions.update({
-            self.conc: pybamm.x_average(self.conc_0),
-        }) 
-        
         # self.charge = +1 for positive electrode
         #               -1 for negative electrode
         self.a_term = (3 * (1 - self.eps_n)) / c.R
         self.j = (self.charge * self.iapp) / (self.L * self.a_term)
-        self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_conc, self.conc_max)
+        self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_conc, self.csn_max)
 
-        self.ocp = self.u_func(self.surf_conc / self.conc_max)
+        self.ocp = self.u_func(self.surf_conc / self.csn_max)
         self.bv_term = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
+
+        model.initial_conditions.update({
+            self.conc: pybamm.x_average(self.csn_initial),
+        }) 
 
         model.boundary_conditions.update({
             self.conc: {
@@ -118,20 +118,20 @@ if __name__ == '__main__':
 
 
     a.process_parameters(parameters, {
-        i_total:     "[input]",
-        a.conc_0:    "[input]",
-        a.L:         p.POS_ELEC_THICKNESS.get_value(),
-        a.eps_n:     p.POS_ELEC_POROSITY.get_value(),
-        a.conc_max:  p.POS_CSN_MAX.get_value(),
+        i_total:            "[input]",
+        a.csn_initial:      "[input]",
+        a.L:                p.POS_ELEC_THICKNESS.get_value(),
+        a.eps_n:            p.POS_ELEC_POROSITY.get_value(),
+        a.csn_max:          p.POS_CSN_MAX.get_value(),
 
-        a.j0:        p.POS_EXCHANGE_CURRENT_DENSITY,
-        a.ocp:       p.POS_OPEN_CIRCUIT_POTENTIAL
+        a.j0:               p.POS_J0,
+        a.ocp:              p.POS_OCP
     })
 
     model.algebraic[a.phi] = a.bv_term - a.phi
 
     model.initial_conditions.update({
-        a.phi: p.POS_OPEN_CIRCUIT_POTENTIAL(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value())
+        a.phi: p.POS_OCP(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value())
     })
     
     particles = [a]
@@ -157,7 +157,6 @@ if __name__ == '__main__':
     
     sign = -1
     last_conc = p.POS_CSN_INITIAL.get_value()
-    last_volt = p.POS_OPEN_CIRCUIT_POTENTIAL(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value())
 
     conc_array = np.empty((250*cycles,))
     volt_array = np.empty((250*cycles,))
@@ -165,7 +164,7 @@ if __name__ == '__main__':
     for i in range(cycles):
         inps = {
             i_total.name: sign * I_TOTAL,
-            a.conc_0.name: last_conc
+            a.csn_initial.name: last_conc
         }
         solution = solver.solve(model, time_steps, inputs=inps)
 
@@ -182,8 +181,23 @@ if __name__ == '__main__':
 
     from  matplotlib import pyplot as plt
 
-    plt.plot(total_time_steps, conc_array)
-    # plt.plot(total_time_steps, volt_array)
+    fig, ax1 = plt.subplots()
+
+    ax1.set_xlabel('Time (s)')
+
+    color = 'tab:red'
+    ax1.set_ylabel('Concentration (mol / m2)', color=color)
+    ax1.plot(total_time_steps, conc_array, color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    color = 'tab:blue'
+    ax2.set_ylabel('Potential (V)', color=color)  # we already handled the x-label with ax1
+    ax2.plot(total_time_steps, volt_array, color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    plt.plot(total_time_steps, volt_array)
 
     plt.tight_layout()
     plt.show()

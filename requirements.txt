@@ -1,3 +1,4 @@
 pybamm==23.5
 numpy
 pandas
+matplotlib

@@ -10,6 +10,7 @@ RUNTIME_HOURS = 1 / C_RATE # hours
 import pybamm
 import numpy as np
 from cell import Cell
+import params as p
 
 model = pybamm.BaseModel()
 geo = {}
@@ -36,7 +37,7 @@ capacity = NUM_CELLS * min(cell.capacity for cell in cells) # this is in Ah/m^2
 i_from_capacity = capacity / RUNTIME_HOURS
 print("Current:", -i_from_capacity)
 
-parameters[i_total.name] = "[input]" # I_TOTAL or -i_total_val
+parameters[i_total.name] = "[input]" 
 
 
 particles = [] 
@@ -59,13 +60,15 @@ disc = pybamm.Discretisation(mesh,
 ## neg_phi = n_OCP() @ t=0
 
 model.initial_conditions.update({
-    **{ cell.pos.conc: pybamm.x_average(cell.pos.conc_0) for cell in cells },
-    **{ cell.neg.conc: pybamm.x_average(cell.neg.conc_0) for cell in cells },
+    **{ cell.pos.conc: pybamm.x_average(cell.pos.csn_initial) for cell in cells },
+    **{ cell.neg.conc: pybamm.x_average(cell.neg.csn_initial) for cell in cells },
 }) 
 
+## pos_phi = p_OCP() @ t=0
+## neg_phi = n_OCP() @ t=0
 model.initial_conditions.update({
-    **{ cell.pos.phi: cell.pos_phi_init for cell in cells }, 
-    **{ cell.neg.phi: cell.neg_phi_init for cell in cells }, 
+    **{ cell.pos.phi: p.POS_OCP(cell.pos_csn_initial / cell.pos_csn_max) for cell in cells }, 
+    **{ cell.neg.phi: p.NEG_OCP(cell.neg_csn_initial / cell.neg_csn_max) for cell in cells }, 
     **{ cell.iapp: -i_from_capacity / NUM_CELLS for cell in cells }
 })
 
@@ -79,7 +82,7 @@ solver = pybamm.CasadiSolver()
 time_steps = np.linspace(0, 3600 * RUNTIME_HOURS, TIME_PTS)
 solution = solver.solve(model, time_steps, inputs={i_total.name: I_TOTAL or -i_from_capacity})
 
-voltage = solution[cells[0].voltage].entries
+voltage = solution[cells[0].voltage_name].entries
 
 from matplotlib import pyplot as plt
 plt.plot(solution.t, voltage)

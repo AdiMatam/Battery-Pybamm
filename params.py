@@ -36,8 +36,8 @@ from marquis import graphite_electrolyte_exchange_current_density_Dualfoil1998 a
 from marquis import lico2_ocp_Dualfoil1998 as Up
 from marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
 
-POS_EXCHANGE_CURRENT_DENSITY = j0p
-POS_OPEN_CIRCUIT_POTENTIAL = Up
+POS_J0 = j0p
+POS_OCP = Up
 
 NEG_EXCHANGE_CURRENT_DENSITY = j0n
-NEG_OPEN_CIRCUIT_POTENTIAL = Un
+NEG_OCP = Un

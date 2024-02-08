@@ -31,7 +31,7 @@ class Cell:
         self.voltage = self.pos.phi - self.neg.phi
         self.voltage_name = f"{self.name} Voltage"
         model.variables.update({
-            self.voltage_name: self.pos.phi - self.neg.phi,
+            self.voltage_name: self.voltage,
             self.iapp.name: self.iapp
         })
 
@@ -44,11 +44,6 @@ class Cell:
 
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)
-
-        ## pos_phi = p_OCP() @ t=0
-        ## neg_phi = n_OCP() @ t=0
-        self.pos_phi_init = p.POS_OPEN_CIRCUIT_POTENTIAL(self.pos_csn_initial / self.pos_csn_max)
-        self.neg_phi_init = p.NEG_OPEN_CIRCUIT_POTENTIAL(self.neg_csn_initial / self.neg_csn_max)
 
         self.capacity = self.__compute_capacity()
 
@@ -75,23 +70,23 @@ class Cell:
 
     def __attach_parameters(self, param_dict: dict):
         self.pos.process_parameters(param_dict, {
-            self.pos.conc_0:    self.pos_csn_initial,
+            self.pos.csn_initial:    self.pos_csn_initial,
             self.pos.L:         self.pos_elec_thickness,
             self.pos.eps_n:     self.pos_elec_porosity,
-            self.pos.conc_max:  self.pos_csn_max,
+            self.pos.csn_max:  self.pos_csn_max,
 
-            self.pos.j0:        p.POS_EXCHANGE_CURRENT_DENSITY,
-            self.pos.ocp:       p.POS_OPEN_CIRCUIT_POTENTIAL
+            self.pos.j0:        p.POS_J0,
+            self.pos.ocp:       p.POS_OCP
         })
 
         self.neg.process_parameters(param_dict, {
-            self.neg.conc_0:    self.neg_csn_initial,
+            self.neg.csn_initial:    self.neg_csn_initial,
             self.neg.L:         self.neg_elec_thickness,
             self.neg.eps_n:     self.neg_elec_porosity,
-            self.neg.conc_max:  self.neg_csn_max,
+            self.neg.csn_max:  self.neg_csn_max,
 
             self.neg.j0:        p.NEG_EXCHANGE_CURRENT_DENSITY,
-            self.neg.ocp:       p.NEG_OPEN_CIRCUIT_POTENTIAL
+            self.neg.ocp:       p.NEG_OCP
             
         })
 
