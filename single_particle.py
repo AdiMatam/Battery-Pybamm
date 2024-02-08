@@ -77,7 +77,8 @@ class SingleParticle:
             self.conc.name: self.conc,
             self.surf_conc_name: pybamm.PrimaryBroadcast(
                 self.surf_conc, self.domain
-            )
+            ),
+            self.phi_name: self.phi #self.bv_term
         })
     
     def process_geometry(self, geo: dict, clear=False):
@@ -104,7 +105,7 @@ if __name__ == '__main__':
     DISCRETE_PTS = 30
     TIME_PTS = 250
 
-    iapp = pybamm.Variable("Iapp")
+    # iapp = pybamm.Variable("Iapp")
     geo = {}
     model = pybamm.BaseModel()
 
@@ -126,6 +127,12 @@ if __name__ == '__main__':
         a.j0:        p.POS_EXCHANGE_CURRENT_DENSITY,
         a.ocp:       p.POS_OPEN_CIRCUIT_POTENTIAL
     })
+
+    model.algebraic[a.phi] = a.bv_term - a.phi
+
+    model.initial_conditions.update({
+        a.phi: p.POS_OPEN_CIRCUIT_POTENTIAL(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value())
+    })
     
     particles = [a]
     mesh = pybamm.Mesh(geo, 
@@ -143,15 +150,17 @@ if __name__ == '__main__':
 
     disc.process_model(model)
 
-    cycles = 5
+    cycles = 6
     solver = pybamm.CasadiSolver()
     time_steps = np.linspace(0, 3600 * 20, TIME_PTS)
     total_time_steps = np.linspace(0, 3600 * 20 * cycles, TIME_PTS * cycles)
     
     sign = -1
     last_conc = p.POS_CSN_INITIAL.get_value()
+    last_volt = p.POS_OPEN_CIRCUIT_POTENTIAL(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value())
 
-    combined_array = np.empty((250*cycles,))
+    conc_array = np.empty((250*cycles,))
+    volt_array = np.empty((250*cycles,))
 
     for i in range(cycles):
         inps = {
@@ -161,17 +170,20 @@ if __name__ == '__main__':
         solution = solver.solve(model, time_steps, inputs=inps)
 
         arr = solution[a.surf_conc_name].entries[-1]
-        combined_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = arr
+        conc_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = arr
+        volt_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = solution[a.phi_name].entries
 
         last_conc = arr[-1]
+        last_volt = solution[a.phi_name].entries[-1]
         sign *= -1
 
-    print(len(combined_array))
+    print(len(conc_array))
     print(len(total_time_steps))
 
     from  matplotlib import pyplot as plt
 
-    plt.plot(total_time_steps, combined_array)
+    plt.plot(total_time_steps, conc_array)
+    # plt.plot(total_time_steps, volt_array)
 
     plt.tight_layout()
     plt.show()
