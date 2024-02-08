@@ -17,7 +17,8 @@ class SingleParticle:
         self.surf_conc = pybamm.surf(self.conc)
         self.surf_conc_name = name + " vSurface Concentration"
 
-        self.phi = pybamm.Variable(name + " vPotential")
+        self.phi_name = name + " vPotential"
+        self.phi = pybamm.Variable(self.phi_name)
         self.j0_name = name + " fExchange Current Density"
 
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
@@ -97,14 +98,81 @@ class SingleParticle:
 
 if __name__ == '__main__':
     import params as p
+    import numpy as np
 
-    I_TOTAL = -1.2
+    I_TOTAL = +1.2027659291666666
     DISCRETE_PTS = 30
     TIME_PTS = 250
 
     iapp = pybamm.Variable("Iapp")
+    geo = {}
+    model = pybamm.BaseModel()
 
-    p = SingleParticle("Positive", +1, iapp, p.PARTICLE_RADIUS.get_value())
+    i_total = pybamm.Parameter("Input Current / Area") 
+    parameters = {}
+
+    a = SingleParticle("Positive", +1, i_total, p.PARTICLE_RADIUS.get_value())
+    a.process_model(model, p.ELECTROLYTE_CONC.get_value())
+    a.process_geometry(geo)
 
 
-    pass
+    a.process_parameters(parameters, {
+        i_total:     "[input]",
+        a.conc_0:    "[input]",
+        a.L:         p.POS_ELEC_THICKNESS.get_value(),
+        a.eps_n:     p.POS_ELEC_POROSITY.get_value(),
+        a.conc_max:  p.POS_CSN_MAX.get_value(),
+
+        a.j0:        p.POS_EXCHANGE_CURRENT_DENSITY,
+        a.ocp:       p.POS_OPEN_CIRCUIT_POTENTIAL
+    })
+    
+    particles = [a]
+    mesh = pybamm.Mesh(geo, 
+        { d.domain: pybamm.Uniform1DSubMesh for d in particles },
+        { d.r: DISCRETE_PTS for d in particles }
+    )
+
+    disc = pybamm.Discretisation(mesh, 
+        { d.domain: pybamm.FiniteVolume() for d in particles }
+    )
+
+    param_ob = pybamm.ParameterValues(parameters)
+    param_ob.process_model(model)
+    param_ob.process_geometry(geo)
+
+    disc.process_model(model)
+
+    cycles = 5
+    solver = pybamm.CasadiSolver()
+    time_steps = np.linspace(0, 3600 * 20, TIME_PTS)
+    total_time_steps = np.linspace(0, 3600 * 20 * cycles, TIME_PTS * cycles)
+    
+    sign = -1
+    last_conc = p.POS_CSN_INITIAL.get_value()
+
+    combined_array = np.empty((250*cycles,))
+
+    for i in range(cycles):
+        inps = {
+            i_total.name: sign * I_TOTAL,
+            a.conc_0.name: last_conc
+        }
+        solution = solver.solve(model, time_steps, inputs=inps)
+
+        arr = solution[a.surf_conc_name].entries[-1]
+        combined_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = arr
+
+        last_conc = arr[-1]
+        sign *= -1
+
+    print(len(combined_array))
+    print(len(total_time_steps))
+
+    from  matplotlib import pyplot as plt
+
+    plt.plot(total_time_steps, combined_array)
+
+    plt.tight_layout()
+    plt.show()
+
