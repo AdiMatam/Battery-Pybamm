@@ -11,8 +11,8 @@ def post_process_voltage(solution: pybamm.Solution, positive: SingleParticle, ne
 
     # length of entries == # of time steps (600)
     # surface concentration @ each time step
-    surf_p = solution[positive.surf_conc_name].entries
-    surf_n = solution[negative.surf_conc_name].entries
+    surf_p = solution[positive.surf_csn_name].entries
+    surf_n = solution[negative.surf_csn_name].entries
 
     ## j (electrode current density is constant throughout?)
     j_p = solution[positive.j_name].entries[0]

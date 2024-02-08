@@ -7,15 +7,15 @@ class SingleParticle:
         self.domain = name + " dDomain"
         self.charge = charge
 
-        self.csn_initial = pybamm.Parameter(name + " pInitial Concentration")
+        self.c_0 = pybamm.Parameter(name + " pInitial Concentration")
         self.L = pybamm.Parameter(name + " pElectrode Thickness")
         self.eps_n = pybamm.Parameter(name + " pElectrode Porosity")
-        self.csn_max = pybamm.Parameter(name + " pMax Concentration")
+        self.c_max = pybamm.Parameter(name + " pMax Concentration")
 
         self.iapp = iapp
-        self.conc = pybamm.Variable(name + " vConcentration", domain=self.domain)
-        self.surf_conc = pybamm.surf(self.conc)
-        self.surf_conc_name = name + " vSurface Concentration"
+        self.csn = pybamm.Variable(name + " vConcentration", domain=self.domain)
+        self.surf_csn = pybamm.surf(self.csn)
+        self.surf_csn_name = name + " vSurface Concentration"
 
         self.phi_name = name + " vPotential"
         self.phi = pybamm.Variable(self.phi_name)
@@ -46,37 +46,37 @@ class SingleParticle:
         if clear:
             model = pybamm.BaseModel()
 
-        flux = c.D * -pybamm.grad(self.conc)
+        flux = c.D * -pybamm.grad(self.csn)
         dcdt = -pybamm.div(flux)
 
         # solve the diffusion equation (del * del(c))
         model.rhs.update({
-            self.conc: dcdt,
+            self.csn: dcdt,
         })
 
         # self.charge = +1 for positive electrode
         #               -1 for negative electrode
         self.a_term = (3 * (1 - self.eps_n)) / c.R
         self.j = (self.charge * self.iapp) / (self.L * self.a_term)
-        self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_conc, self.csn_max)
+        self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_csn, self.c_max)
 
-        self.ocp = self.u_func(self.surf_conc / self.csn_max)
+        self.ocp = self.u_func(self.surf_csn / self.c_max)
         self.bv_term = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
 
         model.initial_conditions.update({
-            self.conc: pybamm.x_average(self.csn_initial),
+            self.csn: pybamm.x_average(self.c_0),
         }) 
 
         model.boundary_conditions.update({
-            self.conc: {
+            self.csn: {
                 "left":  (0, "Neumann"),
                 "right": (-self.j / (c.F * c.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
             },
         })
         model.variables.update({
-            self.conc.name: self.conc,
-            self.surf_conc_name: pybamm.PrimaryBroadcast(
-                self.surf_conc, self.domain
+            self.csn.name: self.csn,
+            self.surf_csn_name: pybamm.PrimaryBroadcast(
+                self.surf_csn, self.domain
             ),
             self.phi_name: self.phi #self.bv_term
         })
@@ -119,10 +119,10 @@ if __name__ == '__main__':
 
     a.process_parameters(parameters, {
         i_total:            "[input]",
-        a.csn_initial:      "[input]",
+        a.c_0:      "[input]",
         a.L:                p.POS_ELEC_THICKNESS.get_value(),
         a.eps_n:            p.POS_ELEC_POROSITY.get_value(),
-        a.csn_max:          p.POS_CSN_MAX.get_value(),
+        a.c_max:          p.POS_CSN_MAX.get_value(),
 
         a.j0:               p.POS_J0,
         a.ocp:              p.POS_OCP
@@ -164,16 +164,15 @@ if __name__ == '__main__':
     for i in range(cycles):
         inps = {
             i_total.name: sign * I_TOTAL,
-            a.csn_initial.name: last_conc
+            a.c_0.name: last_conc
         }
         solution = solver.solve(model, time_steps, inputs=inps)
 
-        arr = solution[a.surf_conc_name].entries[-1]
+        arr = solution[a.surf_csn_name].entries[-1]
         conc_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = arr
         volt_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = solution[a.phi_name].entries
 
         last_conc = arr[-1]
-        last_volt = solution[a.phi_name].entries[-1]
         sign *= -1
 
     print(len(conc_array))
