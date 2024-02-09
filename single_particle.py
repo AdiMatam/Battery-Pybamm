@@ -7,7 +7,8 @@ class SingleParticle:
         self.domain = name + " dDomain"
         self.charge = charge
 
-        self.c_0 = pybamm.Parameter(name + " pInitial Concentration")
+        self.c_0_name = name + " pInitial Concentration"
+        self.c_0 = pybamm.Parameter(self.c_0_name)
         self.L = pybamm.Parameter(name + " pElectrode Thickness")
         self.eps_n = pybamm.Parameter(name + " pElectrode Porosity")
         self.c_max = pybamm.Parameter(name + " pMax Concentration")
@@ -56,7 +57,7 @@ class SingleParticle:
 
         # self.charge = +1 for positive electrode
         #               -1 for negative electrode
-        self.a_term = (3 * (1 - self.eps_n)) / c.R
+        self.a_term = (3 * (1 - self.eps_n)) / self.r_val
         self.j = (self.charge * self.iapp) / (self.L * self.a_term)
         self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_csn, self.c_max)
 
@@ -96,6 +97,14 @@ class SingleParticle:
         all_params.update(
             {key.name : value for key, value in particle_params.items()}
         )
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     import params as p

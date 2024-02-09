@@ -1,4 +1,8 @@
 import random
+from marquis import lico2_electrolyte_exchange_current_density_Dualfoil1998 as j0p
+from marquis import graphite_electrolyte_exchange_current_density_Dualfoil1998 as j0n
+from marquis import lico2_ocp_Dualfoil1998 as Up
+from marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
 
 class VariatedParameter:
     def __init__(self, value: float, low_high: tuple):
@@ -16,6 +20,16 @@ class VariatedParameter:
     def get_value(self):
         return self.value
 
+
+
+
+
+
+
+
+
+
+
 POS_CSN_MAX         = VariatedParameter.from_percent(51218, 0)  
 POS_CSN_INITIAL     = VariatedParameter.from_percent(30730, 0)
 POS_ELEC_THICKNESS  = VariatedParameter.from_percent(0.0001, 0)
@@ -30,11 +44,6 @@ NEG_ELEC_POROSITY   = VariatedParameter.from_percent(0.40, 0)
 ELECTROLYTE_CONC    = VariatedParameter.from_percent(1000, 0)
 
 PARTICLE_RADIUS     = VariatedParameter.from_percent(1e-05, 0)
-
-from marquis import lico2_electrolyte_exchange_current_density_Dualfoil1998 as j0p
-from marquis import graphite_electrolyte_exchange_current_density_Dualfoil1998 as j0n
-from marquis import lico2_ocp_Dualfoil1998 as Up
-from marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
 
 POS_J0 = j0p
 POS_OCP = Up
