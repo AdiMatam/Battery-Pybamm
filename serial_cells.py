@@ -6,55 +6,46 @@ DISCHARGE_CURRENT = -1.2
 
 import pybamm
 import numpy as np
-import consts as c
 from cell import Cell
+import params as p
 
 model = pybamm.BaseModel()
 geo = {}
-cells = [Cell(f"Cell {i + 1}", model, geo) for i in range(NUM_CELLS)]
-
 i_total = pybamm.Parameter("Input Current / Area") 
-
-for i in range(len(cells) - 1):
-    # BV
-    opp = len(cells) - i
-
-    model.algebraic[cells[i].pos.phi] = opp * (cells[i].pos.bv_term - (cells[i].pos.phi))
-    model.algebraic[cells[i].neg.phi] = opp * (cells[i + 1].pos.phi - (cells[i].neg.phi))
-
-    model.algebraic[cells[i].iapp] = cells[i + 1].iapp - (cells[i].iapp)
-
-model.algebraic[cells[-1].pos.phi] = cells[-1].pos.bv_term - cells[-1].pos.phi
-model.algebraic[cells[-1].neg.phi] = cells[-1].neg.bv_term - cells[-1].neg.phi
-model.algebraic[cells[-1].iapp] = i_total - (cells[-1].iapp) # all same current
-
-
-# best guesses
-## current = input() 
-## pos_phi = p_OCP() @ t=0
-## neg_phi = n_OCP() @ t=0
-pos_phi_init = c.POS_OPEN_CIRCUIT_POTENTIAL(c.POS_CSN_INITIAL / c.POS_CSN_MAX)
-neg_phi_init = c.NEG_OPEN_CIRCUIT_POTENTIAL(c.NEG_CSN_INITIAL / c.NEG_CSN_MAX)
-
 parameters = {
     i_total.name: DISCHARGE_CURRENT
 }
 
+cells = [Cell(f"Cell {i + 1}", model, geo, parameters) for i in range(NUM_CELLS)]
+
+for i in range(len(cells) - 1):
+    model.algebraic[cells[i].iapp] = cells[i + 1].iapp - (cells[i].iapp)
+
+model.algebraic[cells[0].pos.phi] = cells[0].pos.bv_term - (cells[0].pos.phi)
+model.algebraic[cells[-1].neg.phi] = cells[-1].neg.bv_term - (cells[-1].neg.phi)
+model.algebraic[cells[-1].iapp] = i_total - (cells[-1].iapp) # all same current
+
+
+pos_phi_init = p.POS_OCP(cells[0].pos_csn_ival / cells[0].pos_csn_maxval)
+neg_phi_init = p.NEG_OCP(cells[-1].neg_csn_ival / cells[-1].neg_csn_maxval)
+
 model.initial_conditions.update({
-    **{ cells[i].pos.phi: pos_phi_init * (len(cells) - i) for i in range(len(cells)) }, 
-    **{ cells[i].neg.phi: neg_phi_init * (len(cells) - i) for i in range(len(cells)) }, 
+    cells[0].pos.phi: 4*pos_phi_init,
+    cells[-1].neg.phi: 4*neg_phi_init,
     **{ cell.iapp: DISCHARGE_CURRENT for cell in cells }
 })
 
-for cell in cells:
-    cell.set_parameters(parameters)
+model.variables.update({
+    cells[0].pos.phi_name: cells[0].pos.phi,
+    cells[-1].neg.phi_name: cells[-1].neg.phi,
+})
 
 param_ob = pybamm.ParameterValues(parameters)
 param_ob.process_model(model)
 param_ob.process_geometry(geo)
 
 PTS = 30
-particles = [] # (pos1, pos2, pos3, pos4, neg1, neg2, neg3, neg4)
+particles = [] 
 for cell in cells:
     particles.append(cell.pos)
     particles.append(cell.neg)
@@ -73,7 +64,8 @@ solver = pybamm.CasadiSolver()
 time_steps = np.linspace(0, 3600 * RUNTIME_HOURS, 250)
 solution = solver.solve(model, time_steps)
 
-solution.plot(list(model.variables.keys()))
+volt = cells[0].pos.phi - cells[-1].neg.phi
+solution.plot([cells[0].pos.phi_name, cells[-1].neg.phi_name])
 
 ### SOLVED
 # from matplotlib import pyplot as plt

@@ -79,7 +79,7 @@ class SingleParticle:
             self.surf_csn_name: pybamm.PrimaryBroadcast(
                 self.surf_csn, self.domain
             ),
-            self.phi_name: self.phi #self.bv_term
+            #self.phi_name: self.phi #self.bv_term
         })
     
     def process_geometry(self, geo: dict, clear=False):

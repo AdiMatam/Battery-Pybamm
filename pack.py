@@ -58,17 +58,17 @@ class Pack:
         )
         disc.process_model(self.model)
 
-    def cycler(self, iapp, cycles, runtime_hours, time_pts, variables, output_path=""):
+    def cycler(self, itotal, cycles, runtime_hours, time_pts, variables, output_path=""):
         cycles = cycles
         solver = pybamm.CasadiSolver()
         time_steps = np.linspace(0, 3600 * runtime_hours, time_pts)
         total_time_steps = np.linspace(0, 3600 * runtime_hours * cycles, time_pts * cycles)
 
         inps = {
-            self.i_total.name: -iapp,
+            self.i_total.name: -itotal,
             ## intial conditions for particle concentrations are set here!!
-            ** {cell.pos.c_0.name: cell.pos_csn_ival for cell in self.cells},
-            ** {cell.neg.c_0.name: cell.neg_csn_ival for cell in self.cells},
+            ** {cell.pos.c_0_name: cell.pos_csn_ival for cell in self.cells},
+            ** {cell.neg.c_0_name: cell.neg_csn_ival for cell in self.cells},
         }
 
         subdfs = []

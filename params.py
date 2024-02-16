@@ -21,15 +21,6 @@ class VariatedParameter:
         return self.value
 
 
-
-
-
-
-
-
-
-
-
 POS_CSN_MAX         = VariatedParameter.from_percent(51218, 0)  
 POS_CSN_INITIAL     = VariatedParameter.from_percent(30730, 0)
 POS_ELEC_THICKNESS  = VariatedParameter.from_percent(0.0001, 0)
@@ -48,5 +39,5 @@ PARTICLE_RADIUS     = VariatedParameter.from_percent(1e-05, 0)
 POS_J0 = j0p
 POS_OCP = Up
 
-NEG_EXCHANGE_CURRENT_DENSITY = j0n
+NEG_J0 = j0n
 NEG_OCP = Un
