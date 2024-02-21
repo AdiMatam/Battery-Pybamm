@@ -12,6 +12,8 @@ import params as p
 model = pybamm.BaseModel()
 geo = {}
 i_total = pybamm.Parameter("Input Current / Area") 
+voltage = pybamm.Variable("String Voltage")
+
 parameters = {
     i_total.name: DISCHARGE_CURRENT
 }
@@ -21,17 +23,20 @@ cells = [Cell(f"Cell {i + 1}", model, geo, parameters) for i in range(NUM_CELLS)
 for i in range(len(cells) - 1):
     model.algebraic[cells[i].iapp] = cells[i + 1].iapp - (cells[i].iapp)
 
-model.algebraic[cells[0].pos.phi] = cells[0].pos.bv_term - (cells[0].pos.phi)
-model.algebraic[cells[-1].neg.phi] = cells[-1].neg.bv_term - (cells[-1].neg.phi)
+# model.algebraic[cells[0].pos.phi] = cells[0].pos.bv_term - (cells[0].pos.phi)
+# model.algebraic[cells[-1].neg.phi] = cells[-1].neg.bv_term - (cells[-1].neg.phi)
 model.algebraic[cells[-1].iapp] = i_total - (cells[-1].iapp) # all same current
 
+model.algebraic[voltage] = 0
+for cell in cells:
+    model.algebraic[voltage] += (cells[0].pos.bv_term - cells[0].neg.bv_term)
 
 pos_phi_init = p.POS_OCP(cells[0].pos_csn_ival / cells[0].pos_csn_maxval)
 neg_phi_init = p.NEG_OCP(cells[-1].neg_csn_ival / cells[-1].neg_csn_maxval)
 
 model.initial_conditions.update({
-    cells[0].pos.phi: 4*pos_phi_init,
-    cells[-1].neg.phi: 4*neg_phi_init,
+    cells[0].pos.phi: 4 * pos_phi_init,
+    cells[-1].neg.phi: 4 * neg_phi_init,
     **{ cell.iapp: DISCHARGE_CURRENT for cell in cells }
 })
 
