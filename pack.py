@@ -6,14 +6,16 @@ import pandas as pd
 from typing import List
 
 class Pack:
-    def __init__(self, num_cells:int, model:pybamm.BaseModel, geo:dict, parameters:dict, i_total:pybamm.Parameter):
+    def __init__(self, num_cells:int, model:pybamm.BaseModel, geo:dict, parameters:dict, 
+                    i_total:pybamm.Parameter, voltage_cutoff: tuple
+        ):
         self.num_cells = num_cells
         self.model = model
         self.geo = geo
         self.parameters = parameters
         self.i_total = i_total
 
-        cells = [Cell(f"Cell {i + 1}", model, geo, parameters) for i in range(num_cells)]
+        cells = [Cell(f"Cell {i + 1}", model, geo, parameters, voltage_cutoff) for i in range(num_cells)]
         self.cells = cells
 
         # Vcell1 - Vcell2 = 0
@@ -62,7 +64,6 @@ class Pack:
         cycles = cycles
         solver = pybamm.CasadiSolver()
         time_steps = np.linspace(0, 3600 * runtime_hours, time_pts)
-        total_time_steps = np.linspace(0, 3600 * runtime_hours * cycles, time_pts * cycles)
 
         inps = {
             self.i_total.name: -iapp,
@@ -74,10 +75,11 @@ class Pack:
         subdfs = []
 
         solution = None
-        for i in range(cycles):
+        for _ in range(cycles):
             solution = solver.solve(self.model, time_steps, inputs=inps)
 
-            subdf = pd.DataFrame(columns=variables)
+            subdf = pd.DataFrame(columns=['Time'] + variables)
+            subdf['Time'] = list(solution.t)
 
             ## KEYS ARE VARIABLES
             for key in variables:
@@ -97,7 +99,6 @@ class Pack:
                 })
 
         df = pd.concat(subdfs, ignore_index=True)
-        df.insert(0, 'Time', total_time_steps)
         if output_path:
             df.to_csv(output_path, index=False)
         return df

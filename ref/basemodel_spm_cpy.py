@@ -23,10 +23,12 @@ solution = solver.solve(model, t_eval)
 solution.plot(list(model.variables.keys()))
 # print(list(model.variables.keys()))
 
-with open("compare_test.txt", 'w') as f:
-    voltages = solution["Voltage [V]"].entries
-    for v in voltages:
-        f.write(str(v) + '\n')
+
+
+# with open("ref/compare_test.txt", 'w') as f:
+    # voltages = solution["Voltage [V]"].entries
+    # for v in voltages:
+        # f.write(str(v) + '\n')
 
 
 #with open("negative_concentrations.txt", 'w') as f:

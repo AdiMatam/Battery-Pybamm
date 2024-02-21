@@ -1,6 +1,10 @@
-NUM_CELLS = 4
-I_TOTAL = 1.20276592916666664 * NUM_CELLS
-DISCRETE_PTS = 30
+NUM_CELLS = 1
+NUM_CYCLES = 1
+base_current = 1.20276592916666664
+I_TOTAL = base_current * NUM_CELLS
+VOLTAGE_CUTOFF = (3.0, 5.0)
+
+DISCRETE_PTS = 50
 TIME_PTS = 250
 RUNTIME_HOURS = 20
 
@@ -19,7 +23,7 @@ model = pybamm.BaseModel()
 geo = {}
 parameters = {i_total.name: "[input]"}
 
-pack = Pack(NUM_CELLS, model, geo, parameters, i_total)
+pack = Pack(NUM_CELLS, model, geo, parameters, i_total, VOLTAGE_CUTOFF)
 cells = pack.get_cells()
 
 ## pos_phi = p_OCP() @ t=0
@@ -41,7 +45,7 @@ for cell in cells:
         cell.iapp_name
     ])
 
-df = pack.cycler(I_TOTAL, 4, RUNTIME_HOURS, TIME_PTS, variables)
+df = pack.cycler(I_TOTAL, NUM_CYCLES, RUNTIME_HOURS, TIME_PTS, variables, output_path="full_cycle_data.csv")
 
 from plotter import plot
 plot(df, cells)

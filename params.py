@@ -33,13 +33,13 @@ class VariatedParameter:
 POS_CSN_MAX         = VariatedParameter.from_percent(51218, 0)  
 POS_CSN_INITIAL     = VariatedParameter.from_percent(30730, 0)
 POS_ELEC_THICKNESS  = VariatedParameter.from_percent(0.0001, 0)
-POS_ELEC_POROSITY   = VariatedParameter.from_percent(0.50, 0)   
+POS_ELEC_POROSITY   = VariatedParameter.from_percent(0.50, 1)   
 
 NEG_CSN_MIN         = VariatedParameter.from_percent(5027, 0)
 NEG_CSN_INITIAL     = VariatedParameter.from_percent(19986, 0)
 NEG_CSN_MAX         = VariatedParameter.from_percent(24983, 0)   
-NEG_ELEC_THICKNESS  = VariatedParameter.from_percent(0.0001, 0)
-NEG_ELEC_POROSITY   = VariatedParameter.from_percent(0.40, 0)
+NEG_ELEC_THICKNESS  = VariatedParameter.from_percent(0.0001, 0.0)
+NEG_ELEC_POROSITY   = VariatedParameter.from_percent(0.40, 1)
 
 ELECTROLYTE_CONC    = VariatedParameter.from_percent(1000, 0)
 
@@ -48,5 +48,5 @@ PARTICLE_RADIUS     = VariatedParameter.from_percent(1e-05, 0)
 POS_J0 = j0p
 POS_OCP = Up
 
-NEG_EXCHANGE_CURRENT_DENSITY = j0n
+NEG_J0 = j0n
 NEG_OCP = Un

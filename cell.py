@@ -5,7 +5,7 @@ import params as p
 
 class Cell:
     CELLS = list()
-    def __init__(self, name: str, model: pybamm.BaseModel, geo:dict, parameters:dict):
+    def __init__(self, name: str, model: pybamm.BaseModel, geo:dict, parameters:dict, voltage_cutoff: tuple):
         # if self in self.CELL_NAMES:
             # raise ValueError("Must have unique cell names/IDs")
 
@@ -22,11 +22,11 @@ class Cell:
 
         ## TEMPORARILY ELECTROLYLTE HANDLED DONE THIS WAY
         self.electrolyte_conc    = p.ELECTROLYTE_CONC.rand_sample()
-        self.__create_parameter_samples()
 
         self.pos.process_model(model, self.electrolyte_conc)
         self.neg.process_model(model, self.electrolyte_conc)
 
+        self.__create_parameter_samples()
         self.__attach_parameters(parameters)
 
         self.voltage = self.pos.phi - self.neg.phi
@@ -38,9 +38,10 @@ class Cell:
 
         ## PARAMETERIZE
         model.events += [
-            pybamm.Event("Min Concentration Cutoff", self.neg.surf_csn - self.neg_csn_min),
-            pybamm.Event("Max Concentration Cutoff", self.pos_csn_maxval - self.pos.surf_csn),
-            pybamm.Event("Min Voltage Cutoff", (self.pos.phi-self.neg.phi) - 2.8)
+            # pybamm.Event("Min Concentration Cutoff", self.neg.surf_csn - self.neg_csn_min),
+            # pybamm.Event("Max Concentration Cutoff", self.pos_csn_maxval - self.pos.surf_csn),
+            pybamm.Event("Min Voltage Cutoff", (self.voltage) - voltage_cutoff[0]),
+            pybamm.Event("Max Voltage Cutoff", voltage_cutoff[1] - (self.voltage)),
         ]
 
         self.pos.process_geometry(geo)
@@ -68,6 +69,8 @@ class Cell:
         self.neg_elec_thickness  = p.NEG_ELEC_THICKNESS.rand_sample()
         self.neg_elec_porosity   = p.NEG_ELEC_POROSITY.rand_sample()
 
+        print(self.neg_elec_porosity)
+
 
     def __attach_parameters(self, param_dict: dict):
         self.pos.process_parameters(param_dict, {
@@ -86,18 +89,7 @@ class Cell:
             self.neg.eps_n:     self.neg_elec_porosity,
             self.neg.c_max:  self.neg_csn_maxval,
 
-            self.neg.j0:        p.NEG_EXCHANGE_CURRENT_DENSITY,
+            self.neg.j0:        p.NEG_J0,
             self.neg.ocp:       p.NEG_OCP
             
         })
-
-    
-
-    # def get_meshed_objects(self):
-        # return { self.pos.domain: pybamm.Uniform1DSubMesh, self.neg.domain: pybamm.Uniform1DSubMesh } 
-
-    # def get_radial_mesh(self, pts: int):
-        # return { self.pos.r: pts, self.neg.r: pts }
-
-    # def get_discretized(self):
-        # return { self.pos.domain: pybamm.FiniteVolume(), self.neg.domain: pybamm.FiniteVolume() }
