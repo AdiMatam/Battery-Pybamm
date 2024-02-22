@@ -22,11 +22,11 @@ class Cell:
 
         ## TEMPORARILY ELECTROLYLTE HANDLED DONE THIS WAY
         self.electrolyte_conc    = p.ELECTROLYTE_CONC.rand_sample()
-        self.__create_parameter_samples()
 
         self.pos.process_model(model, self.electrolyte_conc)
         self.neg.process_model(model, self.electrolyte_conc)
 
+        self.__create_parameter_samples()
         self.__attach_parameters(parameters)
 
         #self.voltage = self.pos.phi - self.neg.phi
