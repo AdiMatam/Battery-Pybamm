@@ -1,11 +1,11 @@
 from tkinter import W
 from  matplotlib import pyplot as plt
-import random
 from typing import List
 from cell import Cell
 
 def plot(df, cells: List[Cell]):
-    with plt.style.context("seaborn-talk"):
+    # seaborn-talk
+    with plt.style.context("seaborn-v0_8-talk"):
         fig, ax1 = plt.subplots()
 
         ax1.set_xlabel('Time (s)')

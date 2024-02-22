@@ -74,12 +74,17 @@ class SingleParticle:
                 "right": (-self.j / (c.F * c.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
             },
         })
+        
+        self.j0_name = f"{self.name} J0"
+        self.ocp_name = f"{self.name} ocp"
+
         model.variables.update({
-            self.csn.name: self.csn,
             self.surf_csn_name: pybamm.PrimaryBroadcast(
                 self.surf_csn, self.domain
             ),
-            self.phi_name: self.phi #self.bv_term
+            self.phi_name: self.phi,
+            self.j0_name: self.j0,
+            self.ocp_name: self.ocp
         })
     
     def process_geometry(self, geo: dict, clear=False):
