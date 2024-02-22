@@ -33,13 +33,13 @@ class Cell:
         #self.voltage_name = f"{self.name} Voltage"
         model.variables.update({
             # self.voltage_name: self.voltage,
-            self.iapp.name: self.iapp
+            self.iapp_name: self.iapp
         })
 
         ## PARAMETERIZE
         model.events += [
-            pybamm.Event("Min Concentration Cutoff", self.neg.surf_csn - self.neg_csn_min),
-            pybamm.Event("Max Concentration Cutoff", self.pos_csn_maxval - self.pos.surf_csn),
+            # pybamm.Event("Min Concentration Cutoff", self.neg.surf_csn - self.neg_csn_min),
+            # pybamm.Event("Max Concentration Cutoff", self.pos_csn_maxval - self.pos.surf_csn),
         #    pybamm.Event("Min Voltage Cutoff", (self.pos.phi-self.neg.phi) - 2.8)
         ]
 
