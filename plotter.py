@@ -4,7 +4,7 @@ from typing import List
 from cell import Cell
 
 def plot(df, cells: List[Cell]):
-    # seaborn-talk
+
     with plt.style.context("seaborn-v0_8-talk"):
         fig, ax1 = plt.subplots()
 

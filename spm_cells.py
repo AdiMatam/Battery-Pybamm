@@ -43,31 +43,9 @@ for cell in cells:
         cell.neg.surf_csn_name, 
         cell.voltage_name, 
         cell.iapp_name,
-
-        cell.pos.j0_name,
-        cell.pos.ocp_name,
-
-        cell.neg.j0_name,
-        cell.neg.ocp_name
     ])
 
 df = pack.cycler(I_TOTAL, NUM_CYCLES, RUNTIME_HOURS, TIME_PTS, variables, output_path="full_cycle_data.csv")
 
-ce = cells[0]
-print(df[ce.pos.j0_name])
-print(df[ce.pos.ocp_name])
-
-print(df[ce.neg.j0_name])
-print(df[ce.neg.ocp_name])
-
-a = df.loc[:,
-    [ce.pos.j0_name,
-    ce.pos.ocp_name,
-    ce.neg.j0_name,
-    ce.neg.ocp_name]
-]
-
-a.to_csv("dump.csv", index=False)
-print(a)
-#from plotter import plot
-#plot(df, cells)
+from plotter import plot
+plot(df, cells)
