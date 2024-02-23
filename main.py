@@ -59,14 +59,13 @@ solution = solver.solve(model, time_steps, inputs={i_total.name: -DISCHARGE_CURR
 
 sim_volts = solution['String Voltage'].entries
 
-volts = []
-with open("../correct_voltages", 'r') as f:
-    for val in f:
-        volts.append(NUM_CELLS * float(val.strip()))
+# volts = []
+# with open("../correct_voltages", 'r') as f:
+#     for val in f:
+#         volts.append(NUM_CELLS * float(val.strip()))
 
 from matplotlib import pyplot as plt
 
 plt.plot(solution.t, sim_volts, label="Sim")
-plt.plot(solution.t, volts, label="Should")
 plt.legend()
 plt.show()
