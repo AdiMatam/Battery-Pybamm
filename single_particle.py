@@ -20,7 +20,6 @@ class SingleParticle:
 
         self.phi_name = name + " vPotential"
         self.phi = pybamm.Variable(self.phi_name)
-        self.j0_name = name + " fExchange Current Density"
 
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
         self.r_val = r_val
@@ -35,7 +34,7 @@ class SingleParticle:
 
     def j0_func(self, c_e, c_s_surf, c_s_max):
         return pybamm.FunctionParameter(
-            self.j0_name,
+            self.name + " fExchange Current Density",
             {
                 "Electrolyte Concentration": c_e,
                 "Electrode Surface Concentration": c_s_surf,
@@ -62,7 +61,7 @@ class SingleParticle:
         self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_csn, self.c_max)
 
         self.ocp = self.u_func(self.surf_csn / self.c_max)
-        self.bv_term = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
+        self.phival = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
 
         model.initial_conditions.update({
             self.csn: pybamm.x_average(self.c_0),
@@ -137,7 +136,7 @@ if __name__ == '__main__':
         a.ocp:              p.POS_OCP
     })
 
-    model.algebraic[a.phi] = a.bv_term - a.phi
+    model.algebraic[a.phi] = a.phival - a.phi
 
     model.initial_conditions.update({
         a.phi: p.POS_OCP(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value())
