@@ -62,7 +62,7 @@ class SingleParticle:
         self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_csn, self.c_max)
 
         self.ocp = self.u_func(self.surf_csn / self.c_max)
-        self.bv_term = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
+        self.phi_val = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
 
         model.initial_conditions.update({
             self.csn: pybamm.x_average(self.c_0),
@@ -137,7 +137,7 @@ if __name__ == '__main__':
         a.ocp:              p.POS_OCP
     })
 
-    model.algebraic[a.phi] = a.bv_term - a.phi
+    model.algebraic[a.phi] = a.phi_val - a.phi
 
     model.initial_conditions.update({
         a.phi: p.POS_OCP(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value())

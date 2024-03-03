@@ -7,15 +7,19 @@ from typing import List
 
 class Pack:
     def __init__(self, num_cells:int, model:pybamm.BaseModel, geo:dict, parameters:dict, 
-                    i_total:pybamm.Parameter, voltage_cutoff: tuple
+                    i_param:pybamm.Parameter, voltage_cutoff: tuple
         ):
         self.num_cells = num_cells
         self.model = model
         self.geo = geo
         self.parameters = parameters
-        self.i_total = i_total
+        self.i_total = i_param
 
-        cells = [Cell(f"Cell {i + 1}", model, geo, parameters, voltage_cutoff) for i in range(num_cells)]
+        cells = np.zeros((2,2), dtype=Cell)
+        for i in range(2):
+            for j in range(2):
+                cells[i, j] = Cell(f"Cell {i + 1}", model, geo, parameters, voltage_cutoff)
+
         self.cells = cells
 
         # Vcell1 - Vcell2 = 0
@@ -24,11 +28,11 @@ class Pack:
             model.algebraic[cells[i].pos.phi] = cells[i + 1].pos.phi - cells[i].pos.phi
             model.algebraic[cells[i].neg.phi] = cells[i + 1].neg.phi - cells[i].neg.phi
 
-            model.algebraic[cells[i].iapp] = cells[i].pos.bv_term - cells[i].neg.bv_term - (cells[i].pos.phi - cells[i].neg.phi)
+            model.algebraic[cells[i].iapp] = cells[i].pos.phi_val - cells[i].neg.phi_val - (cells[i].pos.phi - cells[i].neg.phi)
 
-        model.algebraic[cells[-1].pos.phi] = cells[-1].pos.bv_term - cells[-1].pos.phi
-        model.algebraic[cells[-1].neg.phi] = cells[-1].neg.bv_term - cells[-1].neg.phi
-        model.algebraic[cells[-1].iapp] = i_total - sum(cell.iapp for cell in cells)
+        model.algebraic[cells[-1].pos.phi] = cells[-1].pos.phi_val - cells[-1].pos.phi
+        model.algebraic[cells[-1].neg.phi] = cells[-1].neg.phi_val - cells[-1].neg.phi
+        model.algebraic[cells[-1].iapp] = i_param - sum(cell.iapp for cell in cells)
 
 
         self.capacity = self.num_cells * min(cell.capacity for cell in cells) # this is in Ah/m^2

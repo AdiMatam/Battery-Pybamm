@@ -40,8 +40,8 @@ class Cell:
         model.events += [
             # pybamm.Event("Min Concentration Cutoff", self.neg.surf_csn - self.neg_csn_min),
             # pybamm.Event("Max Concentration Cutoff", self.pos_csn_maxval - self.pos.surf_csn),
-            pybamm.Event("Min Voltage Cutoff", (self.voltage) - voltage_cutoff[0]),
-            pybamm.Event("Max Voltage Cutoff", voltage_cutoff[1] - (self.voltage)),
+            # pybamm.Event("Min Voltage Cutoff", (self.voltage) - voltage_cutoff[0]),
+            # pybamm.Event("Max Voltage Cutoff", voltage_cutoff[1] - (self.voltage)),
         ]
 
         self.pos.process_geometry(geo)

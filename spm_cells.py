@@ -17,13 +17,13 @@ import pybamm
 import params as p
 from pack import Pack
 
-i_total = pybamm.Parameter("Input Current / Area") 
+i_param = pybamm.Parameter("Input Current / Area") 
 
 model = pybamm.BaseModel()
 geo = {}
-parameters = {i_total.name: "[input]"}
+parameters = {i_param.name: "[input]"}
 
-pack = Pack(NUM_CELLS, model, geo, parameters, i_total, VOLTAGE_CUTOFF)
+pack = Pack(NUM_CELLS, model, geo, parameters, i_param, VOLTAGE_CUTOFF)
 cells = pack.get_cells()
 
 ## pos_phi = p_OCP() @ t=0

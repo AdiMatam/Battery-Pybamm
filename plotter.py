@@ -5,7 +5,7 @@ from cell import Cell
 
 def plot(df, cells: List[Cell]):
 
-    with plt.style.context("seaborn-v0_8-talk"):
+    with plt.style.context("seaborn-talk"):
         fig, ax1 = plt.subplots()
 
         ax1.set_xlabel('Time (s)')
@@ -21,9 +21,8 @@ def plot(df, cells: List[Cell]):
 
             c = temps.pop()
 
-            ax1.set_ylabel('Concentration (mol / m2)', color='tab:red')
-            ax1.plot(df['Time'], df[cell.pos.surf_csn_name], color=c, label=cell.pos.surf_csn_name)
-            ax1.plot(df['Time'], df[cell.neg.surf_csn_name], color=c, label=cell.neg.surf_csn_name)
+            ax1.set_ylabel('Iapp (A/m2)', color='tab:red')
+            ax1.plot(df['Time'], df[cell.iapp_name], color=c, label=cell.pos.surf_csn_name)
             ax1.tick_params(axis='y', labelcolor='tab:red')
 
             ax2.set_ylabel('Potential (V)', color='tab:blue')  # we already handled the x-label with ax1
