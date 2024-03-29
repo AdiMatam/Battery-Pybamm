@@ -29,10 +29,10 @@ class Cell:
         self.__create_parameter_samples()
         self.__attach_parameters(parameters)
 
-        self.voltage = self.pos.phi - self.neg.phi
-        self.voltage_name = f"{self.name} Voltage"
+        # self.voltage_name = f"{self.name} Voltage"
+        # self.voltage = pybamm.Variable(self.voltage_name)   # self.pos.phi - self.neg.phi
         model.variables.update({
-            self.voltage_name: self.voltage,
+            # self.voltage_name: self.voltage,
             self.iapp.name: self.iapp
         })
 

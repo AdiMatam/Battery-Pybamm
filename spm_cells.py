@@ -1,4 +1,4 @@
-NUM_CELLS = 1
+NUM_CELLS = 2
 NUM_CYCLES = 1
 base_current = 1.20276592916666664
 I_TOTAL = base_current * NUM_CELLS
@@ -24,28 +24,25 @@ geo = {}
 parameters = {i_param.name: "[input]"}
 
 pack = Pack(NUM_CELLS, model, geo, parameters, i_param, VOLTAGE_CUTOFF)
-cells = pack.get_cells()
 
-## pos_phi = p_OCP() @ t=0
-## neg_phi = n_OCP() @ t=0
-model.initial_conditions.update({
-    **{ cell.pos.phi: p.POS_OCP(cell.pos_csn_ival / cell.pos_csn_maxval) for cell in cells }, 
-    **{ cell.neg.phi: p.NEG_OCP(cell.neg_csn_ival / cell.neg_csn_maxval) for cell in cells }, 
-    **{ cell.iapp:    -I_TOTAL / pack.get_num_cells() for cell in cells }
-})
+for i in range(2):
+    for j in range(2):
+        model.initial_conditions.update({
+            pack.cells[i, j].iapp: -I_TOTAL / 2
+        })
 
 pack.build(DISCRETE_PTS)
 
 variables = []
-for cell in cells:
+for cell in pack.flat_cells:
     variables.extend([
         cell.pos.surf_csn_name, 
         cell.neg.surf_csn_name, 
-        cell.voltage_name, 
+        # cell.voltage_name, 
         cell.iapp_name,
     ])
 
 df = pack.cycler(I_TOTAL, NUM_CYCLES, RUNTIME_HOURS, TIME_PTS, variables, output_path="full_cycle_data.csv")
 
-from plotter import plot
-plot(df, cells)
+# from plotter import plot
+# plot(df, cells)

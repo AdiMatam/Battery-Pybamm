@@ -19,7 +19,7 @@ class SingleParticle:
         self.surf_csn_name = name + " vSurface Concentration"
 
         self.phi_name = name + " vPotential"
-        self.phi = pybamm.Variable(self.phi_name)
+        # self.phi = pybamm.Variable(self.phi_name)
         self.j0_name = name + " fExchange Current Density"
 
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
@@ -62,7 +62,7 @@ class SingleParticle:
         self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_csn, self.c_max)
 
         self.ocp = self.u_func(self.surf_csn / self.c_max)
-        self.phi_val = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
+        self.phival = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
 
         model.initial_conditions.update({
             self.csn: pybamm.x_average(self.c_0),
@@ -79,7 +79,7 @@ class SingleParticle:
             self.surf_csn_name: pybamm.PrimaryBroadcast(
                 self.surf_csn, self.domain
             ),
-            self.phi_name: self.phi,
+            # self.phi_name: self.phi,
         })
     
     def process_geometry(self, geo: dict, clear=False):
@@ -137,7 +137,7 @@ if __name__ == '__main__':
         a.ocp:              p.POS_OCP
     })
 
-    model.algebraic[a.phi] = a.phi_val - a.phi
+    model.algebraic[a.phi] = a.phival - a.phi
 
     model.initial_conditions.update({
         a.phi: p.POS_OCP(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value())

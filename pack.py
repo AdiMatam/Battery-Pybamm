@@ -15,27 +15,60 @@ class Pack:
         self.parameters = parameters
         self.i_total = i_param
 
-        cells = np.zeros((2,2), dtype=Cell)
+        size = (2, 2)
+        cells = np.empty(size, dtype=Cell)
         for i in range(2):
             for j in range(2):
-                cells[i, j] = Cell(f"Cell {i + 1}", model, geo, parameters, voltage_cutoff)
+                cells[i, j] = Cell(f"Cell {i + 1}{j + 1}", model, geo, parameters, voltage_cutoff)
 
         self.cells = cells
+        
 
-        # Vcell1 - Vcell2 = 0
-        # (pos_phi1 - neg_phi1) - (pos_phi2 - neg_phi2) = 0
-        for i in range(len(cells) - 1):
-            model.algebraic[cells[i].pos.phi] = cells[i + 1].pos.phi - cells[i].pos.phi
-            model.algebraic[cells[i].neg.phi] = cells[i + 1].neg.phi - cells[i].neg.phi
+        str_voltages = [0 for _ in range(size[1])] # np.empty((size[1], 0), dtype=pybamm.Variable)
+        for j in range(size[1]):
+            str_voltages[j] = pybamm.Variable(f"String Voltage {j}")
 
-            model.algebraic[cells[i].iapp] = cells[i].pos.phi_val - cells[i].neg.phi_val - (cells[i].pos.phi - cells[i].neg.phi)
+        for j in range(size[1]-1):        
+            model.algebraic[str_voltages[j]] = str_voltages[j+1] - str_voltages[j]
 
-        model.algebraic[cells[-1].pos.phi] = cells[-1].pos.phi_val - cells[-1].pos.phi
-        model.algebraic[cells[-1].neg.phi] = cells[-1].neg.phi_val - cells[-1].neg.phi
-        model.algebraic[cells[-1].iapp] = i_param - sum(cell.iapp for cell in cells)
+        last_col_v = 0
+        for i in range(size[0]):
+            last_col_v += cells[i, -1].pos.phival - cells[i, -1].neg.phival
+
+        model.algebraic[str_voltages[-1]] = (last_col_v) - str_voltages[-1]
 
 
-        self.capacity = self.num_cells * min(cell.capacity for cell in cells) # this is in Ah/m^2
+        for j in range(size[1]):
+            v = 0
+            for i in range(size[0]-1):
+                model.algebraic[cells[i, j].iapp] = cells[i+1, j].iapp - cells[i, j].iapp
+                v += (cells[i, j].pos.phival - cells[i, j].neg.phival)
+
+            model.algebraic[cells[-1, j].iapp] = v
+
+
+        i_branches = 0
+        for j in range(size[1]):
+            i_branches += cells[0, j].iapp
+
+        model.algebraic[cells[-1, -1].iapp] = i_param - i_branches
+
+
+        model.variables.update({
+            **{ str_voltages[i].name: str_voltages[i] for i in range(len(str_voltages)) }
+        })
+
+        model.initial_conditions.update({
+            **{ str_voltages[i]: p.POS_OCP(cells[0,i].pos_csn_ival / cells[0,i].pos_csn_maxval) 
+                                - p.NEG_OCP(cells[-1,i].neg_csn_ival / cells[-1,i].pos_csn_maxval) 
+            
+                for i in range(size[1])
+            }, 
+        })
+
+
+        self.flat_cells = self.cells.flatten()
+        self.capacity = self.num_cells * min(cell.capacity for cell in self.flat_cells) # this is in Ah/m^2
 
         self.param_ob = pybamm.ParameterValues(parameters)
         self.param_ob.process_model(model)
@@ -50,7 +83,7 @@ class Pack:
 
     def build(self, discrete_pts):
         particles = [] 
-        for cell in self.cells:
+        for cell in self.flat_cells:
             particles.append(cell.pos)
             particles.append(cell.neg)
 
@@ -72,8 +105,8 @@ class Pack:
         inps = {
             self.i_total.name: -iapp,
             ## intial conditions for particle concentrations are set here!!
-            ** {cell.pos.c_0.name: cell.pos_csn_ival for cell in self.cells},
-            ** {cell.neg.c_0.name: cell.neg_csn_ival for cell in self.cells},
+            ** {cell.pos.c_0.name: cell.pos_csn_ival for cell in self.flat_cells},
+            ** {cell.neg.c_0.name: cell.neg_csn_ival for cell in self.flat_cells},
         }
 
         subdfs = []
@@ -96,7 +129,7 @@ class Pack:
             subdfs.append(subdf)
 
             inps[self.i_total.name] *= -1
-            for cell in self.cells:
+            for cell in self.flat_cells:
                 inps.update({
                     cell.pos.c_0_name: solution[cell.pos.surf_csn_name].entries[-1][-1],
                     cell.neg.c_0_name: solution[cell.neg.surf_csn_name].entries[-1][-1]
