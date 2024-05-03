@@ -10,11 +10,11 @@ RUNTIME_HOURS = 20
 
 
 import pybamm
+import numpy as np
 from consts import F, R_GAS, T
 import params as p
 from pack import Pack
 from cell import Cell
-import numpy as np
 
 i_t = pybamm.Parameter("Input Current / Area") 
 
