@@ -19,13 +19,13 @@ for i in range(len(cells) - 1):
     # BV
     opp = len(cells) - i
 
-    model.algebraic[cells[i].pos.phi] = opp * (cells[i].pos.phival - (cells[i].pos.phi))
+    model.algebraic[cells[i].pos.phi] = opp * (cells[i].pos.bv - (cells[i].pos.phi))
     model.algebraic[cells[i].neg.phi] = opp * (cells[i + 1].pos.phi - (cells[i].neg.phi))
 
     model.algebraic[cells[i].iapp] = cells[i + 1].iapp - (cells[i].iapp)
 
-model.algebraic[cells[-1].pos.phi] = cells[-1].pos.phival - cells[-1].pos.phi
-model.algebraic[cells[-1].neg.phi] = cells[-1].neg.phival - cells[-1].neg.phi
+model.algebraic[cells[-1].pos.phi] = cells[-1].pos.bv - cells[-1].pos.phi
+model.algebraic[cells[-1].neg.phi] = cells[-1].neg.bv - cells[-1].neg.phi
 model.algebraic[cells[-1].iapp] = i_total - (cells[-1].iapp) # all same current
 
 

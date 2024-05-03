@@ -14,12 +14,12 @@ class SingleParticle:
         self.c_max = pybamm.Parameter(name + " pMax Concentration")
 
         self.iapp = iapp
-        self.csn = pybamm.Variable(name + " vConcentration", domain=self.domain)
-        self.surf_csn = pybamm.surf(self.csn)
-        self.surf_csn_name = name + " vSurface Concentration"
 
-        self.phi_name = name + " vPotential"
-        # self.phi = pybamm.Variable(self.phi_name)
+        self.csn_name = name + " vConcentration"
+        self.csn = pybamm.Variable(self.csn_name, domain=self.domain)
+        self.surf_csn_name = name + " vSurface Concentration"
+        self.surf_csn = pybamm.surf(self.csn)
+
         self.j0_name = name + " fExchange Current Density"
 
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
@@ -62,7 +62,7 @@ class SingleParticle:
         self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_csn, self.c_max)
 
         self.ocp = self.u_func(self.surf_csn / self.c_max)
-        self.phival = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
+        self.bv = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
 
         model.initial_conditions.update({
             self.csn: pybamm.x_average(self.c_0),
@@ -79,7 +79,6 @@ class SingleParticle:
             self.surf_csn_name: pybamm.PrimaryBroadcast(
                 self.surf_csn, self.domain
             ),
-            # self.phi_name: self.phi,
         })
     
     def process_geometry(self, geo: dict, clear=False):
@@ -125,10 +124,9 @@ if __name__ == '__main__':
     a.process_model(model, p.ELECTROLYTE_CONC.get_value())
     a.process_geometry(geo)
 
-
     a.process_parameters(parameters, {
         i_total:            "[input]",
-        a.c_0:      "[input]",
+        a.c_0:               "[input]",
         a.L:                p.POS_ELEC_THICKNESS.get_value(),
         a.eps_n:            p.POS_ELEC_POROSITY.get_value(),
         a.c_max:          p.POS_CSN_MAX.get_value(),
@@ -137,12 +135,6 @@ if __name__ == '__main__':
         a.ocp:              p.POS_OCP
     })
 
-    model.algebraic[a.phi] = a.phival - a.phi
-
-    model.initial_conditions.update({
-        a.phi: p.POS_OCP(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value())
-    })
-    
     particles = [a]
     mesh = pybamm.Mesh(geo, 
         { d.domain: pybamm.Uniform1DSubMesh for d in particles },
@@ -159,7 +151,7 @@ if __name__ == '__main__':
 
     disc.process_model(model)
 
-    cycles = 6
+    cycles = 1
     solver = pybamm.CasadiSolver()
     time_steps = np.linspace(0, 3600 * 20, TIME_PTS)
     total_time_steps = np.linspace(0, 3600 * 20 * cycles, TIME_PTS * cycles)
@@ -179,7 +171,6 @@ if __name__ == '__main__':
 
         arr = solution[a.surf_csn_name].entries[-1]
         conc_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = arr
-        volt_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = solution[a.phi_name].entries
 
         last_conc = arr[-1]
         sign *= -1
@@ -197,15 +188,6 @@ if __name__ == '__main__':
     ax1.set_ylabel('Concentration (mol / m2)', color=color)
     ax1.plot(total_time_steps, conc_array, color=color)
     ax1.tick_params(axis='y', labelcolor=color)
-
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-    color = 'tab:blue'
-    ax2.set_ylabel('Potential (V)', color=color)  # we already handled the x-label with ax1
-    ax2.plot(total_time_steps, volt_array, color=color)
-    ax2.tick_params(axis='y', labelcolor=color)
-
-    plt.plot(total_time_steps, volt_array)
 
     plt.tight_layout()
     plt.show()
