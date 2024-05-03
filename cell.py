@@ -5,7 +5,7 @@ import params as p
 
 class Cell:
     CELLS = list()
-    def __init__(self, name: str, model: pybamm.BaseModel, geo:dict, parameters:dict, iapp, voltage_cutoff: tuple):
+    def __init__(self, name: str, model: pybamm.BaseModel, geo:dict, parameters:dict, iapp: pybamm.Variable):
         # if self in self.CELL_NAMES:
             # raise ValueError("Must have unique cell names/IDs")
 
@@ -13,16 +13,8 @@ class Cell:
         self.name = name
         self.model = model
 
-        # self.iapp_name = name + " Iapp"
-        # self.iapp = pybamm.Variable(self.iapp_name)
-
-        # self.pose_name = name + " Pos Potential"
-        # self.pose = pybamm.Variable(self.pose_name)
-
-        # self.nege_name = name + " Neg Potential"
-        # self.nege = pybamm.Variable(self.nege_name)
-
-#        self.volt = pybamm.Variable("Cell Voltage")
+        self.iapp = iapp
+        self.volt = pybamm.Variable(name + " Voltage")
 
         self.particle_radius = p.PARTICLE_RADIUS.rand_sample()
         self.pos = SingleParticle(name + " Pos Particle", +1, iapp, self.particle_radius)
@@ -49,6 +41,9 @@ class Cell:
 
         return min(pos_cap, neg_cap)
 
+    
+    ### RETHINK PARAMETER GENERATION AND ATTACHMENT
+    ### THIS KIND OF SUCKS (too many names, identifiers...)
     def __create_parameter_samples(self):    
 
         self.pos_csn_maxval         = p.POS_CSN_MAX.rand_sample()

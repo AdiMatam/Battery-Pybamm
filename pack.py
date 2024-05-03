@@ -6,77 +6,63 @@ import pandas as pd
 from typing import List
 
 class Pack:
-    def __init__(self, num_cells:int, model:pybamm.BaseModel, geo:dict, parameters:dict, 
-                    i_param:pybamm.Parameter, voltage_cutoff: tuple
+    def __init__(self, parallel: int, series: int, model:pybamm.BaseModel, geo:dict, parameters:dict, 
+                    i_total: pybamm.Parameter, voltage_cutoff: tuple
         ):
-        self.num_cells = num_cells
+
+        self.parallel = parallel
+        self.series = series
+
         self.model = model
         self.geo = geo
         self.parameters = parameters
-        self.i_total = i_param
+        self.i_total = i_total
 
-        size = (2, 2)
+        self.iapps = [
+            pybamm.Variable(f"String {i+1} Iapp") for i in range(parallel)
+        ]
+
+        size = (series, parallel)
         cells = np.empty(size, dtype=Cell)
-        for i in range(2):
-            for j in range(2):
-                cells[i, j] = Cell(f"Cell {i + 1}{j + 1}", model, geo, parameters, voltage_cutoff)
+        for i in range(series):
+            for j in range(parallel):
+                cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", model, geo, parameters, iapp=self.iapps[j])
 
         self.cells = cells
+
+        model.algebraic.update({
+            self.iapps[0]: i_total - sum(self.iapps[1:]) - self.iapps[0],
+        })
+        for i in range(1, parallel):
+            vbalance = 0
+            for j in range(series):
+                vbalance += cells[j, i].volt
+                vbalance -= cells[j, i-1].volt
+
+            model.algebraic[self.iapps[i]] = vbalance
+
+        #c[0, 1] - c[0, 0] + c[1, 1] - c[1, 0]
+
+        for i in range(series):
+            for j in range(parallel):
+                c = cells[i,j]
+                model.algebraic[c.volt] = c.pos.bv - c.neg.bv - c.volt
         
-
-        str_voltages = [0 for _ in range(size[1])] # np.empty((size[1], 0), dtype=pybamm.Variable)
-        for j in range(size[1]):
-            str_voltages[j] = pybamm.Variable(f"String Voltage {j}")
-
-        for j in range(size[1]-1):        
-            model.algebraic[str_voltages[j]] = str_voltages[j+1] - str_voltages[j]
-
-        last_col_v = 0
-        for i in range(size[0]):
-            last_col_v += cells[i, -1].pos.phival - cells[i, -1].neg.phival
-
-        model.algebraic[str_voltages[-1]] = (last_col_v) - str_voltages[-1]
-
-
-        for j in range(size[1]):
-            v = 0
-            for i in range(size[0]-1):
-                model.algebraic[cells[i, j].iapp] = cells[i+1, j].iapp - cells[i, j].iapp
-                v += (cells[i, j].pos.phival - cells[i, j].neg.phival)
-
-            model.algebraic[cells[-1, j].iapp] = v
-
-
-        i_branches = 0
-        for j in range(size[1]):
-            i_branches += cells[0, j].iapp
-
-        model.algebraic[cells[-1, -1].iapp] = i_param - i_branches
-
-
+        ## todo: String voltage 'variable' -- defined as sum of individual voltages
+        ## no affiliated equations, just output value
         model.variables.update({
-            **{ str_voltages[i].name: str_voltages[i] for i in range(len(str_voltages)) }
+            **{ self.iapps[i].name: self.iapps[i] for i in range(len(self.iapps)) },
+            **{ self.cells[i,j].volt.name: self.cells[i,j].volt 
+                    for i in range(series) for j in range(parallel)
+              }
         })
-
-        model.initial_conditions.update({
-            **{ str_voltages[i]: p.POS_OCP(cells[0,i].pos_csn_ival / cells[0,i].pos_csn_maxval) 
-                                - p.NEG_OCP(cells[-1,i].neg_csn_ival / cells[-1,i].pos_csn_maxval) 
-            
-                for i in range(size[1])
-            }, 
-        })
-
 
         self.flat_cells = self.cells.flatten()
-        self.capacity = self.num_cells * min(cell.capacity for cell in self.flat_cells) # this is in Ah/m^2
+        #self.capacity = self.num_cells * min(cell.capacity for cell in self.flat_cells) # this is in Ah/m^2
 
         self.param_ob = pybamm.ParameterValues(parameters)
         self.param_ob.process_model(model)
         self.param_ob.process_geometry(geo)
-
-
-    def get_num_cells(self):
-        return self.num_cells
 
     def get_cells(self) -> List[Cell]:
         return self.cells
@@ -139,3 +125,29 @@ class Pack:
         if output_path:
             df.to_csv(output_path, index=False)
         return df
+
+
+
+
+
+# for i in range(2):
+    # for j in range(2):
+        # model.initial_conditions.update({
+            # pack.cells[i, j].iapp: -I_TOTAL / 2
+        # })
+
+# pack.build(DISCRETE_PTS)
+
+# variables = []
+# for cell in pack.flat_cells:
+    # variables.extend([
+        # cell.pos.surf_csn_name, 
+        # cell.neg.surf_csn_name, 
+        # # cell.voltage_name, 
+        # cell.iapp_name,
+    # ])
+
+# df = pack.cycler(I_TOTAL, NUM_CYCLES, RUNTIME_HOURS, TIME_PTS, variables, output_path="full_cycle_data.csv")
+
+# from plotter import plot
+# plot(df, cells)
