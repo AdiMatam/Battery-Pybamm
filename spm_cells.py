@@ -10,7 +10,6 @@ RUNTIME_HOURS = 20
 
 
 import pybamm
-import numpy as np
 import params as p
 from pack import Pack
 

@@ -31,7 +31,7 @@ class Pack:
             for j in range(parallel):
                 cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", model, geo, parameters, iapp=self.iapps[j])
                 c = cells[i,j]
-                model.algebraic[c.volt] = c.pos.bv - c.neg.bv - c.volt
+                model.algebraic[c.volt] = c.pos.phi - c.neg.phi - c.volt
         #c[0, 1] - c[0, 0] + c[1, 1] - c[1, 0]
 
         self.cells = cells

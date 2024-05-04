@@ -62,7 +62,7 @@ class SingleParticle:
         self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_csn, self.c_max)
 
         self.ocp = self.u_func(self.surf_csn / self.c_max)
-        self.bv = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
+        self.phi = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
 
         model.initial_conditions.update({
             self.csn: pybamm.x_average(self.c_0),
