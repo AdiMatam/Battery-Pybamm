@@ -6,10 +6,10 @@ import params as p
 class Cell:
     CELLS = list()
     def __init__(self, name: str, model: pybamm.BaseModel, geo:dict, parameters:dict, iapp: pybamm.Variable):
-        # if self in self.CELL_NAMES:
-            # raise ValueError("Must have unique cell names/IDs")
+        if name in self.CELLS:
+            raise ValueError("Must have unique cell names/IDs")
 
-        self.CELLS.append(self)
+        self.CELLS.append(name)
         self.name = name
         self.model = model
 
@@ -60,7 +60,7 @@ class Cell:
 
     def __attach_parameters(self, param_dict: dict):
         self.pos.process_parameters(param_dict, {
-            self.pos.c_0:       self.pos_csn_ival,
+            self.pos.c_0:       "[input]",
             self.pos.L:         self.pos_L,
             self.pos.eps_n:     self.pos_eps_n,
             self.pos.c_max:  self.pos_csn_maxval,
@@ -70,7 +70,7 @@ class Cell:
         })
 
         self.neg.process_parameters(param_dict, {
-            self.neg.c_0:       self.neg_csn_ival,
+            self.neg.c_0:       "[input]",
             self.neg.L:         self.neg_L,
             self.neg.eps_n:     self.neg_eps_n,
             self.neg.c_max:  self.neg_csn_maxval,

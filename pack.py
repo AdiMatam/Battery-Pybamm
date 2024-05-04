@@ -21,12 +21,18 @@ class Pack:
         self.iapps = [
             pybamm.Variable(f"String {i+1} Iapp") for i in range(parallel)
         ]
+        self.volts = [
+            pybamm.Variable(f"String {i+1} Voltage") for i in range(parallel)
+        ]
 
         size = (series, parallel)
         cells = np.empty(size, dtype=Cell)
         for i in range(series):
             for j in range(parallel):
                 cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", model, geo, parameters, iapp=self.iapps[j])
+                c = cells[i,j]
+                model.algebraic[c.volt] = c.pos.bv - c.neg.bv - c.volt
+        #c[0, 1] - c[0, 0] + c[1, 1] - c[1, 0]
 
         self.cells = cells
 
@@ -41,24 +47,16 @@ class Pack:
 
             model.algebraic[self.iapps[i]] = vbalance
 
-        #c[0, 1] - c[0, 0] + c[1, 1] - c[1, 0]
-
-        for i in range(series):
-            for j in range(parallel):
-                c = cells[i,j]
-                model.algebraic[c.volt] = c.pos.bv - c.neg.bv - c.volt
         
-        ## todo: String voltage 'variable' -- defined as sum of individual voltages
-        ## no affiliated equations, just output value
-        model.variables.update({
-            **{ self.iapps[i].name: self.iapps[i] for i in range(len(self.iapps)) },
-            **{ self.cells[i,j].volt.name: self.cells[i,j].volt 
-                    for i in range(series) for j in range(parallel)
-              }
-        })
+        for i in range(parallel):
+            model.variables[self.iapps[i].name] = self.iapps[i]
+            model.variables[self.volts[i].name] = 0
+            for j in range(series):
+                c = self.cells[j, i]
+                model.variables[self.volts[i].name] += c.volt
+                model.variables[c.volt.name] = c.volt
 
         self.flat_cells = self.cells.flatten()
-        #self.capacity = self.num_cells * min(cell.capacity for cell in self.flat_cells) # this is in Ah/m^2
 
         self.param_ob = pybamm.ParameterValues(parameters)
         self.param_ob.process_model(model)
@@ -84,9 +82,9 @@ class Pack:
         disc.process_model(self.model)
 
     def cycler(self, iapp, cycles, runtime_hours, time_pts, variables, output_path=""):
-        cycles = cycles
         solver = pybamm.CasadiSolver()
-        time_steps = np.linspace(0, 3600 * runtime_hours, time_pts)
+        seconds = 3600 * runtime_hours
+        time_steps = np.linspace(0, seconds, time_pts)
 
         inps = {
             self.i_total.name: -iapp,
@@ -98,11 +96,12 @@ class Pack:
         subdfs = []
 
         solution = None
-        for _ in range(cycles):
+        for i in range(cycles):
             solution = solver.solve(self.model, time_steps, inputs=inps)
+            pybamm.Solution
 
             subdf = pd.DataFrame(columns=['Time'] + variables)
-            subdf['Time'] = list(solution.t)
+            subdf['Time'] = time_steps + (i)*seconds
 
             ## KEYS ARE VARIABLES
             for key in variables:
@@ -126,28 +125,3 @@ class Pack:
             df.to_csv(output_path, index=False)
         return df
 
-
-
-
-
-# for i in range(2):
-    # for j in range(2):
-        # model.initial_conditions.update({
-            # pack.cells[i, j].iapp: -I_TOTAL / 2
-        # })
-
-# pack.build(DISCRETE_PTS)
-
-# variables = []
-# for cell in pack.flat_cells:
-    # variables.extend([
-        # cell.pos.surf_csn_name, 
-        # cell.neg.surf_csn_name, 
-        # # cell.voltage_name, 
-        # cell.iapp_name,
-    # ])
-
-# df = pack.cycler(I_TOTAL, NUM_CYCLES, RUNTIME_HOURS, TIME_PTS, variables, output_path="full_cycle_data.csv")
-
-# from plotter import plot
-# plot(df, cells)

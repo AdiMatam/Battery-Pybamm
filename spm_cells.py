@@ -11,16 +11,14 @@ RUNTIME_HOURS = 20
 
 import pybamm
 import numpy as np
-from consts import F, R_GAS, T
 import params as p
 from pack import Pack
-from cell import Cell
 
 i_t = pybamm.Parameter("Input Current / Area") 
 
 model = pybamm.BaseModel()
 geo = {}
-parameters = {i_t.name: -I_TOTAL}
+parameters = {i_t.name: "[input]"}
 
 pack = Pack(NUM_PARALLEL, 2, model, geo, parameters, i_t, VOLTAGE_CUTOFF)
 
@@ -35,19 +33,14 @@ model.initial_conditions.update({
       }
 })
 
-for value in model.initial_conditions.values():
-    print(value)
-
 pack.build(DISCRETE_PTS)
 
-solver = pybamm.CasadiSolver()
-time_steps = np.linspace(0, 3600 * RUNTIME_HOURS, TIME_PTS)
+# print(list(map(lambda x: x.name, pack.iapps)))
+variables = [iapp.name for iapp in pack.iapps]
+for cell in pack.flat_cells:
+    variables.append(cell.volt.name)
 
-solution = solver.solve(model, time_steps)
-for t in time_steps:
-    # print(solution[c1.pos.surf_csn_name](t)[-1])
-    print(solution[pack.cells[0,0].volt.name](t) + solution[pack.cells[1,0].volt.name](t))
-    print(solution[pack.cells[0,1].volt.name](t) + solution[pack.cells[1,1].volt.name](t))
-    print()
+df = pack.cycler(I_TOTAL, 2, RUNTIME_HOURS, TIME_PTS, variables, output_path="cycle_data.csv")
 
-quit()
+from plotter import plot
+plot(df, pack)
