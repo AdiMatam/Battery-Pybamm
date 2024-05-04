@@ -36,9 +36,7 @@ model.initial_conditions.update({
 pack.build(DISCRETE_PTS)
 
 # print(list(map(lambda x: x.name, pack.iapps)))
-variables = [iapp.name for iapp in pack.iapps]
-for cell in pack.flat_cells:
-    variables.append(cell.volt.name)
+variables = list(model.variables.keys())
 
 df = pack.cycler(I_TOTAL, 2, RUNTIME_HOURS, TIME_PTS, variables, output_path="cycle_data.csv")
 

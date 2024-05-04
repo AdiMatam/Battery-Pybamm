@@ -13,7 +13,7 @@ def plot(df, pack: Pack):
         colors = set(plt.rcParams['axes.prop_cycle'].by_key()['color'])
         temps = colors.copy()
 
-        for i in range(pack.series):
+        for i in range(1):
             for j in range(pack.parallel):
                 if (len(temps) == 0):
                     temps = colors.copy()
@@ -21,7 +21,7 @@ def plot(df, pack: Pack):
                 c = temps.pop()
 
                 ax1.set_ylabel('Iapp (A/m2)', color='tab:red')
-                voltname = pack.cells[i,j].volt.name
+                voltname = pack.volts[j].name # cells[i,j].volt.name
                 ax1.plot(df['Time'], df[voltname], color=c, label=voltname)
                 ax1.tick_params(axis='y', labelcolor='tab:red')
 
