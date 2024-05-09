@@ -7,7 +7,7 @@ from typing import List
 
 class Pack:
     def __init__(self, parallel: int, series: int, model:pybamm.BaseModel, geo:dict, parameters:dict, 
-                    i_total: pybamm.Parameter, voltage_cutoff: tuple
+                    i_total: pybamm.Parameter
         ):
 
         self.parallel = parallel

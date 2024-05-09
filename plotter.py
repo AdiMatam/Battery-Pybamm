@@ -4,7 +4,7 @@ from pack import Pack
 
 def plot(df, pack: Pack):
 
-    with plt.style.context("seaborn-talk"):
+    with plt.style.context("dark_background"):
         fig, ax1 = plt.subplots()
 
         ax1.set_xlabel('Time (s)')
@@ -20,7 +20,7 @@ def plot(df, pack: Pack):
 
                 c = temps.pop()
 
-                ax1.set_ylabel('Iapp (A/m2)', color='tab:red')
+                ax1.set_ylabel('Pack Voltage (V)', color='tab:red')
                 voltname = pack.volts[j].name # cells[i,j].volt.name
                 ax1.plot(df['Time'], df[voltname], color=c, label=voltname)
                 ax1.tick_params(axis='y', labelcolor='tab:red')

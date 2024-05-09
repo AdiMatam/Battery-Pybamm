@@ -19,7 +19,7 @@ model = pybamm.BaseModel()
 geo = {}
 parameters = {i_t.name: "[input]"}
 
-pack = Pack(NUM_PARALLEL, 2, model, geo, parameters, i_t, VOLTAGE_CUTOFF)
+pack = Pack(NUM_PARALLEL, 2, model, geo, parameters, i_t)
 
 ivp = lambda c: (p.POS_OCP(c.pos_csn_ival / c.pos_csn_maxval))
 ivn = lambda c: (p.NEG_OCP(c.neg_csn_ival / c.neg_csn_maxval))
@@ -31,6 +31,7 @@ model.initial_conditions.update({
             for i in range(pack.series) for j in range(pack.parallel)
       }
 })
+
 
 pack.build(DISCRETE_PTS)
 
