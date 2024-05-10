@@ -2,7 +2,6 @@ NUM_PARALLEL = 3
 NUM_CYCLES = 1
 BASE_CURRENT = 1.20276592916666664
 I_TOTAL = BASE_CURRENT * NUM_PARALLEL
-VOLTAGE_CUTOFF = (2.0, 5.0) # effectively disabled
 
 DISCRETE_PTS = 50
 TIME_PTS = 250
@@ -19,7 +18,7 @@ model = pybamm.BaseModel()
 geo = {}
 parameters = {i_t.name: "[input]"}
 
-pack = Pack(NUM_PARALLEL, 2, model, geo, parameters, i_t, VOLTAGE_CUTOFF)
+pack = Pack(NUM_PARALLEL, 2, model, geo, parameters, i_t)
 
 ivp = lambda c: (p.POS_OCP(c.pos_csn_ival / c.pos_csn_maxval))
 ivn = lambda c: (p.NEG_OCP(c.neg_csn_ival / c.neg_csn_maxval))

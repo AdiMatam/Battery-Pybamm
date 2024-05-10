@@ -7,16 +7,16 @@ class SingleParticle:
         self.domain = name + " dDomain"
         self.charge = charge
 
-        self.c_0_name = name + " pInitial Concentration"
-        self.c_0 = pybamm.Parameter(self.c_0_name)
+        #self.c_0_name = name + " pInitial Concentration"
+        self.c0 = pybamm.Parameter(name + " pInitial Concentration")
         self.L = pybamm.Parameter(name + " pElectrode Thickness")
         self.eps_n = pybamm.Parameter(name + " pElectrode Porosity")
-        self.c_max = pybamm.Parameter(name + " pMax Concentration")
+        self.cmax = pybamm.Parameter(name + " pMax Concentration")
 
         self.iapp = iapp
 
-        self.csn_name = name + " vConcentration"
-        self.csn = pybamm.Variable(self.csn_name, domain=self.domain)
+        #self.csn_name = name + " vConcentration"
+        self.csn = pybamm.Variable(name + " vConcentration", domain=self.domain)
         self.surf_csn_name = name + " vSurface Concentration"
         self.surf_csn = pybamm.surf(self.csn)
 
@@ -59,13 +59,13 @@ class SingleParticle:
         #               -1 for negative electrode
         self.a_term = (3 * (1 - self.eps_n)) / self.r_val
         self.j = (self.charge * self.iapp) / (self.L * self.a_term)
-        self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_csn, self.c_max)
+        self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_csn, self.cmax)
 
-        self.ocp = self.u_func(self.surf_csn / self.c_max)
+        self.ocp = self.u_func(self.surf_csn / self.cmax)
         self.phi = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
 
         model.initial_conditions.update({
-            self.csn: pybamm.x_average(self.c_0),
+            self.csn: pybamm.x_average(self.c0),
         }) 
 
         model.boundary_conditions.update({
@@ -126,10 +126,10 @@ if __name__ == '__main__':
 
     a.process_parameters(parameters, {
         i_total:            "[input]",
-        a.c_0:               "[input]",
+        a.c0:               "[input]",
         a.L:                p.POS_ELEC_THICKNESS.get_value(),
         a.eps_n:            p.POS_ELEC_POROSITY.get_value(),
-        a.c_max:          p.POS_CSN_MAX.get_value(),
+        a.cmax:          p.POS_CSN_MAX.get_value(),
 
         a.j0:               p.POS_J0,
         a.ocp:              p.POS_OCP
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     for i in range(cycles):
         inps = {
             i_total.name: sign * I_TOTAL,
-            a.c_0.name: last_conc
+            a.c0.name: last_conc
         }
         solution = solver.solve(model, time_steps, inputs=inps)
 

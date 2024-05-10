@@ -60,20 +60,20 @@ class Cell:
 
     def __attach_parameters(self, param_dict: dict):
         self.pos.process_parameters(param_dict, {
-            self.pos.c_0:       "[input]",
+            self.pos.c0:       "[input]",
             self.pos.L:         self.pos_L,
             self.pos.eps_n:     self.pos_eps_n,
-            self.pos.c_max:  self.pos_csn_maxval,
+            self.pos.cmax:  self.pos_csn_maxval,
 
             self.pos.j0:        p.POS_J0,
             self.pos.ocp:       p.POS_OCP
         })
 
         self.neg.process_parameters(param_dict, {
-            self.neg.c_0:       "[input]",
+            self.neg.c0:       "[input]",
             self.neg.L:         self.neg_L,
             self.neg.eps_n:     self.neg_eps_n,
-            self.neg.c_max:  self.neg_csn_maxval,
+            self.neg.cmax:  self.neg_csn_maxval,
 
             self.neg.j0:        p.NEG_J0,
             self.neg.ocp:       p.NEG_OCP

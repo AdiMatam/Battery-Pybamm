@@ -7,7 +7,7 @@ from typing import List
 
 class Pack:
     def __init__(self, parallel: int, series: int, model:pybamm.BaseModel, geo:dict, parameters:dict, 
-                    i_total: pybamm.Parameter, voltage_cutoff: tuple
+                    i_total: pybamm.Parameter
         ):
 
         self.parallel = parallel
@@ -89,8 +89,8 @@ class Pack:
         inps = {
             self.i_total.name: -iapp,
             ## intial conditions for particle concentrations are set here!!
-            ** {cell.pos.c_0.name: cell.pos_csn_ival for cell in self.flat_cells},
-            ** {cell.neg.c_0.name: cell.neg_csn_ival for cell in self.flat_cells},
+            ** {cell.pos.c0.name: cell.pos_csn_ival for cell in self.flat_cells},
+            ** {cell.neg.c0.name: cell.neg_csn_ival for cell in self.flat_cells},
         }
 
         subdfs = []
@@ -106,7 +106,7 @@ class Pack:
             ## KEYS ARE VARIABLES
             for key in variables:
                 data = solution[key].entries
-                if "Concentration" in key:
+                if len(data.shape) == 2:
                     data = data[-1] # last node (all nodes 'equal' due to broadcast)
 
                 subdf[key] = data
@@ -116,8 +116,8 @@ class Pack:
             inps[self.i_total.name] *= -1
             for cell in self.flat_cells:
                 inps.update({
-                    cell.pos.c_0_name: solution[cell.pos.surf_csn_name].entries[-1][-1],
-                    cell.neg.c_0_name: solution[cell.neg.surf_csn_name].entries[-1][-1]
+                    cell.pos.c0.name: solution[cell.pos.surf_csn_name].entries[-1][-1],
+                    cell.neg.c0.name: solution[cell.neg.surf_csn_name].entries[-1][-1]
                 })
 
         df = pd.concat(subdfs, ignore_index=True)
