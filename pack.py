@@ -24,6 +24,7 @@ class Pack:
         self.volts = [
             pybamm.Variable(f"String {i+1} Voltage") for i in range(parallel)
         ]
+        self.voltsum = 0
 
         size = (series, parallel)
         cells = np.empty(size, dtype=Cell)
@@ -46,21 +47,33 @@ class Pack:
                 vbalance -= cells[j, i-1].volt
 
             model.algebraic[self.iapps[i]] = vbalance
-
         
         for i in range(parallel):
             model.variables[self.iapps[i].name] = self.iapps[i]
             model.variables[self.volts[i].name] = 0
+
             for j in range(series):
                 c = self.cells[j, i]
                 model.variables[self.volts[i].name] += c.volt
                 model.variables[c.volt.name] = c.volt
+
+                if i == 0:
+                    # capture symbolic sum of one of the strings
+                    self.voltsum += c.volt
 
         self.flat_cells = self.cells.flatten()
 
         self.param_ob = pybamm.ParameterValues(parameters)
         self.param_ob.process_model(model)
         self.param_ob.process_geometry(geo)
+
+        self.capacity = 0 #np.inf
+        for i in range(self.parallel):
+            cap = min(map(lambda c: c.capacity, self.cells[:, i]))
+            self.capacity += cap
+    
+    def get_capacity(self):
+        return self.capacity
 
     def get_cells(self) -> List[Cell]:
         return self.cells
@@ -93,15 +106,19 @@ class Pack:
             ** {cell.neg.c0.name: cell.neg_csn_ival for cell in self.flat_cells},
         }
 
+        caps = []
         subdfs = []
 
         solution = None
-        for i in range(cycles):
+        prev_time = 0
+        for _ in range(cycles):
             solution = solver.solve(self.model, time_steps, inputs=inps)
-            pybamm.Solution
 
             subdf = pd.DataFrame(columns=['Time'] + variables)
-            subdf['Time'] = time_steps + (i)*seconds
+            subdf['Time'] = solution.t + prev_time
+            prev_time += solution.t[-1]
+
+            caps.append( iapp * solution.t[-1] / 3600 )
 
             ## KEYS ARE VARIABLES
             for key in variables:
@@ -116,12 +133,12 @@ class Pack:
             inps[self.i_total.name] *= -1
             for cell in self.flat_cells:
                 inps.update({
-                    cell.pos.c0.name: solution[cell.pos.surf_csn_name].entries[-1][-1],
-                    cell.neg.c0.name: solution[cell.neg.surf_csn_name].entries[-1][-1]
+                    cell.pos.c0.name: solution[cell.pos.csn.name].entries[-1][-1],
+                    cell.neg.c0.name: solution[cell.neg.csn.name].entries[-1][-1]
                 })
 
         df = pd.concat(subdfs, ignore_index=True)
         if output_path:
             df.to_csv(output_path, index=False)
-        return df
+        return df, caps
 

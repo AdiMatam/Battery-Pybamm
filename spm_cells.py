@@ -31,13 +31,19 @@ model.initial_conditions.update({
       }
 })
 
+model.events += [
+      pybamm.Event("Min Voltage Cutoff", pack.voltsum - 3.5*pack.series),
+      pybamm.Event("Max Voltage Cutoff", 3.85*pack.series - pack.voltsum),
+]
+
+print(f"Theoretical estimate: {pack.capacity}")
 
 pack.build(DISCRETE_PTS)
 
-# print(list(map(lambda x: x.name, pack.iapps)))
 variables = list(model.variables.keys())
+df, caps = pack.cycler(I_TOTAL, 3, RUNTIME_HOURS, TIME_PTS, variables, output_path="cycle_data.csv")
 
-df = pack.cycler(I_TOTAL, 2, RUNTIME_HOURS, TIME_PTS, variables, output_path="cycle_data.csv")
+print(f"Actual: {caps}")
 
 from plotter import plot
 plot(df, pack)

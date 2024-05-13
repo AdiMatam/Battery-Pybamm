@@ -7,7 +7,6 @@ class SingleParticle:
         self.domain = name + " dDomain"
         self.charge = charge
 
-        #self.c_0_name = name + " pInitial Concentration"
         self.c0 = pybamm.Parameter(name + " pInitial Concentration")
         self.L = pybamm.Parameter(name + " pElectrode Thickness")
         self.eps_n = pybamm.Parameter(name + " pElectrode Porosity")
@@ -15,7 +14,6 @@ class SingleParticle:
 
         self.iapp = iapp
 
-        #self.csn_name = name + " vConcentration"
         self.csn = pybamm.Variable(name + " vConcentration", domain=self.domain)
         self.surf_csn_name = name + " vSurface Concentration"
         self.surf_csn = pybamm.surf(self.csn)
@@ -76,9 +74,7 @@ class SingleParticle:
         })
 
         model.variables.update({
-            self.surf_csn_name: pybamm.PrimaryBroadcast(
-                self.surf_csn, self.domain
-            ),
+            self.csn.name: self.csn
         })
     
     def process_geometry(self, geo: dict, clear=False):
