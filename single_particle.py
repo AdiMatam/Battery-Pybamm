@@ -59,6 +59,7 @@ class SingleParticle:
         self.j = (self.charge * self.iapp) / (self.L * self.a_term)
         self.j0 = self.j0_func(pybamm.Scalar(electrolyte_conc), self.surf_csn, self.cmax)
 
+        ## Butler volmer calculation
         self.ocp = self.u_func(self.surf_csn / self.cmax)
         self.phi = self.ocp + (2*c.RTF*pybamm.arcsinh(self.j / (2 * self.j0)))
 

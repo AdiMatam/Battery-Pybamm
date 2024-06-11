@@ -67,7 +67,7 @@ class Pack:
         self.param_ob.process_model(model)
         self.param_ob.process_geometry(geo)
 
-        self.capacity = 0 #np.inf
+        self.capacity = 0 
         for i in range(self.parallel):
             cap = min(map(lambda c: c.capacity, self.cells[:, i]))
             self.capacity += cap
