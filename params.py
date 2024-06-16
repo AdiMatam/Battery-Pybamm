@@ -29,7 +29,7 @@ class VariatedParameter:
 
 
 
-
+## .from_percent(value, % variation)
 POS_CSN_MAX         = VariatedParameter.from_percent(51218, 0)  
 POS_CSN_INITIAL     = VariatedParameter.from_percent(30730, 0)
 POS_ELEC_THICKNESS  = VariatedParameter.from_percent(0.0001, 0)

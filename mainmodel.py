@@ -26,6 +26,8 @@ DISCRETE_PTS = 50
 TIME_PTS = 250
 RUNTIME_HOURS = 20
 
+# Data is outputted to this file.
+# TODO: I will create a plotting interface so it is easier to plot different characteristics!
 DATA_OUTPUT = "mydata.csv"
 
 #--------------------
