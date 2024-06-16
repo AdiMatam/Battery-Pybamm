@@ -48,6 +48,8 @@ class SingleParticle:
         flux = c.D * -pybamm.grad(self.csn)
         dcdt = -pybamm.div(flux)
 
+        # dc/dt = d^2c/dr^2
+
         # solve the diffusion equation (del * del(c))
         model.rhs.update({
             self.csn: dcdt,

@@ -10,21 +10,23 @@ The output is sent to cycle_data.csv (Can be opened in Excel)
 """
 
 
-NUM_PARALLEL = 3
+NUM_PARALLEL = 2
 NUM_SERIES = 2
-NUM_CYCLES = 1
+NUM_CYCLES = 4
 BASE_CURRENT = 1.20276592916666664
 
 ## input current (you can change to anything)
 I_TOTAL = BASE_CURRENT * NUM_PARALLEL
 
-VOLTAGE_LOW_CUT = 3.5
+VOLTAGE_LOW_CUT = 3.6
 VOLTAGE_HIGH_CUT =3.85
 
 ## Meshing and Discretization Parameters
 DISCRETE_PTS = 50
 TIME_PTS = 250
 RUNTIME_HOURS = 20
+
+DATA_OUTPUT = "mydata.csv"
 
 #--------------------
 
@@ -62,7 +64,7 @@ print(f"Theoretical estimate: {pack.capacity}")
 pack.build(DISCRETE_PTS)
 
 variables = list(model.variables.keys())
-df, caps = pack.cycler(I_TOTAL, NUM_CYCLES, RUNTIME_HOURS, TIME_PTS, variables, output_path="cycle_data.csv")
+df, caps = pack.cycler(I_TOTAL, NUM_CYCLES, RUNTIME_HOURS, TIME_PTS, variables, output_path=DATA_OUTPUT)
 
 print(f"Actual: {caps}")
 

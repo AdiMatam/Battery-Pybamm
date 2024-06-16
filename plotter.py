@@ -21,7 +21,7 @@ def plot(df, pack: Pack):
 
             ax1.set_ylabel('Pack Voltage (V)', color='tab:red')
             voltname = pack.volts[j].name # cells[i,j].volt.name
-            # ax1.plot(df['Time'], df[voltname], color=c, label=voltname)
+            ax1.plot(df['Time'], df[voltname], color=c, label=voltname)
             ax1.tick_params(axis='y', labelcolor='tab:red')
 
             ax2.set_ylabel('String Currents (A/m2)', color='tab:blue')  # we already handled the x-label with ax1
