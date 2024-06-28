@@ -1,33 +1,11 @@
-import random
+from variatedparam import VariatedParameter
+
+VariatedParameter.OVERRIDE_VARIATON = True
+
 from marquis import lico2_electrolyte_exchange_current_density_Dualfoil1998 as j0p
 from marquis import graphite_electrolyte_exchange_current_density_Dualfoil1998 as j0n
 from marquis import lico2_ocp_Dualfoil1998 as Up
 from marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
-
-class VariatedParameter:
-    def __init__(self, value: float, low_high: tuple):
-        self.value = value
-        self.low_high = low_high
-
-    @classmethod
-    def from_percent(cls, value: float, percent: float=1):
-        offset = value * (percent / 100)
-        return cls(value, (value - offset, value + offset))
-
-    def rand_sample(self):
-        return random.uniform(self.low_high[0], self.low_high[1]) 
-
-    def get_value(self):
-        return self.value
-
-
-
-
-
-
-
-
-
 
 ## .from_percent(value, % variation)
 POS_CSN_MAX         = VariatedParameter.from_percent(51218, 0)  

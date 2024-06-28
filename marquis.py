@@ -330,3 +330,7 @@ def electrolyte_conductivity_Capiglia1999(c_e, T):
     arrhenius = np.exp(E_k_e / pybamm.constants.R * (1 / 298.15 - 1 / T))
 
     return sigma_e * arrhenius
+
+if __name__ == '__main__':
+    import params as p
+    print(lico2_ocp_Dualfoil1998(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value()))
