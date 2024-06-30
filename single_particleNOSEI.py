@@ -85,6 +85,48 @@ class SingleParticle:
         })
 
 
+    def process_anodeNOSEI(self, model: pybamm.BaseModel, clear=False):
+        flux = c.D * -pybamm.grad(self.csn)
+        # dc/dt = d^2c/dr^2
+        dcdt = -pybamm.div(flux)
+
+        # solve the diffusion equation (del * del(c))
+        model.rhs.update({
+            self.csn: dcdt,
+        })
+
+        # self.charge = +1 for positive electrode
+        #               -1 for negative electrode
+        self.a_term = (3 * (1 - self.eps_n)) / self.r_val
+        self.j = (self.charge * self.iapp) / (self.L * self.a_term)
+
+        self.ocp = self.u_func(self.surf_csn / self.cmax)
+
+        anode_kint = 2.07e-11
+        j0 = c.F * anode_kint * self.surf_csn**0.5 * (self.cmax - self.surf_csn)**0.5 
+        x = c.F / (2 * c.R_GAS * c.T) * (self.phi - self.ocp)
+
+        model.algebraic.update({
+            self.phi: j0 * 2 * pybamm.sinh(x) - self.j,
+        })
+
+        model.initial_conditions.update({
+            self.csn: pybamm.x_average(self.c0),
+            self.phi: NEG_OCP_INIT
+        }) 
+
+        model.boundary_conditions.update({
+            self.csn: {
+                "left":  (0, "Neumann"),
+                "right": (-self.j / (c.F * c.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
+            },
+        })
+
+        model.variables.update({
+            self.csn.name: self.csn,
+            self.phi.name: self.phi
+        })
+
     def process_anode(self, model: pybamm.BaseModel, clear=False):
         flux = c.D * -pybamm.grad(self.csn)
         # dc/dt = d^2c/dr^2
@@ -114,7 +156,7 @@ class SingleParticle:
 
         kfs = 1.36e-12
         ## TODO: CHECK WITH PROF: e_sei * ce_sln (taken from paper)
-        cec_init = 0.05 * 4541
+        cec_init = 0.05 * 4.541
         is_rhs = self.iflag * -c.F*kfs*cec_init * pybamm.exp( (-0.5*c.F)/(c.R_GAS*c.T) * (self.phi - (self.seiL/KSEI)*self.j) ) 
 
         anode_kint = 2.07e-11
@@ -133,11 +175,10 @@ class SingleParticle:
             self.seiL: self.sei0,
         }) 
 
-        # TODO: Sign check on surface boundary condition
         model.boundary_conditions.update({
             self.csn: {
                 "left":  (0, "Neumann"),
-                "right": (+self.i_int / (c.F * c.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
+                "right": (-self.i_int / (c.F * c.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
             },
         })
 
@@ -191,8 +232,7 @@ if __name__ == '__main__':
     parameters = {}
 
     a = SingleParticle("Anode", -1, i_total, p.PARTICLE_RADIUS.get_value())
-    a.process_anode(model)
-    #a.process_anodeNOSEI(model)
+    a.process_anodeNOSEI(model)
     a.process_geometry(geo)
 
     a.process_parameters(parameters, {
@@ -203,8 +243,8 @@ if __name__ == '__main__':
         a.cmax:             p.NEG_CSN_MAX.get_value(),
 
         a.ocp:              p.NEG_OCP,
-        a.sei0:             "[input]",
-        a.iflag:            "[input]",
+        #a.sei0:             "[input]",
+        #a.iflag:            "[input]",
     })
 
     particles = [a]
@@ -223,8 +263,8 @@ if __name__ == '__main__':
 
     disc.process_model(model)
 
-    cycles = 2
-    solver = pybamm.CasadiSolver(mode='safe', atol=1e-3, rtol=1e-2, extra_options_setup={"max_num_steps": 100000})
+    cycles = 1
+    solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, extra_options_setup={"max_num_steps": 100000})
     HOURS = 10
     time_steps = np.linspace(0, 3600 * HOURS, TIME_PTS)
     total_time_steps = np.linspace(0, 3600 * HOURS * cycles, TIME_PTS * cycles)
@@ -235,28 +275,28 @@ if __name__ == '__main__':
 
     conc_array = np.empty((TIME_PTS*cycles,))
     volt_array = np.empty((TIME_PTS*cycles,))
-    int_array = np.empty((TIME_PTS*cycles,))
-    sei_array = np.empty((TIME_PTS*cycles,))
-    seil_array = np.empty((TIME_PTS*cycles,))
+    #int_array = np.empty((TIME_PTS*cycles,))
+    #sei_array = np.empty((TIME_PTS*cycles,))
+    #seil_array = np.empty((TIME_PTS*cycles,))
 
     for i in range(cycles):
         inps = {
             i_total.name: sign * I_TOTAL,
             a.c0.name: last_conc,
-            a.sei0.name: last_SEI,
-            a.iflag.name: 0 if (sign == -1) else 1
+            #a.sei0.name: last_SEI,
+            #a.iflag.name: 0 if (sign == -1) else 1
         }
         solution = solver.solve(model, time_steps, inputs=inps)
 
         arr = solution[a.csn.name].entries[-1]
         conc_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = arr
         volt_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = solution[a.phi.name].entries
-        int_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = solution[a.i_int.name].entries
-        sei_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = solution[a.i_s.name].entries
-        seil_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = solution[a.seiL.name].entries
+        #int_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = solution[a.i_int.name].entries
+        #sei_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = solution[a.i_s.name].entries
+        #seil_array[i*TIME_PTS: (i*TIME_PTS)+TIME_PTS] = solution[a.seiL.name].entries
 
         last_conc = arr[-1]
-        last_SEI = solution[a.seiL.name].entries[-1]
+        #last_SEI = solution[a.seiL.name].entries[-1]
         sign *= -1
         print(f"Passed {i}")
 
@@ -268,12 +308,12 @@ if __name__ == '__main__':
         'Time': total_time_steps,
         'Concentration': conc_array,
         "Voltage": volt_array,
-        'I_INT': int_array,
-        'I_SEI': sei_array,
-        "Length": seil_array,
+        #'I_INT': int_array,
+        #'I_SEI': sei_array,
+        #"Length": seil_array,
     })
 
-    df.to_csv("ANODE_SEI_3.csv", index=False)
+    df.to_csv("ANODE_NOSEI_1.csv", index=False)
 
     quit()
 
