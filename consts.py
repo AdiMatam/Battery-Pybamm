@@ -1,5 +1,6 @@
 # assuming "Diffusion Coefficient" is constant w/ respect to Concentration @ r
-D = 3.9e-14 # pybamm.Parameter("pDiffusion Coefficient")
+# D = 2.0e-14 #3.9e-14
+# D = 3.9e-14 # pybamm.Parameter("pDiffusion Coefficient")
 F = 96485
 
 # not scaling radius at the moment... 

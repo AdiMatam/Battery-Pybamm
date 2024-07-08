@@ -14,6 +14,10 @@ class VariatedParameter:
         offset = value * (percent / 100)
         return cls(value, (value - offset, value + offset))
 
+    @classmethod
+    def from_gaussian(cls, value: float, stddev: float):
+        raise NotImplementedError("TBD")
+
     def rand_sample(self):
         return random.uniform(self.low_high[0], self.low_high[1]) 
 

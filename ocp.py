@@ -1,4 +1,7 @@
 import pybamm
+from matplotlib import pyplot as plt
+import numpy as np
+import math
 
 ## wrong initial ocp?
 
@@ -6,6 +9,10 @@ def neg_ocp(sto):
     x = sto
     return 0.7222 + 0.1387*x + 0.029*x**0.5 - 0.0172/x + 0.0019/(x**1.5) + 0.2808*pybamm.exp(0.9-15*x) - 0.7984*pybamm.exp(0.4465*x - 0.4108)
 
+
+def neg1_ocp(sto):
+    x = sto
+    return 0.7222 + 0.1387*x + 0.029*x**0.5 - 0.0172/x + 0.0019/(x**1.5) + 0.2808*math.exp(0.9-15*x) - 0.7984*math.exp(0.4465*x - 0.4108)
 
 def pos_ocp(sto):
     y = sto
@@ -16,6 +23,15 @@ def pos_ocp(sto):
 import params as p
 
 if __name__ == '__main__':
-    print(neg_ocp(p.NEG_CSN_INITIAL.get_value() / p.NEG_CSN_MAX.get_value()))
-    print(pos_ocp(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value()))
+    x = np.linspace(0.5, 1.0, 1000)
+    y = np.linspace(0.75, 0.01, 1000)
+    p_ocps = [pos_ocp(i) for i in x]
+    n_ocps = [neg1_ocp(i) for i in y]
+
+    #plt.plot(x, p_ocps)
+    plt.plot(y, n_ocps)
+    plt.show()
+
+    # print(neg_ocp(p.NEG_CSN_INITIAL.get_value() / p.NEG_CSN_MAX.get_value()))
+    # print(pos_ocp(p.POS_CSN_INITIAL.get_value() / p.POS_CSN_MAX.get_value()))
     
