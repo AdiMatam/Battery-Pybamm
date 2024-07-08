@@ -1,11 +1,11 @@
 import pickle
 import pybamm
 import consts as c
-from single_particle import SingleParticle
+from particle_anode import Anode
 from marquis import lico2_ocp_Dualfoil1998 as Up
 from marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
 
-def post_process_voltage(solution: pybamm.Solution, positive: SingleParticle, negative: SingleParticle):
+def post_process_voltage(solution: pybamm.Solution, positive: Anode, negative: Anode):
     voltages = []
     RTF = c.R_GAS * c.T / c.F
 

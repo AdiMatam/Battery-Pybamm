@@ -8,6 +8,9 @@ class VariatedParameter:
         self.value = value
         self.low_high = low_high
 
+    def __float__(self):
+        return float(self.get_value())
+
     @classmethod
     def from_percent(cls, value: float, percent: float=1):
         percent *= int(not cls.OVERRIDE_VARIATON)

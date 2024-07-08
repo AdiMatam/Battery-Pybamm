@@ -69,7 +69,7 @@ class SingleParticle:
 
         model.initial_conditions.update({
             self.csn: pybamm.x_average(self.c0),
-            self.phi: POS_OCP_INIT
+            self.phi: c.POS_OCP_INIT
         }) 
 
         model.boundary_conditions.update({

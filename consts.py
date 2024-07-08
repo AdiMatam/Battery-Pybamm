@@ -8,3 +8,18 @@ R_GAS = 8.314
 T = 298 # kelvin
 RTF = R_GAS * T / F
 
+POS_OCP_INIT = 4.08138601219583
+
+def BIND_VALUES(fulldict: dict, subdict: dict):
+    # absorption of particle parameters
+    fulldict.update(
+        {key.name : value for key, value in subdict.items()}
+    )
+
+def ADD_TO_MODEL(model, variables: list):
+    model.variables.update(
+        {var.name: var for var in variables}
+    )
+
+def PROCESS_OUTPUTS(variables: list):
+    return [var.name for var in variables]

@@ -1,5 +1,5 @@
 import pybamm
-from single_particle import SingleParticle
+from particle_anode import Anode
 import consts as c
 import params as p
 
@@ -17,8 +17,8 @@ class Cell:
         self.volt = pybamm.Variable(name + " Voltage")
 
         self.particle_radius = p.PARTICLE_RADIUS.rand_sample()
-        self.pos = SingleParticle(name + " Pos Particle", +1, iapp, self.particle_radius)
-        self.neg = SingleParticle(name + " Neg Particle", -1, iapp, self.particle_radius)
+        self.pos = Anode(name + " Pos Particle", +1, iapp, self.particle_radius)
+        self.neg = Anode(name + " Neg Particle", -1, iapp, self.particle_radius)
 
         ## TEMPORARILY ELECTROLYLTE HANDLED DONE THIS WAY
         self.electrolyte_conc    = p.ELECTROLYTE_CONC.rand_sample()
