@@ -1,5 +1,5 @@
 import pybamm
-import consts as c
+import consts as cc
 
 pybamm.set_logging_level("DEBUG")
 
@@ -60,8 +60,8 @@ class SingleParticle:
         self.ocp = self.u_func(self.surf_csn / self.cmax)
 
         cathode_kint = 1.04e-11
-        j0 = c.F * cathode_kint * self.surf_csn**0.5 * (self.cmax - self.surf_csn)**0.5 
-        x = c.F / (2 * c.R_GAS * c.T) * (self.phi - self.ocp)
+        j0 = cc.F * cathode_kint * self.surf_csn**0.5 * (self.cmax - self.surf_csn)**0.5 
+        x = cc.F / (2 * cc.R_GAS * cc.T) * (self.phi - self.ocp)
 
         model.algebraic.update({
             self.phi: j0 * 2 * pybamm.sinh(x) - self.j,
@@ -69,13 +69,13 @@ class SingleParticle:
 
         model.initial_conditions.update({
             self.csn: pybamm.x_average(self.c0),
-            self.phi: c.POS_OCP_INIT
+            self.phi: cc.POS_OCP_INIT
         }) 
 
         model.boundary_conditions.update({
             self.csn: {
                 "left":  (0, "Neumann"),
-                "right": (-self.j / (c.F * self.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
+                "right": (-self.j / (cc.F * self.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
             },
         })
 
@@ -124,10 +124,10 @@ if __name__ == '__main__':
     TIME_PTS = 250
 
     pos_cap = p.POS_CSN_MAX.get_value() - p.POS_CSN_INITIAL.get_value()
-    pos_cap *= p.POS_ELEC_THICKNESS.get_value() * (1-p.POS_ELEC_POROSITY.get_value()) * (c.F / 3600)
+    pos_cap *= p.POS_ELEC_THICKNESS.get_value() * (1-p.POS_ELEC_POROSITY.get_value()) * (cc.F / 3600)
 
     neg_cap = p.NEG_CSN_INITIAL.get_value()
-    neg_cap *= p.NEG_ELEC_THICKNESS.get_value() * (1-p.NEG_ELEC_POROSITY.get_value()) * (c.F / 3600)
+    neg_cap *= p.NEG_ELEC_THICKNESS.get_value() * (1-p.NEG_ELEC_POROSITY.get_value()) * (cc.F / 3600)
     
     print(pos_cap, neg_cap)
     print(neg_cap / 20)

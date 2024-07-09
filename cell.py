@@ -1,6 +1,6 @@
 import pybamm
 from particle_anode import Anode
-import consts as c
+import consts as cc
 import params as p
 
 class Cell:
@@ -37,9 +37,9 @@ class Cell:
     def __compute_capacity(self):
         # (csn_max - csn_min) * L * (1-eps_n) * (mols->Ah)
         # cathode
-        pos_cap = (self.pos_csn_maxval - self.pos_csn_ival) * self.pos_L * (1-self.pos_eps_n) * (c.F / 3600)
+        pos_cap = (self.pos_csn_maxval - self.pos_csn_ival) * self.pos_L * (1-self.pos_eps_n) * (cc.F / 3600)
         # anode
-        neg_cap = (self.neg_csn_ival - self.neg_csn_min) * self.neg_L * (1-self.neg_eps_n) * (c.F / 3600)
+        neg_cap = (self.neg_csn_ival - self.neg_csn_min) * self.neg_L * (1-self.neg_eps_n) * (cc.F / 3600)
 
         return min(pos_cap, neg_cap)
 

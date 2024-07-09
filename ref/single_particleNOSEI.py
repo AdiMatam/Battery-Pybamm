@@ -1,5 +1,5 @@
 import pybamm
-import consts as c
+import consts as cc
 
 pybamm.set_logging_level("DEBUG")
 
@@ -43,7 +43,7 @@ class SingleParticle:
         )
 
     def process_model(self, model: pybamm.BaseModel, clear=False):
-        flux = c.D * -pybamm.grad(self.csn)
+        flux = cc.D * -pybamm.grad(self.csn)
         # dc/dt = d^2c/dr^2
         dcdt = -pybamm.div(flux)
 
@@ -60,8 +60,8 @@ class SingleParticle:
         self.ocp = self.u_func(self.surf_csn / self.cmax)
 
         cathode_kint = 1.04e-11
-        j0 = c.F * cathode_kint * self.surf_csn**0.5 * (self.cmax - self.surf_csn)**0.5 
-        x = c.F / (2 * c.R_GAS * c.T) * (self.phi - self.ocp)
+        j0 = cc.F * cathode_kint * self.surf_csn**0.5 * (self.cmax - self.surf_csn)**0.5 
+        x = cc.F / (2 * cc.R_GAS * cc.T) * (self.phi - self.ocp)
 
         model.algebraic.update({
             self.phi: j0 * 2 * pybamm.sinh(x) - self.j,
@@ -75,7 +75,7 @@ class SingleParticle:
         model.boundary_conditions.update({
             self.csn: {
                 "left":  (0, "Neumann"),
-                "right": (-self.j / (c.F * c.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
+                "right": (-self.j / (cc.F * cc.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
             },
         })
 
@@ -86,7 +86,7 @@ class SingleParticle:
 
 
     def process_anodeNOSEI(self, model: pybamm.BaseModel, clear=False):
-        flux = c.D * -pybamm.grad(self.csn)
+        flux = cc.D * -pybamm.grad(self.csn)
         # dc/dt = d^2c/dr^2
         dcdt = -pybamm.div(flux)
 
@@ -103,8 +103,8 @@ class SingleParticle:
         self.ocp = self.u_func(self.surf_csn / self.cmax)
 
         anode_kint = 2.07e-11
-        j0 = c.F * anode_kint * self.surf_csn**0.5 * (self.cmax - self.surf_csn)**0.5 
-        x = c.F / (2 * c.R_GAS * c.T) * (self.phi - self.ocp)
+        j0 = cc.F * anode_kint * self.surf_csn**0.5 * (self.cmax - self.surf_csn)**0.5 
+        x = cc.F / (2 * cc.R_GAS * cc.T) * (self.phi - self.ocp)
 
         model.algebraic.update({
             self.phi: j0 * 2 * pybamm.sinh(x) - self.j,
@@ -118,7 +118,7 @@ class SingleParticle:
         model.boundary_conditions.update({
             self.csn: {
                 "left":  (0, "Neumann"),
-                "right": (-self.j / (c.F * c.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
+                "right": (-self.j / (cc.F * cc.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
             },
         })
 
@@ -128,7 +128,7 @@ class SingleParticle:
         })
 
     def process_anode(self, model: pybamm.BaseModel, clear=False):
-        flux = c.D * -pybamm.grad(self.csn)
+        flux = cc.D * -pybamm.grad(self.csn)
         # dc/dt = d^2c/dr^2
         dcdt = -pybamm.div(flux)
 
@@ -142,7 +142,7 @@ class SingleParticle:
         RHO_SEI = 1690
 
         ## -- SEI START -- 
-        dLdt = (-self.i_s / 2*c.F) * (M_SEI / RHO_SEI)
+        dLdt = (-self.i_s / 2*cc.F) * (M_SEI / RHO_SEI)
 
         # solve the diffusion equation (del * del(c))
         model.rhs.update({
@@ -152,15 +152,15 @@ class SingleParticle:
 
         ## anode (SEI case)
         self.ocp = self.u_func(self.surf_csn / self.cmax)
-        x = c.F / (2 * c.R_GAS * c.T) * (self.phi - self.ocp - (self.seiL/KSEI)*self.j)
+        x = cc.F / (2 * cc.R_GAS * cc.T) * (self.phi - self.ocp - (self.seiL/KSEI)*self.j)
 
         kfs = 1.36e-12
         ## TODO: CHECK WITH PROF: e_sei * ce_sln (taken from paper)
         cec_init = 0.05 * 4.541
-        is_rhs = self.iflag * -c.F*kfs*cec_init * pybamm.exp( (-0.5*c.F)/(c.R_GAS*c.T) * (self.phi - (self.seiL/KSEI)*self.j) ) 
+        is_rhs = self.iflag * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.seiL/KSEI)*self.j) ) 
 
         anode_kint = 2.07e-11
-        j0 = c.F * anode_kint * self.surf_csn**0.5 * (self.cmax - self.surf_csn)**0.5 
+        j0 = cc.F * anode_kint * self.surf_csn**0.5 * (self.cmax - self.surf_csn)**0.5 
         model.algebraic.update({
             self.phi: j0 * 2 * pybamm.sinh(x) - self.i_int,
             self.i_s: is_rhs - self.i_s,
@@ -178,7 +178,7 @@ class SingleParticle:
         model.boundary_conditions.update({
             self.csn: {
                 "left":  (0, "Neumann"),
-                "right": (-self.i_int / (c.F * c.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
+                "right": (-self.i_int / (cc.F * cc.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
             },
         })
 

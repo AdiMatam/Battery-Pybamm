@@ -6,7 +6,7 @@ DISCHARGE_CURRENT = -1.2
 
 import pybamm
 import numpy as np
-import consts as c
+import consts as cc
 from cell import Cell
 
 model = pybamm.BaseModel()
@@ -33,8 +33,8 @@ model.algebraic[cells[-1].iapp] = i_total - (cells[-1].iapp) # all same current
 ## current = input() 
 ## pos_phi = p_OCP() @ t=0
 ## neg_phi = n_OCP() @ t=0
-pos_phi_init = c.POS_OPEN_CIRCUIT_POTENTIAL(c.POS_CSN_INITIAL / c.POS_CSN_MAX)
-neg_phi_init = c.NEG_OPEN_CIRCUIT_POTENTIAL(c.NEG_CSN_INITIAL / c.NEG_CSN_MAX)
+pos_phi_init = cc.POS_OPEN_CIRCUIT_POTENTIAL(cc.POS_CSN_INITIAL / cc.POS_CSN_MAX)
+neg_phi_init = cc.NEG_OPEN_CIRCUIT_POTENTIAL(cc.NEG_CSN_INITIAL / cc.NEG_CSN_MAX)
 
 parameters = {
     i_total.name: DISCHARGE_CURRENT

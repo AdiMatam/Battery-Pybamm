@@ -16,7 +16,7 @@ def BIND_VALUES(fulldict: dict, subdict: dict):
         {key.name : value for key, value in subdict.items()}
     )
 
-def ADD_TO_MODEL(model, variables: list):
+def MODEL_VARS(model, variables: list):
     model.variables.update(
         {var.name: var for var in variables}
     )

@@ -1,12 +1,12 @@
 import pybamm
-import consts as c
-from consts import ADD_TO_MODEL, PROCESS_OUTPUTS, BIND_VALUES
+import consts as cc
+from consts import MODEL_VARS, PROCESS_OUTPUTS, BIND_VALUES
 from single_particle import SingleParticle
 
 pybamm.set_logging_level("DEBUG")
 
 class Anode(SingleParticle): 
-    NEG_OCP_INIT = 0.08352811644995728
+    OCP_INIT = 0.08352811644995728
 
     def __init__(self, name: str, iapp: pybamm.Variable):
         super().__init__(name, -1, iapp) 
@@ -31,7 +31,7 @@ class Anode(SingleParticle):
         KINT = 2.07e-11
 
         ## -- SEI START -- 
-        dLdt = (-self.i_sei / (2*c.F)) * (M_SEI / RHO_SEI)
+        dLdt = (-self.i_sei / (2*cc.F)) * (M_SEI / RHO_SEI)
 
         # solve the ODEs -- diffusion equation (del * del(c))
         model.rhs.update({
@@ -40,14 +40,14 @@ class Anode(SingleParticle):
         })
 
         ## anode (SEI case)
-        x = c.F / (2 * c.R_GAS * c.T) * (self.phi - self.ocp - (self.sei_L/KSEI)*self.j)
+        x = cc.F / (2 * cc.R_GAS * cc.T) * (self.phi - self.ocp - (self.sei_L/KSEI)*self.j)
 
         ## SEE PAPER
         kfs = 1.36e-12
         cec_init = 0.05 * 4541
-        is_rhs = self.iflag * -c.F*kfs*cec_init * pybamm.exp( (-0.5*c.F)/(c.R_GAS*c.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
+        is_rhs = self.iflag * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
 
-        j0 = c.F * KINT * self.surf_c**0.5 * (self.cmax - self.surf_c)**0.5 
+        j0 = cc.F * KINT * self.surf_c**0.5 * (self.cmax - self.surf_c)**0.5 
 
         # algebraic equations. Equation AFTER the colon is relevant, 
         # ( self.XX BEFORE the colon can be ignored as it's just a syntactical requirement )
@@ -59,7 +59,7 @@ class Anode(SingleParticle):
 
         model.initial_conditions.update({
             self.c: pybamm.x_average(self.c0),
-            self.phi: Anode.NEG_OCP_INIT,
+            self.phi: Anode.OCP_INIT,
             self.i_sei: 0.5 * self.j,
             self.i_int: 0.5 * self.j,
             self.sei_L: self.sei0,
@@ -69,12 +69,12 @@ class Anode(SingleParticle):
         model.boundary_conditions.update({
             self.c: {
                 "left":  (0, "Neumann"),
-                "right": (-self.i_int / (c.F * self.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
+                "right": (-self.i_int / (cc.F * self.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
             },
         })
 
         # model.variables.update{}
-        ADD_TO_MODEL(model,
+        MODEL_VARS(model,
             [
                 self.c, 
                 self.phi, 

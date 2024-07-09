@@ -1,13 +1,13 @@
 import pickle
 import pybamm
-import consts as c
+import consts as cc
 from particle_anode import Anode
 from marquis import lico2_ocp_Dualfoil1998 as Up
 from marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
 
 def post_process_voltage(solution: pybamm.Solution, positive: Anode, negative: Anode):
     voltages = []
-    RTF = c.R_GAS * c.T / c.F
+    RTF = cc.R_GAS * cc.T / cc.F
 
     # length of entries == # of time steps (600)
     # surface concentration @ each time step
@@ -23,7 +23,7 @@ def post_process_voltage(solution: pybamm.Solution, positive: Anode, negative: A
     for i in range(time_steps):
         # get surface concentration @ each time step
         inst_surf_p = surf_p[i]
-        scaled_surf_p = inst_surf_p / c.POS_CSN_MAX
+        scaled_surf_p = inst_surf_p / cc.POS_CSN_MAX
         # get current j0 (at i-th timestep)
         j0_p = solution[positive.j0_name].entries[i]
 
@@ -37,7 +37,7 @@ def post_process_voltage(solution: pybamm.Solution, positive: Anode, negative: A
         # -------------------------------------
         
         inst_surf_n = surf_n[i]
-        scaled_surf_n = inst_surf_n / c.NEG_CSN_MAX
+        scaled_surf_n = inst_surf_n / cc.NEG_CSN_MAX
         j0_n = solution[negative.j0_name].entries[i]
         
         # jn is positive. overpotential increases when neg electrode being de-lithiated (discharge),

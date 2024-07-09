@@ -1,5 +1,5 @@
 import pybamm
-import consts as c
+import consts as cc
 from abc import ABC, abstractmethod
 
 class SingleParticle:

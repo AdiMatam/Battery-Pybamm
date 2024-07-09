@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import params as p
 
 seidf = pd.read_csv("ANODE_2.csv")
-#catdf = pd.read_csv("CATHODE_SEI_2.csv")
+catdf = pd.read_csv("CATHODE_2.csv")
 
 fig, ax1 = plt.subplots()
 
@@ -26,12 +26,12 @@ a = (3 * (1 - p.NEG_ELEC_POROSITY.get_value())) / p.PARTICLE_RADIUS.get_value()
 
 #print(seidf['I_SEI'])
 ax1.set_ylabel('Concentration', color='green')
-ax1.plot(seidf['Time'], seidf['Anode vConcentration'], color='green')
+ax1.plot(catdf['Time'], catdf['Cathode vConcentration'], color='green')
 ax1.tick_params(axis='y', labelcolor='green')
 
 ax2.set_ylabel('Voltage (V)', color='tab:blue')  # we already handled the x-label with ax1
-ax2.plot(seidf['Time'], seidf['Anode vPhi'], color='green')
-# ax2.plot(seidf['Time'], catdf['Voltage'] - seidf['Voltage'], color='blue')
+# ax2.plot(seidf['Time'], seidf['Anode vPhi'], color='green')
+ax2.plot(seidf['Time'], catdf['Cathode vPhi'], color='blue')
 ax2.tick_params(axis='y', labelcolor='tab:blue')
 
 plt.grid(linewidth=0.2)
