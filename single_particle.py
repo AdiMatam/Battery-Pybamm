@@ -15,7 +15,6 @@ class SingleParticle:
         self.D = pybamm.Parameter(name + " pDiffusion Coefficient")
         self.R = pybamm.Parameter(name + " pParticle Radius")
 
-        self.iflag = pybamm.Parameter(name + " pCharge?")
 
         self.iapp = iapp
 

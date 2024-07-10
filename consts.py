@@ -8,8 +8,6 @@ R_GAS = 8.314
 T = 298 # kelvin
 RTF = R_GAS * T / F
 
-POS_OCP_INIT = 4.08138601219583
-
 def BIND_VALUES(fulldict: dict, subdict: dict):
     # absorption of particle parameters
     fulldict.update(

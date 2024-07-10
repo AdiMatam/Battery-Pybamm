@@ -2,7 +2,7 @@ from variatedparam import VariatedParameter
 
 VariatedParameter.OVERRIDE_VARIATON = True
 
-from ocp import neg_ocp, pos_ocp
+from ocp import NEG_OCP, POS_OCP
 
 ## .from_percent(value, % variation)
 POS_DIFFUSION       = VariatedParameter.from_percent(1.0e-14, 0)
@@ -21,5 +21,5 @@ NEG_ELEC_POROSITY   = VariatedParameter.from_percent(0.485, 5)
 
 PARTICLE_RADIUS     = VariatedParameter.from_percent(2e-06, 10)
 
-POS_OCP = pos_ocp
-NEG_OCP = neg_ocp
+POS_OCP = POS_OCP
+NEG_OCP = NEG_OCP

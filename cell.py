@@ -1,11 +1,13 @@
 import pybamm
 from particle_anode import Anode
-import consts as cc
+from particle_cathode import Cathode
+import consts as c
+from consts import BIND_VALUES, PROCESS_OUTPUTS
 import params as p
 
 class Cell:
     CELLS = list()
-    def __init__(self, name: str, model: pybamm.BaseModel, geo:dict, parameters:dict, iapp: pybamm.Variable):
+    def __init__(self, name: str,iapp: pybamm.Variable, model: pybamm.BaseModel, geo:dict, parameters:dict):
         if name in self.CELLS:
             raise ValueError("Must have unique cell names/IDs")
 
@@ -14,91 +16,188 @@ class Cell:
         self.model = model
 
         self.iapp = iapp
-        self.volt = pybamm.Variable(name + " Voltage")
+        #self.volt = pybamm.Variable(name + " Voltage")
 
-        self.particle_radius = p.PARTICLE_RADIUS.rand_sample()
-        self.pos = Anode(name + " Pos Particle", +1, iapp, self.particle_radius)
-        self.neg = Anode(name + " Neg Particle", -1, iapp, self.particle_radius)
+        self.pos = Cathode(name + " Cathode", iapp)
+        self.neg = Anode(name + " Anode", iapp)
 
-        ## TEMPORARILY ELECTROLYLTE HANDLED DONE THIS WAY
-        self.electrolyte_conc    = p.ELECTROLYTE_CONC.rand_sample()
 
-        self.pos.process_model(model, self.electrolyte_conc)
-        self.neg.process_model(model, self.electrolyte_conc)
+        self.pos.process_model(model)
+        self.neg.process_model(model)
 
-        self.__create_parameter_samples()
+        self.GET = {}
         self.__attach_parameters(parameters)
         
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)
 
-        self.capacity = self.__compute_capacity()
+        self.capacity = self.compute_capacity(self.GET)
 
-    def __compute_capacity(self):
+        # self.voltage = self.pos.phi - self.neg.phi
+        # self.voltage_name
+        # model.variables.update({
+            # ""
+        # })
+
+    def compute_capacity(self, G: dict):
         # (csn_max - csn_min) * L * (1-eps_n) * (mols->Ah)
         # cathode
-        pos_cap = (self.pos_csn_maxval - self.pos_csn_ival) * self.pos_L * (1-self.pos_eps_n) * (cc.F / 3600)
+        pos_cap = (G[self.pos.cmax.name] - G[self.pos.c0.name])
+        pos_cap *= G[self.pos.L.name] * (1-G[self.pos.eps_n.name]) * (c.F / 3600)
+
         # anode
-        neg_cap = (self.neg_csn_ival - self.neg_csn_min) * self.neg_L * (1-self.neg_eps_n) * (cc.F / 3600)
+        neg_cap = (G[self.neg.c0.name])
+        neg_cap *= G[self.neg.L.name] * (1-G[self.neg.eps_n.name]) * (c.F / 3600)
+
+        # TODO: anode is coming limited... wrong?
 
         return min(pos_cap, neg_cap)
 
-    
-    ### RETHINK PARAMETER GENERATION AND ATTACHMENT
-    ### THIS KIND OF SUCKS (too many names, identifiers...)
-    def __create_parameter_samples(self):    
-
-        self.pos_csn_maxval         = p.POS_CSN_MAX.rand_sample()
-        self.pos_csn_ival     = p.POS_CSN_INITIAL.rand_sample()
-        self.pos_L  = p.POS_ELEC_THICKNESS.rand_sample()
-        self.pos_eps_n   = p.POS_ELEC_POROSITY.rand_sample()
-
-        self.neg_csn_min         = p.NEG_CSN_MIN.rand_sample()
-        self.neg_csn_ival     = p.NEG_CSN_INITIAL.rand_sample()
-        self.neg_csn_maxval         = p.NEG_CSN_MAX.rand_sample()
-        self.neg_L  = p.NEG_ELEC_THICKNESS.rand_sample()
-        self.neg_eps_n   = p.NEG_ELEC_POROSITY.rand_sample()
-
-
     def __attach_parameters(self, param_dict: dict):
-        self.pos.process_parameters(param_dict, {
-            self.pos.c0:       "[input]",
-            self.pos.L:         self.pos_L,
-            self.pos.eps_n:     self.pos_eps_n,
-            self.pos.cmax:  self.pos_csn_maxval,
 
-            self.pos.j0:        p.POS_J0,
-            self.pos.ocp:       p.POS_OCP
+        BIND_VALUES(param_dict, {
+            self.pos.c0:               "[input]",
+            self.pos.L:                p.POS_ELEC_THICKNESS.get_value(),
+            self.pos.eps_n:            p.POS_ELEC_POROSITY.get_value(),
+            self.pos.cmax:             p.POS_CSN_MAX.get_value(),
+
+            self.pos.ocp:              p.POS_OCP,
+            self.pos.D:                p.POS_DIFFUSION.get_value(),
+            self.pos.R:                p.PARTICLE_RADIUS.get_value(),
         })
 
-        self.neg.process_parameters(param_dict, {
-            self.neg.c0:       "[input]",
-            self.neg.L:         self.neg_L,
-            self.neg.eps_n:     self.neg_eps_n,
-            self.neg.cmax:  self.neg_csn_maxval,
+        BIND_VALUES(param_dict, {
+            self.neg.c0:               "[input]",
+            self.neg.L:                p.NEG_ELEC_THICKNESS.get_value(),
+            self.neg.eps_n:            p.NEG_ELEC_POROSITY.get_value(),
+            self.neg.cmax:             p.NEG_CSN_MAX.get_value(),
 
-            self.neg.j0:        p.NEG_J0,
-            self.neg.ocp:       p.NEG_OCP
-            
+            self.neg.ocp:              p.NEG_OCP,
+            self.neg.D:                p.NEG_DIFFUSION.get_value(),
+            self.neg.R:                p.PARTICLE_RADIUS.get_value(),
+            self.neg.sei0:             "[input]",
+            self.neg.iflag:            "[input]",
         })
 
-        
+        self.GET = param_dict.copy()
+        BIND_VALUES(self.GET, {
+            self.pos.c0: p.POS_CSN_INITIAL.get_value(),
+            self.neg.c0: p.NEG_CSN_INITIAL.get_value(),
+        })
 
+if __name__ == '__main__':
+    import pandas as pd
+    import numpy as np
 
+    HOURS = 2 
+    I_INPUT = 13.6319183090575 #2.4
+    DISCRETE_PTS = 30
+    TIME_PTS = 100
 
+    geo = {}
+    parameters = {}
+    model = pybamm.BaseModel()
+    iapp = pybamm.Parameter("Input Current")
 
-        # self.voltage_name = f"{self.name} Voltage"
-        # self.voltage = pybamm.Variable(self.voltage_name)   # self.pos.phi - self.neg.phi
-        # model.variables.update({
-            # # self.voltage_name: self.voltage,
-            # self.iapp.name: self.iapp
-        # })
+    parameters[iapp.name] = "[input]"
 
-        ## PARAMETERIZE
-        # model.events += [
-            # pybamm.Event("Min Concentration Cutoff", self.neg.surf_csn - self.neg_csn_min),
-            # pybamm.Event("Max Concentration Cutoff", self.pos_csn_maxval - self.pos.surf_csn),
-            # pybamm.Event("Min Voltage Cutoff", (self.voltage) - voltage_cutoff[0]),
-            # pybamm.Event("Max Voltage Cutoff", voltage_cutoff[1] - (self.voltage)),
-        # ]
+    cell = Cell("Cell1", iapp, model, geo, parameters)
+    print(cell.capacity / 2)
 
+    model.events += [
+        pybamm.Event("Min Anode Concentration Cutoff", cell.neg.surf_c - 10),
+        pybamm.Event("Max Cathode Concentration Cutoff", cell.pos.cmax - cell.pos.surf_c),
+
+        pybamm.Event("Max Anode Concentration Cutoff", cell.neg.cmax - cell.neg.surf_c),
+
+        pybamm.Event("Min Voltage Cutoff", (cell.pos.phi - cell.neg.phi) - 2.0),
+        pybamm.Event("Max Voltage Cutoff", 4.1 - (cell.pos.phi - cell.neg.phi)),
+    ]
+
+    param_ob = pybamm.ParameterValues(parameters)
+    param_ob.process_model(model)
+    param_ob.process_geometry(geo)
+
+    particles = [cell.pos, cell.neg]
+    mesh = pybamm.Mesh(geo, 
+        { d.domain: pybamm.Uniform1DSubMesh for d in particles },
+        { d.r: DISCRETE_PTS for d in particles }
+    )
+
+    disc = pybamm.Discretisation(mesh, 
+        { d.domain: pybamm.FiniteVolume() for d in particles }
+    )
+
+    disc.process_model(model)
+
+    CYCLES = 6
+    solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, dt_max=1e-7, extra_options_setup={"max_num_steps": 100000})
+
+    time_steps = np.linspace(0, 3600 * HOURS, TIME_PTS)
+    total_time_steps = np.linspace(0, 3600 * HOURS * CYCLES, TIME_PTS * CYCLES)
+    
+    sign = -1
+    inps = {}
+    BIND_VALUES(inps, 
+        {
+            iapp: sign * I_INPUT,
+            cell.pos.c0: p.POS_CSN_INITIAL.get_value(),
+
+            cell.neg.c0: p.NEG_CSN_INITIAL.get_value(),
+            cell.neg.sei0: 5.e-9,
+            cell.neg.iflag: 0 if (sign == -1) else 1
+        }
+    )
+
+    ### EVERYTHING BELOW THIS IS JUST RUNNING / CAPTURING SIMULATION DATA.
+    ### NO PARAMETER-RELEVANT CODE BELOW
+
+    outputs = PROCESS_OUTPUTS(
+        [cell.pos.c, cell.pos.phi, cell.neg.c, cell.neg.phi, cell.neg.sei_L]
+    )
+    caps = []
+    subdfs = []
+
+    solution = None
+    prev_time = 0
+
+    for _ in range(CYCLES):
+
+        solution = solver.solve(model, time_steps, inputs=inps)
+
+        subdf = pd.DataFrame(columns=['Time'] + outputs)
+        subdf['Time'] = solution.t + prev_time
+        prev_time += solution.t[-1]
+
+        caps.append( I_INPUT * solution.t[-1] / 3600 )
+
+        ## KEYS ARE VARIABLES
+        for key in outputs:
+            data = solution[key].entries
+            if len(data.shape) == 2:
+                data = data[-1] # last node (all nodes 'equal' due to broadcasted surface concentration)
+
+            subdf[key] = data
+
+        subdfs.append(subdf)
+
+        sign *= -1
+        BIND_VALUES(inps, 
+            {
+                iapp: sign * I_INPUT,
+                cell.pos.c0: solution[cell.pos.c.name].entries[-1][-1],
+                cell.neg.c0: solution[cell.neg.c.name].entries[-1][-1],
+                cell.neg.sei0: solution[cell.neg.sei_L.name].entries[-1],
+                cell.neg.iflag: 0 if (sign == -1) else 1
+            }
+        )
+
+    df = pd.concat(subdfs, ignore_index=True)
+    
+    print(df)
+    print(caps)
+
+    df.to_csv(f"CELL_{CYCLES}.csv", index=False)
+
+    from zvalidate import plotter
+    plotter(df)

@@ -2,8 +2,8 @@ import pickle
 import pybamm
 import consts as cc
 from particle_anode import Anode
-from marquis import lico2_ocp_Dualfoil1998 as Up
-from marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
+from ref.marquis import lico2_ocp_Dualfoil1998 as Up
+from ref.marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
 
 def post_process_voltage(solution: pybamm.Solution, positive: Anode, negative: Anode):
     voltages = []

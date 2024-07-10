@@ -219,7 +219,7 @@ class SingleParticle:
 if __name__ == '__main__':
     import params as p
     import numpy as np
-    from ocp import neg_ocp, pos_ocp
+    from ocp import NEG_OCP, POS_OCP
 
     I_TOTAL = +1.2027659291666666
     DISCRETE_PTS = 30

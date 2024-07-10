@@ -75,7 +75,7 @@ if __name__ == '__main__':
         cc.eps_n:            p.POS_ELEC_POROSITY.get_value(),
         cc.cmax:             p.POS_CSN_MAX.get_value(),
 
-        cc.ocp:              p.pos_ocp,
+        cc.ocp:              p.POS_OCP,
         cc.D:                p.POS_DIFFUSION.get_value(),
         cc.R:                p.PARTICLE_RADIUS.get_value(),
     })

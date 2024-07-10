@@ -3,7 +3,7 @@ import consts as cc
 from consts import MODEL_VARS, PROCESS_OUTPUTS, BIND_VALUES
 from single_particle import SingleParticle
 
-pybamm.set_logging_level("DEBUG")
+#pybamm.set_logging_level("DEBUG")
 
 class Anode(SingleParticle): 
     OCP_INIT = 0.08352811644995728
@@ -15,6 +15,7 @@ class Anode(SingleParticle):
         self.i_int = pybamm.Variable(name + " vIntercalation Current")
         self.sei_L = pybamm.Variable(name + " vSEI Length")
         self.sei0 = pybamm.Parameter(name + " pInitial SEI Length")
+        self.iflag = pybamm.Parameter(name + " pCharge?")
 
     def process_model(self, model: pybamm.BaseModel):
         flux = self.D * -pybamm.grad(self.c)
@@ -112,7 +113,7 @@ if __name__ == '__main__':
         a.eps_n:            p.NEG_ELEC_POROSITY.get_value(),
         a.cmax:             p.NEG_CSN_MAX.get_value(),
 
-        a.ocp:              p.neg_ocp,
+        a.ocp:              p.NEG_OCP,
         a.D:                p.NEG_DIFFUSION.get_value(),
         a.R:                p.PARTICLE_RADIUS.get_value(),
         a.sei0:             "[input]",
@@ -141,7 +142,7 @@ if __name__ == '__main__':
 
     disc.process_model(model)
 
-    cycles = 2
+    cycles = 3
     solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, extra_options_setup={"max_num_steps": 100000})
 
     time_steps = np.linspace(0, 3600 * HOURS, TIME_PTS)

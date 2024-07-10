@@ -70,5 +70,5 @@ df, caps = pack.cycler(I_TOTAL, NUM_CYCLES, RUNTIME_HOURS, TIME_PTS, variables, 
 
 print(f"Actual: {caps}")
 
-from plotter import plot
+from ref.plotter import plot
 plot(df, pack)

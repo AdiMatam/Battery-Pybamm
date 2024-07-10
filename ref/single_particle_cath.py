@@ -149,7 +149,7 @@ if __name__ == '__main__':
         a.eps_n:            p.POS_ELEC_POROSITY.get_value(),
         a.cmax:             p.POS_CSN_MAX.get_value(),
 
-        a.ocp:              p.pos_ocp,
+        a.ocp:              p.POS_OCP,
         a.D:                p.POS_DIFFUSION.get_value(),
     })
 
