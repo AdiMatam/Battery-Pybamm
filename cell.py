@@ -130,8 +130,8 @@ if __name__ == '__main__':
 
     disc.process_model(model)
 
-    CYCLES = 6
-    solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, dt_max=1e-7, extra_options_setup={"max_num_steps": 100000})
+    CYCLES = 500
+    solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, dt_max=1e-10, extra_options_setup={"max_num_steps": 100000})
 
     time_steps = np.linspace(0, 3600 * HOURS, TIME_PTS)
     total_time_steps = np.linspace(0, 3600 * HOURS * CYCLES, TIME_PTS * CYCLES)
@@ -161,13 +161,13 @@ if __name__ == '__main__':
     solution = None
     prev_time = 0
 
-    for _ in range(CYCLES):
+    for i in range(CYCLES):
 
         solution = solver.solve(model, time_steps, inputs=inps)
 
         subdf = pd.DataFrame(columns=['Time'] + outputs)
-        subdf['Time'] = solution.t + prev_time
-        prev_time += solution.t[-1]
+        subdf['Time'] = solution.t #+ prev_time
+        #prev_time += solution.t[-1]
 
         caps.append( I_INPUT * solution.t[-1] / 3600 )
 
@@ -179,7 +179,9 @@ if __name__ == '__main__':
 
             subdf[key] = data
 
+        subdf = pd.concat({f'C{i+1}': subdf})
         subdfs.append(subdf)
+        print(f"Finished Cycle #{i}")
 
         sign *= -1
         BIND_VALUES(inps, 
@@ -192,12 +194,12 @@ if __name__ == '__main__':
             }
         )
 
-    df = pd.concat(subdfs, ignore_index=True)
+    df = pd.concat(subdfs)
     
     print(df)
     print(caps)
 
-    df.to_csv(f"CELL_{CYCLES}.csv", index=False)
+    df.to_csv(f"CELL.csv")
 
-    from zvalidate import plotter
-    plotter(df)
+    # from zvalidate import plotter
+    # plotter(df)
