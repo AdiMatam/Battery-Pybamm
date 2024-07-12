@@ -12,7 +12,7 @@ The output is sent to cycle_data.csv (Can be opened in Excel)
 
 NUM_PARALLEL = 4
 NUM_SERIES = 1
-NUM_CYCLES = 100
+NUM_CYCLES = 2
 
 BASE_CURRENT = 13.6319183090575 #2.4
 ## input current (you can change to anything)
