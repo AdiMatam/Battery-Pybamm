@@ -1,7 +1,7 @@
 import pybamm
 import consts as c
 from single_particle import SingleParticle
-from consts import BIND_VALUES, MODEL_VARS, PROCESS_OUTPUTS
+from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 
 
 class Cathode(SingleParticle):
@@ -42,7 +42,7 @@ class Cathode(SingleParticle):
         })
 
         # model.variables.update{}
-        MODEL_VARS(model,
+        SET_MODEL_VARS(model,
             [
                 self.c, 
                 self.phi, 
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     ### EVERYTHING BELOW THIS IS JUST RUNNING / CAPTURING SIMULATION DATA.
     ### NO PARAMETER-RELEVANT CODE BELOW
 
-    outputs = PROCESS_OUTPUTS([cc.c, cc.phi])
+    outputs = SET_OUTPUTS([cc.c, cc.phi])
     caps = []
     subdfs = []
 

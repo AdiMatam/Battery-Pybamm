@@ -14,10 +14,10 @@ def BIND_VALUES(fulldict: dict, subdict: dict):
         {key.name : value for key, value in subdict.items()}
     )
 
-def MODEL_VARS(model, variables: list):
+def SET_MODEL_VARS(model, variables: list):
     model.variables.update(
         {var.name: var for var in variables}
     )
 
-def PROCESS_OUTPUTS(variables: list):
+def SET_OUTPUTS(variables: list):
     return [var.name for var in variables]

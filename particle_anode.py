@@ -1,6 +1,6 @@
 import pybamm
 import consts as cc
-from consts import MODEL_VARS, PROCESS_OUTPUTS, BIND_VALUES
+from consts import SET_MODEL_VARS, SET_OUTPUTS, BIND_VALUES
 from single_particle import SingleParticle
 
 #pybamm.set_logging_level("DEBUG")
@@ -44,7 +44,7 @@ class Anode(SingleParticle):
         x = cc.F / (2 * cc.R_GAS * cc.T) * (self.phi - self.ocp - (self.sei_L/KSEI)*self.j)
 
         ## SEE PAPER
-        kfs = 1.36e-12
+        kfs = 1.36e-12 * 10
         cec_init = 0.05 * 4541
         is_rhs = self.iflag * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
 
@@ -75,7 +75,7 @@ class Anode(SingleParticle):
         })
 
         # model.variables.update{}
-        MODEL_VARS(model,
+        SET_MODEL_VARS(model,
             [
                 self.c, 
                 self.phi, 
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     ### EVERYTHING BELOW THIS IS JUST RUNNING / CAPTURING SIMULATION DATA.
     ### NO PARAMETER-RELEVANT CODE BELOW
 
-    outputs = PROCESS_OUTPUTS([a.c, a.phi, a.sei_L])
+    outputs = SET_OUTPUTS([a.c, a.phi, a.sei_L])
     caps = []
     subdfs = []
 

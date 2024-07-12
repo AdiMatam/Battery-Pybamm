@@ -1,7 +1,7 @@
 import pybamm
 import numpy as np
 from cell import Cell
-from consts import BIND_VALUES, PROCESS_OUTPUTS
+from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 import params as p
 import pandas as pd
 from typing import List
@@ -75,6 +75,11 @@ class Pack:
         self.param_ob.process_model(model)
         self.param_ob.process_geometry(geo)
 
+
+        SET_MODEL_VARS(model,
+            self.iapps
+        )
+
         
         # for i in range(parallel):
             # model.variables[self.iapps[i].name] = self.iapps[i]
@@ -118,7 +123,7 @@ class Pack:
         
         sign = -1
         inps = {}
-        outputs = []
+        outputs = SET_OUTPUTS(self.iapps)
 
         BIND_VALUES(inps, 
             {
@@ -127,12 +132,12 @@ class Pack:
         )
         for cell in self.flat_cells:
             outputs.extend(
-                PROCESS_OUTPUTS([cell.pos.c, cell.pos.phi, cell.neg.c, cell.neg.phi, cell.neg.sei_L, cell.voltage])
+                SET_OUTPUTS([cell.pos.c, cell.neg.c, cell.neg.sei_L, cell.voltage])
             )
             BIND_VALUES(inps, 
                 {
-                    cell.pos.c0: p.POS_CSN_INITIAL.get_value(),
-                    cell.neg.c0: p.NEG_CSN_INITIAL.get_value(),
+                    cell.pos.c0: cell.GET[cell.pos.c0.name],
+                    cell.neg.c0: cell.GET[cell.neg.c0.name],
                     cell.neg.sei0: 5.e-9,
                     cell.neg.iflag: 0 if (sign == -1) else 1
                 }
@@ -145,16 +150,19 @@ class Pack:
         subdfs = []
 
         solution = None
+        prev_time = 0
 
         for i in range(cycles):
 
             solution = solver.solve(self.model, time_steps, inputs=inps)
 
-            subdf = pd.DataFrame(columns=['Time'] + outputs)
-            subdf['Time'] = solution.t #+ prev_time
-            #prev_time += solution.t[-1]
+            subdf = pd.DataFrame(columns=['Global Time', 'Time'] + outputs)
+            subdf['Time'] = solution.t
+            subdf['Global Time'] = solution.t + prev_time
+            prev_time += solution.t[-1]
 
-            #caps.append( iapp * solution.t[-1] / 3600 )
+            if (i % 2 == 0):
+                caps.append( i_input * solution.t[-1] / 3600 )
 
             ## KEYS ARE VARIABLES
             for key in outputs:

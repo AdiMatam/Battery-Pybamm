@@ -2,7 +2,7 @@ import pybamm
 from particle_anode import Anode
 from particle_cathode import Cathode
 import consts as c
-from consts import BIND_VALUES, MODEL_VARS, PROCESS_OUTPUTS
+from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 import params as p
 
 class Cell:
@@ -58,32 +58,32 @@ class Cell:
 
         BIND_VALUES(param_dict, {
             self.pos.c0:               "[input]",
-            self.pos.L:                p.POS_ELEC_THICKNESS.get_value(),
-            self.pos.eps_n:            p.POS_ELEC_POROSITY.get_value(),
-            self.pos.cmax:             p.POS_CSN_MAX.get_value(),
+            self.pos.L:                p.POS_ELEC_THICKNESS.rand_sample(),
+            self.pos.eps_n:            p.POS_ELEC_POROSITY.rand_sample(),
+            self.pos.cmax:             p.POS_CSN_MAX.rand_sample(),
 
             self.pos.ocp:              p.POS_OCP,
-            self.pos.D:                p.POS_DIFFUSION.get_value(),
-            self.pos.R:                p.PARTICLE_RADIUS.get_value(),
+            self.pos.D:                p.POS_DIFFUSION.rand_sample(),
+            self.pos.R:                p.PARTICLE_RADIUS.rand_sample(),
         })
 
         BIND_VALUES(param_dict, {
             self.neg.c0:               "[input]",
-            self.neg.L:                p.NEG_ELEC_THICKNESS.get_value(),
-            self.neg.eps_n:            p.NEG_ELEC_POROSITY.get_value(),
-            self.neg.cmax:             p.NEG_CSN_MAX.get_value(),
+            self.neg.L:                p.NEG_ELEC_THICKNESS.rand_sample(),
+            self.neg.eps_n:            p.NEG_ELEC_POROSITY.rand_sample(),
+            self.neg.cmax:             p.NEG_CSN_MAX.rand_sample(),
 
             self.neg.ocp:              p.NEG_OCP,
-            self.neg.D:                p.NEG_DIFFUSION.get_value(),
-            self.neg.R:                p.PARTICLE_RADIUS.get_value(),
+            self.neg.D:                p.NEG_DIFFUSION.rand_sample(),
+            self.neg.R:                p.PARTICLE_RADIUS.rand_sample(),
             self.neg.sei0:             "[input]",
             self.neg.iflag:            "[input]",
         })
 
         self.GET = param_dict.copy()
         BIND_VALUES(self.GET, {
-            self.pos.c0: p.POS_CSN_INITIAL.get_value(),
-            self.neg.c0: p.NEG_CSN_INITIAL.get_value(),
+            self.pos.c0: p.POS_CSN_INITIAL.rand_sample(),
+            self.neg.c0: p.NEG_CSN_INITIAL.rand_sample(),
         })
 
 if __name__ == '__main__':
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     ### EVERYTHING BELOW THIS IS JUST RUNNING / CAPTURING SIMULATION DATA.
     ### NO PARAMETER-RELEVANT CODE BELOW
 
-    outputs = PROCESS_OUTPUTS(
+    outputs = SET_OUTPUTS(
         [cell.pos.c, cell.pos.phi, cell.neg.c, cell.neg.phi, cell.neg.sei_L]
     )
     caps = []
