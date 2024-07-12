@@ -2,7 +2,7 @@ import pybamm
 from particle_anode import Anode
 from particle_cathode import Cathode
 import consts as c
-from consts import BIND_VALUES, PROCESS_OUTPUTS
+from consts import BIND_VALUES, MODEL_VARS, PROCESS_OUTPUTS
 import params as p
 
 class Cell:
@@ -16,7 +16,9 @@ class Cell:
         self.model = model
 
         self.iapp = iapp
-        #self.volt = pybamm.Variable(name + " Voltage")
+        
+        ## JUST NAMESAKE (not used)
+        self.voltage = pybamm.Variable(name + " Voltage")
 
         self.pos = Cathode(name + " Cathode", iapp)
         self.neg = Anode(name + " Anode", iapp)
@@ -34,10 +36,9 @@ class Cell:
 
         self.capacity = self.compute_capacity(self.GET)
 
-        # self.voltage_name
-        # model.variables.update({
-            # ""
-        # })
+        model.variables.update({
+            self.voltage.name: self.vvolt
+        })
 
     def compute_capacity(self, G: dict):
         # (csn_max - csn_min) * L * (1-eps_n) * (mols->Ah)

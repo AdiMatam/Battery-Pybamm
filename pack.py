@@ -7,9 +7,9 @@ import pandas as pd
 from typing import List
 
 class Pack:
-    def __init__(self, parallel: int, series: int, model:pybamm.BaseModel, geo:dict, parameters:dict, 
-                    i_total: pybamm.Parameter
-        ):
+    def __init__(self,i_total: pybamm.Parameter, parallel: int, series: int, cutoffs: tuple, 
+        model:pybamm.BaseModel, geo:dict, parameters:dict
+    ):
 
         self.parallel = parallel
         self.series = series
@@ -36,7 +36,7 @@ class Pack:
         self.cells = cells
 
         # TODO: temporary (for parallel-only pack)
-        self.voltsum = cells[0, 0].vvolt
+        self.voltage = cells[0, 0].vvolt
 
         model.algebraic.update({
             self.iapps[0]: i_total - sum(self.iapps[1:]) - self.iapps[0],
@@ -50,6 +50,31 @@ class Pack:
 
             expr = cells[0, i].vvolt - cells[0, i-1].vvolt
             model.algebraic[self.iapps[i]] = expr
+    
+
+        model.initial_conditions.update({
+            **{ self.iapps[i]: -i_total / parallel for i in range(parallel) },
+        })
+
+        self.flat_cells = self.cells.flatten()
+
+        model.events += [
+            pybamm.Event("Min Voltage Cutoff", self.voltage - cutoffs[0]*series),
+            pybamm.Event("Max Voltage Cutoff", cutoffs[1]*series - self.voltage),
+        ]
+
+        for cell in self.flat_cells:
+            model.events.extend([
+                pybamm.Event(f"{cell.name} Min Anode Concentration Cutoff", cell.neg.surf_c - 10),
+                pybamm.Event(f"{cell.name} Max Cathode Concentration Cutoff", cell.pos.cmax - cell.pos.surf_c),
+
+                pybamm.Event(f"{cell.name} Max Anode Concentration Cutoff", cell.neg.cmax - cell.neg.surf_c),
+            ])
+
+        self.param_ob = pybamm.ParameterValues(parameters)
+        self.param_ob.process_model(model)
+        self.param_ob.process_geometry(geo)
+
         
         # for i in range(parallel):
             # model.variables[self.iapps[i].name] = self.iapps[i]
@@ -64,23 +89,12 @@ class Pack:
                     # # capture symbolic sum of one of the strings
                     # self.voltsum += c.volt
 
-        self.flat_cells = self.cells.flatten()
-
-        self.param_ob = pybamm.ParameterValues(parameters)
-        self.param_ob.process_model(model)
-        self.param_ob.process_geometry(geo)
 
         # self.capacity = 0 
         # for i in range(self.parallel):
             # cap = min(map(lambda c: c.capacity, self.cells[:, i]))
             # self.capacity += cap
     
-    def get_capacity(self):
-        return self.capacity
-
-    def get_cells(self) -> List[Cell]:
-        return self.cells
-
     def build(self, discrete_pts):
         particles = [] 
         for cell in self.flat_cells:
@@ -113,7 +127,7 @@ class Pack:
         )
         for cell in self.flat_cells:
             outputs.extend(
-                PROCESS_OUTPUTS([cell.pos.c, cell.pos.phi, cell.neg.c, cell.neg.phi, cell.neg.sei_L])
+                PROCESS_OUTPUTS([cell.pos.c, cell.pos.phi, cell.neg.c, cell.neg.phi, cell.neg.sei_L, cell.voltage])
             )
             BIND_VALUES(inps, 
                 {

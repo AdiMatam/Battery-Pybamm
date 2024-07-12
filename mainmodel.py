@@ -13,10 +13,8 @@ The output is sent to cycle_data.csv (Can be opened in Excel)
 NUM_PARALLEL = 2
 NUM_SERIES = 1
 NUM_CYCLES = 1
-# BASE_CURRENT = 1.20276592916666664
 
 BASE_CURRENT = 13.6319183090575 #2.4
-
 ## input current (you can change to anything)
 I_TOTAL = BASE_CURRENT * NUM_PARALLEL
 
@@ -44,28 +42,20 @@ geo = {}
 parameters = {i_input.name: "[input]"}
 
 # TODO: Iapp should be first argument.
-pack = Pack(NUM_PARALLEL, NUM_SERIES, model, geo, parameters, i_input)
-
-model.initial_conditions.update({
-    **{ pack.iapps[i]: -BASE_CURRENT for i in range(pack.parallel) },
-})
-
-model.events += [
-      pybamm.Event("Min Voltage Cutoff", pack.voltsum - VOLTAGE_LOW_CUT*pack.series),
-      pybamm.Event("Max Voltage Cutoff", VOLTAGE_HIGH_CUT*pack.series - pack.voltsum),
-]
+pack = Pack(i_input, NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), model, geo, parameters)
 
 ## CHECK
 lhs = set([a.name for a in model.rhs.keys()]) | set([a.name for a in model.algebraic.keys()])
 rhs = set([a.name for a in model.initial_conditions.keys()])
 
-# print(len(lhs) - len(rhs))
+print("Determination:", len(lhs) - len(rhs))
 
 pack.build(DISCRETE_PTS)
 
 df, caps = pack.cycler(I_TOTAL, NUM_CYCLES, HOURS, TIME_PTS, output_path=DATA_OUTPUT)
 
-#print(f"Actual: {caps}")
+import pickle
 
-# from ref.plotter import plot
-# plot(df, pack)
+with open("cells.pkl", "wb") as f:
+      pickle.dump(pack.cells, f)
+
