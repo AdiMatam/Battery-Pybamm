@@ -61,8 +61,8 @@ class Anode(SingleParticle):
         model.initial_conditions.update({
             self.c: pybamm.x_average(self.c0),
             self.phi: Anode.OCP_INIT,
-            self.i_sei: 0.5 * self.j,
-            self.i_int: 0.5 * self.j,
+            self.i_sei: 1e-8,
+            self.i_int: 1e-2,
             self.sei_L: self.sei0,
         }) 
 

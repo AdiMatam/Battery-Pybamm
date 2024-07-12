@@ -11,20 +11,22 @@ The output is sent to cycle_data.csv (Can be opened in Excel)
 
 
 NUM_PARALLEL = 2
-NUM_SERIES = 2
-NUM_CYCLES = 4
-BASE_CURRENT = 1.20276592916666664
+NUM_SERIES = 1
+NUM_CYCLES = 1
+# BASE_CURRENT = 1.20276592916666664
+
+BASE_CURRENT = 13.6319183090575 #2.4
 
 ## input current (you can change to anything)
 I_TOTAL = BASE_CURRENT * NUM_PARALLEL
 
-VOLTAGE_LOW_CUT = 3.6
-VOLTAGE_HIGH_CUT =3.85
+VOLTAGE_LOW_CUT = 2.0
+VOLTAGE_HIGH_CUT =4.1
 
 ## Meshing and Discretization Parameters
-DISCRETE_PTS = 50
-TIME_PTS = 250
-RUNTIME_HOURS = 20
+HOURS = 2 
+DISCRETE_PTS = 30
+TIME_PTS = 100
 
 # Data is outputted to this file.
 # TODO: I will create a plotting interface so it is easier to plot different characteristics!
@@ -32,28 +34,20 @@ DATA_OUTPUT = "mydata.csv"
 
 #--------------------
 
-
 import pybamm
-import params as p
 from pack import Pack
 
-i_t = pybamm.Parameter("Input Current / Area") 
+i_input = pybamm.Parameter("Input Current / Area") 
 
 model = pybamm.BaseModel()
 geo = {}
-parameters = {i_t.name: "[input]"}
+parameters = {i_input.name: "[input]"}
 
-pack = Pack(NUM_PARALLEL, NUM_SERIES, model, geo, parameters, i_t)
-
-ivp = lambda c: (p.POS_OCP(c.pos_csn_ival / c.pos_csn_maxval))
-ivn = lambda c: (p.NEG_OCP(c.neg_csn_ival / c.neg_csn_maxval))
+# TODO: Iapp should be first argument.
+pack = Pack(NUM_PARALLEL, NUM_SERIES, model, geo, parameters, i_input)
 
 model.initial_conditions.update({
     **{ pack.iapps[i]: -BASE_CURRENT for i in range(pack.parallel) },
-
-    **{ pack.cells[i,j].volt: ivp(pack.cells[i,j]) - ivn(pack.cells[i,j])
-            for i in range(pack.series) for j in range(pack.parallel)
-      }
 })
 
 model.events += [
@@ -61,14 +55,17 @@ model.events += [
       pybamm.Event("Max Voltage Cutoff", VOLTAGE_HIGH_CUT*pack.series - pack.voltsum),
 ]
 
-print(f"Theoretical estimate: {pack.capacity}")
+## CHECK
+lhs = set([a.name for a in model.rhs.keys()]) | set([a.name for a in model.algebraic.keys()])
+rhs = set([a.name for a in model.initial_conditions.keys()])
+
+# print(len(lhs) - len(rhs))
 
 pack.build(DISCRETE_PTS)
 
-variables = list(model.variables.keys())
-df, caps = pack.cycler(I_TOTAL, NUM_CYCLES, RUNTIME_HOURS, TIME_PTS, variables, output_path=DATA_OUTPUT)
+df, caps = pack.cycler(I_TOTAL, NUM_CYCLES, HOURS, TIME_PTS, output_path=DATA_OUTPUT)
 
-print(f"Actual: {caps}")
+#print(f"Actual: {caps}")
 
-from ref.plotter import plot
-plot(df, pack)
+# from ref.plotter import plot
+# plot(df, pack)

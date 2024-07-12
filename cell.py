@@ -21,6 +21,7 @@ class Cell:
         self.pos = Cathode(name + " Cathode", iapp)
         self.neg = Anode(name + " Anode", iapp)
 
+        self.vvolt = self.pos.phi - self.neg.phi
 
         self.pos.process_model(model)
         self.neg.process_model(model)
@@ -33,7 +34,6 @@ class Cell:
 
         self.capacity = self.compute_capacity(self.GET)
 
-        # self.voltage = self.pos.phi - self.neg.phi
         # self.voltage_name
         # model.variables.update({
             # ""
@@ -130,11 +130,10 @@ if __name__ == '__main__':
 
     disc.process_model(model)
 
-    CYCLES = 500
+    CYCLES = 10
     solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, dt_max=1e-10, extra_options_setup={"max_num_steps": 100000})
 
     time_steps = np.linspace(0, 3600 * HOURS, TIME_PTS)
-    total_time_steps = np.linspace(0, 3600 * HOURS * CYCLES, TIME_PTS * CYCLES)
     
     sign = -1
     inps = {}
