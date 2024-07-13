@@ -12,7 +12,7 @@ The output is sent to cycle_data.csv (Can be opened in Excel)
 
 NUM_PARALLEL = 4
 NUM_SERIES = 1
-NUM_CYCLES = 2
+NUM_CYCLES = 3
 
 BASE_CURRENT = 13.6319183090575 #2.4
 ## input current (you can change to anything)
@@ -28,7 +28,7 @@ TIME_PTS = 100
 
 # Data is outputted to this file.
 # TODO: I will create a plotting interface so it is easier to plot different characteristics!
-DATA_OUTPUT = "mydata.csv"
+DATA_OUTPUT = "capdata.csv"
 
 #--------------------
 
@@ -59,7 +59,7 @@ print("Determination:", len(lhs) - len(rhs))
 pack.build(DISCRETE_PTS)
 
 df, caps = pack.cycler(I_TOTAL, NUM_CYCLES, HOURS, TIME_PTS, output_path=DATA_OUTPUT)
-print(*caps, sep='\n', end='\n\n')
+#print(*caps, sep='\n', end='\n\n')
 
 # import pickle
 # with open("cells.pkl", "wb") as f:

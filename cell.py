@@ -17,13 +17,24 @@ class Cell:
 
         self.iapp = iapp
         
-        ## JUST NAMESAKE (not used)
+        ## JUST NAMESAKE (not used in DAE)
         self.voltage = pybamm.Variable(name + " Voltage")
 
         self.pos = Cathode(name + " Cathode", iapp)
         self.neg = Anode(name + " Anode", iapp)
 
         self.vvolt = self.pos.phi - self.neg.phi
+
+        self.capacity = pybamm.Variable(name + " Capacity by Area")
+        discharge = pybamm.Negate(pybamm.Subtraction(self.neg.iflag, 1))
+        model.rhs.update({
+            self.capacity: discharge * pybamm.AbsoluteValue(iapp / 3600)
+        })
+
+        model.initial_conditions.update({
+            self.capacity: 0
+        })
+
 
         self.pos.process_model(model)
         self.neg.process_model(model)
@@ -34,25 +45,26 @@ class Cell:
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)
 
-        self.capacity = self.compute_capacity(self.GET)
+        #self.capacity = self.compute_capacity(self.GET)
 
         model.variables.update({
-            self.voltage.name: self.vvolt
+            self.voltage.name: self.vvolt,
+            self.capacity.name: self.capacity
         })
 
-    def compute_capacity(self, G: dict):
-        # (csn_max - csn_min) * L * (1-eps_n) * (mols->Ah)
-        # cathode
-        pos_cap = (G[self.pos.cmax.name] - G[self.pos.c0.name])
-        pos_cap *= G[self.pos.L.name] * (1-G[self.pos.eps_n.name]) * (c.F / 3600)
+    # def compute_capacity(self, G: dict):
+        # # (csn_max - csn_min) * L * (1-eps_n) * (mols->Ah)
+        # # cathode
+        # pos_cap = (G[self.pos.cmax.name] - G[self.pos.c0.name])
+        # pos_cap *= G[self.pos.L.name] * (1-G[self.pos.eps_n.name]) * (c.F / 3600)
 
-        # anode
-        neg_cap = (G[self.neg.c0.name])
-        neg_cap *= G[self.neg.L.name] * (1-G[self.neg.eps_n.name]) * (c.F / 3600)
+        # # anode
+        # neg_cap = (G[self.neg.c0.name])
+        # neg_cap *= G[self.neg.L.name] * (1-G[self.neg.eps_n.name]) * (c.F / 3600)
 
-        # TODO: anode is coming limited... wrong?
+        # # TODO: anode is coming limited... wrong?
 
-        return min(pos_cap, neg_cap)
+        # return min(pos_cap, neg_cap)
 
     def __attach_parameters(self, param_dict: dict):
 

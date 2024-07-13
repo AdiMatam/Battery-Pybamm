@@ -123,7 +123,8 @@ class Pack:
         
         sign = -1
         inps = {}
-        outputs = SET_OUTPUTS(self.iapps)
+        outputs = []
+        SET_OUTPUTS(outputs, self.iapps)
 
         BIND_VALUES(inps, 
             {
@@ -131,9 +132,8 @@ class Pack:
             }
         )
         for cell in self.flat_cells:
-            outputs.extend(
-                SET_OUTPUTS([cell.pos.c, cell.neg.c, cell.neg.sei_L, cell.voltage])
-            )
+            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.neg.sei_L, cell.voltage, cell.capacity])
+
             BIND_VALUES(inps, 
                 {
                     cell.pos.c0: cell.GET[cell.pos.c0.name],
@@ -161,8 +161,18 @@ class Pack:
             subdf['Global Time'] = solution.t + prev_time
             prev_time += solution.t[-1]
 
-            if (i % 2 == 0):
-                caps.append( i_input * solution.t[-1] / 3600 )
+            ## DISCHARGES
+            # if (i % 2 == 0):
+                # for cell in self.flat_cells:
+                    # self.model.rhs.update({
+                        # cell.capacity: pybamm.AbsoluteValue(cell.iapp / 3600)
+                    # })
+            # else:
+                # for cell in self.flat_cells:
+                    # self.model.rhs.update({
+                        # cell.capacity: 0
+                    # })
+
 
             ## KEYS ARE VARIABLES
             for key in outputs:

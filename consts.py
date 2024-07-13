@@ -19,5 +19,5 @@ def SET_MODEL_VARS(model, variables: list):
         {var.name: var for var in variables}
     )
 
-def SET_OUTPUTS(variables: list):
-    return [var.name for var in variables]
+def SET_OUTPUTS(outputs: list, variables: list):
+    outputs.extend( [var.name for var in variables] )
