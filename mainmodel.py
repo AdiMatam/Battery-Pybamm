@@ -15,6 +15,8 @@ NUM_SERIES = 1
 NUM_CYCLES = 3
 
 BASE_CURRENT = 13.6319183090575 #2.4
+### ESTIMATED FROM 0.5C RATE
+
 ## input current (you can change to anything)
 I_TOTAL = BASE_CURRENT * NUM_PARALLEL
 
