@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
     disc.process_model(model)
 
-    CYCLES = 10
+    CYCLES = 2
     solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, dt_max=1e-10, extra_options_setup={"max_num_steps": 100000})
 
     time_steps = np.linspace(0, 3600 * HOURS, TIME_PTS)
@@ -164,8 +164,9 @@ if __name__ == '__main__':
     ### EVERYTHING BELOW THIS IS JUST RUNNING / CAPTURING SIMULATION DATA.
     ### NO PARAMETER-RELEVANT CODE BELOW
 
-    outputs = SET_OUTPUTS(
-        [cell.pos.c, cell.pos.phi, cell.neg.c, cell.neg.phi, cell.neg.sei_L]
+    outputs = []
+    SET_OUTPUTS(outputs, 
+        [cell.pos.c, cell.neg.c, cell.neg.sei_L, cell.voltage]
     )
     caps = []
     subdfs = []
@@ -212,6 +213,3 @@ if __name__ == '__main__':
     print(caps)
 
     df.to_csv(f"CELL.csv")
-
-    # from zvalidate import plotter
-    # plotter(df)
