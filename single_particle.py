@@ -3,7 +3,9 @@ import consts as cc
 from abc import ABC, abstractmethod
 
 class SingleParticle:
-    def __init__(self, name: str, charge: int, iapp: pybamm.Variable):
+    def __init__(self, name: str, charge: int, 
+            iapp: pybamm.Variable):
+
         self.name = name
         self.domain = name + " dDomain"
         self.charge = charge
@@ -14,7 +16,6 @@ class SingleParticle:
         self.cmax = pybamm.Parameter(name + " pMax Concentration")
         self.D = pybamm.Parameter(name + " pDiffusion Coefficient")
         self.R = pybamm.Parameter(name + " pParticle Radius")
-
 
         self.iapp = iapp
 

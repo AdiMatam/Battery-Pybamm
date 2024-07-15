@@ -9,13 +9,15 @@ class Anode(SingleParticle):
     OCP_INIT = 0.08352811644995728
 
     def __init__(self, name: str, iapp: pybamm.Variable):
-        super().__init__(name, -1, iapp) 
+
+        super().__init__(name, -1, iapp)
 
         self.i_sei = pybamm.Variable(name + " vSide Current")
         self.i_int = pybamm.Variable(name + " vIntercalation Current")
         self.sei_L = pybamm.Variable(name + " vSEI Length")
         self.sei0 = pybamm.Parameter(name + " pInitial SEI Length")
-        self.iflag = pybamm.Parameter(name + " pCharge?")
+        # TODO: Move below to cell-level parameter
+        self.charging = pybamm.Parameter(name + " pCharge?")
 
     def process_model(self, model: pybamm.BaseModel):
         flux = self.D * -pybamm.grad(self.c)
@@ -46,12 +48,13 @@ class Anode(SingleParticle):
         ## SEE PAPER
         kfs = 1.36e-12 * 10
         cec_init = 0.05 * 4541
-        is_rhs = self.iflag * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
+        is_rhs = self.charging * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
 
         j0 = cc.F * KINT * self.surf_c**0.5 * (self.cmax - self.surf_c)**0.5 
 
         # algebraic equations. Equation AFTER the colon is relevant, 
         # ( self.XX BEFORE the colon can be ignored as it's just a syntactical requirement )
+
         model.algebraic.update({
             self.phi: j0 * 2*pybamm.sinh(x) - self.i_int,
             self.i_sei: is_rhs - self.i_sei,
@@ -117,7 +120,7 @@ if __name__ == '__main__':
         a.D:                p.NEG_DIFFUSION.get_value(),
         a.R:                p.PARTICLE_RADIUS.get_value(),
         a.sei0:             "[input]",
-        a.iflag:            "[input]",
+        a.charging:            "[input]",
     })
 
     model.events += [
@@ -153,7 +156,7 @@ if __name__ == '__main__':
         iapp.name: sign * I_INPUT,
         a.c0.name: p.NEG_CSN_INITIAL.get_value(),
         a.sei0.name: 5.e-9,
-        a.iflag.name: 0 if (sign == -1) else 1
+        a.charging.name: 0 if (sign == -1) else 1
     }
 
     ### EVERYTHING BELOW THIS IS JUST RUNNING / CAPTURING SIMULATION DATA.
@@ -192,7 +195,7 @@ if __name__ == '__main__':
                 iapp: sign * I_INPUT,
                 a.c0: solution[a.c.name].entries[-1][-1],
                 a.sei0: solution[a.sei_L.name].entries[-1],
-                a.iflag: 0 if (sign == -1) else 1
+                a.charging: 0 if (sign == -1) else 1
             }
         )
 

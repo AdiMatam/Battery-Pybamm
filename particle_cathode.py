@@ -7,7 +7,9 @@ from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 class Cathode(SingleParticle):
     OCP_INIT = 4.08138601219583
 
-    def __init__(self, name: str, iapp: pybamm.Variable):
+    def __init__(self, name: str, 
+            iapp: pybamm.Variable):
+
         super().__init__(name, +1, iapp)
     
     def process_model(self, model: pybamm.BaseModel):
@@ -25,13 +27,14 @@ class Cathode(SingleParticle):
         x = c.F / (2 * c.R_GAS * c.T) * (self.phi - self.ocp)
         j0 = c.F * KINT * self.surf_c**0.5 * (self.cmax - self.surf_c)**0.5 
 
+        ## CV-MODE  
         model.algebraic.update({
             self.phi: j0 * 2 * pybamm.sinh(x) - self.j,
         })
 
         model.initial_conditions.update({
             self.c: pybamm.x_average(self.c0),
-            self.phi: Cathode.OCP_INIT
+            self.phi: Cathode.OCP_INIT,
         }) 
 
         model.boundary_conditions.update({
@@ -45,6 +48,7 @@ class Cathode(SingleParticle):
         SET_MODEL_VARS(model,
             [
                 self.c, 
+                ## eventually this can be removed. We will only care about cell-level voltage?
                 self.phi, 
             ]
         )
