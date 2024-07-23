@@ -123,6 +123,8 @@ if __name__ == '__main__':
     I_INPUT = 13.6319183090575 #2.4
     DISCRETE_PTS = 30
     TIME_PTS = 100
+    CYCLES = 3
+    OUTPUT_PATH = f"CCCV-3.csv"
 
     geo = {}
     parameters = {}
@@ -170,12 +172,10 @@ if __name__ == '__main__':
 
     disc.process_model(model)
 
-    CYCLES = 2
     solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, dt_max=1e-10, extra_options_setup={"max_num_steps": 100000})
 
     time_steps = np.linspace(0, 3600 * HOURS, TIME_PTS)
     
-    sign = -1
     inps = {}
     BIND_VALUES(inps, 
         {
@@ -228,7 +228,6 @@ if __name__ == '__main__':
         print(f"Finished Cycle #{i}")
 
         if (state == 0): 
-            sign *= -1
             BIND_VALUES(inps, 
                 {
                     ilock: I_INPUT,
@@ -272,4 +271,4 @@ if __name__ == '__main__':
     print(df)
     print(caps)
 
-    df.to_csv(f"FOOD.csv")
+    df.to_csv(OUTPUT_PATH)
