@@ -16,10 +16,8 @@ class Anode(SingleParticle):
         self.i_int = pybamm.Variable(name + " vIntercalation Current")
         self.sei_L = pybamm.Variable(name + " vSEI Length")
         self.sei0 = pybamm.Parameter(name + " pInitial SEI Length")
-        # TODO: Move below to cell-level parameter
-        self.charging = pybamm.Parameter(name + " pCharge?")
 
-    def process_model(self, model: pybamm.BaseModel):
+    def process_model(self, model: pybamm.BaseModel, charging):
         flux = self.D * -pybamm.grad(self.c)
         # dc/dt = d^2c/dr^2
         dcdt = -pybamm.div(flux)
@@ -48,7 +46,7 @@ class Anode(SingleParticle):
         ## SEE PAPER
         kfs = 1.36e-12 * 10
         cec_init = 0.05 * 4541
-        is_rhs = self.charging * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
+        is_rhs = charging * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
 
         j0 = cc.F * KINT * self.surf_c**0.5 * (self.cmax - self.surf_c)**0.5 
 

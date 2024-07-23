@@ -10,15 +10,15 @@ The output is sent to cycle_data.csv (Can be opened in Excel)
 """
 
 
-NUM_PARALLEL = 4
+NUM_PARALLEL = 2
 NUM_SERIES = 1
-NUM_CYCLES = 3
+NUM_CYCLES = 50
 
 BASE_CURRENT = 13.6319183090575 #2.4
 ### ESTIMATED FROM 0.5C RATE
 
 ## input current (you can change to anything)
-I_TOTAL = BASE_CURRENT * NUM_PARALLEL
+I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
 VOLTAGE_LOW_CUT = 2.0
 VOLTAGE_HIGH_CUT =4.1
@@ -29,7 +29,7 @@ DISCRETE_PTS = 30
 TIME_PTS = 100
 
 # Data is outputted to this file.
-# TODO: I will create a plotting interface so it is easier to plot different characteristics!
+# TODO: Need plotting interface so it is easier to create graphs!
 DATA_OUTPUT = "capdata.csv"
 
 #--------------------
@@ -37,13 +37,11 @@ DATA_OUTPUT = "capdata.csv"
 import pybamm
 from pack import Pack
 
-i_input = pybamm.Parameter("Input Current / Area") 
-
 model = pybamm.BaseModel()
 geo = {}
-parameters = {i_input.name: "[input]"}
+parameters = {}
 
-pack = Pack(i_input, NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), model, geo, parameters)
+pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), model, geo, parameters)
 
 ## TODO:
 ## -- CC + CV Charge
@@ -60,10 +58,4 @@ print("Determination:", len(lhs) - len(rhs))
 
 pack.build(DISCRETE_PTS)
 
-df, caps = pack.cycler(I_TOTAL, NUM_CYCLES, HOURS, TIME_PTS, output_path=DATA_OUTPUT)
-#print(*caps, sep='\n', end='\n\n')
-
-# import pickle
-# with open("cells.pkl", "wb") as f:
-      # pickle.dump(pack.cells, f)
-
+df = pack.cycler(I_INPUT, NUM_CYCLES, HOURS, TIME_PTS, output_path=DATA_OUTPUT)
