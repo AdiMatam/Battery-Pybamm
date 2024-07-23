@@ -161,19 +161,6 @@ class Pack:
             subdf['Global Time'] = solution.t + prev_time
             prev_time += solution.t[-1]
 
-            ## DISCHARGES
-            # if (i % 2 == 0):
-                # for cell in self.flat_cells:
-                    # self.model.rhs.update({
-                        # cell.capacity: pybamm.AbsoluteValue(cell.iapp / 3600)
-                    # })
-            # else:
-                # for cell in self.flat_cells:
-                    # self.model.rhs.update({
-                        # cell.capacity: 0
-                    # })
-
-
             ## KEYS ARE VARIABLES
             for key in outputs:
                 data = solution[key].entries

@@ -85,6 +85,7 @@ class Cell:
 
     def __attach_parameters(self, param_dict: dict):
 
+        rad=                p.PARTICLE_RADIUS.rand_sample(),
         BIND_VALUES(param_dict, {
             self.pos.c0:               "[input]",
             self.pos.L:                p.POS_ELEC_THICKNESS.rand_sample(),
@@ -93,7 +94,7 @@ class Cell:
 
             self.pos.ocp:              p.POS_OCP,
             self.pos.D:                p.POS_DIFFUSION.rand_sample(),
-            self.pos.R:                p.PARTICLE_RADIUS.rand_sample(),
+            self.pos.R:                rad,
         })
 
         BIND_VALUES(param_dict, {
@@ -104,7 +105,7 @@ class Cell:
 
             self.neg.ocp:              p.NEG_OCP,
             self.neg.D:                p.NEG_DIFFUSION.rand_sample(),
-            self.neg.R:                p.PARTICLE_RADIUS.rand_sample(),
+            self.neg.R:                rad,
             self.neg.sei0:             "[input]",
             self.neg.charging:            "[input]",
         })
