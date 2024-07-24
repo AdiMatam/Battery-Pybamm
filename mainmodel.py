@@ -11,8 +11,8 @@ The output is sent to cycle_data.csv (Can be opened in Excel)
 
 
 NUM_PARALLEL = 2
-NUM_SERIES = 1
-NUM_CYCLES = 50
+NUM_SERIES = 2
+NUM_CYCLES = 2
 
 BASE_CURRENT = 13.6319183090575 #2.4
 ### ESTIMATED FROM 0.5C RATE
@@ -30,7 +30,7 @@ TIME_PTS = 100
 
 # Data is outputted to this file.
 # TODO: Need plotting interface so it is easier to create graphs!
-DATA_OUTPUT = "capdata.csv"
+DATA_OUTPUT = "5CYCLES.csv"
 
 #--------------------
 
@@ -41,14 +41,13 @@ model = pybamm.BaseModel()
 geo = {}
 parameters = {}
 
-pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), model, geo, parameters)
+pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), I_INPUT / 10, model, geo, parameters)
 
 ## TODO:
-## -- CC + CV Charge
+## -- (done) CC + CV Charge
 ## -- Capacity Output --> should be plottable
-      ## -- Add equation for capacity integration at the cell-level (so that we can compare capacities)
       ## -- For charge capacity:, use i_intercalation
-      ## -- i_sei is contributing to 'lost' capacity (Capacity Loss)
+      ## -- i_sei is contributing to 'Capacity Loss'
 
 ## CHECK (ignore this)
 lhs = set([a.name for a in model.rhs.keys()]) | set([a.name for a in model.algebraic.keys()])
@@ -59,3 +58,10 @@ print("Determination:", len(lhs) - len(rhs))
 pack.build(DISCRETE_PTS)
 
 df = pack.cycler(I_INPUT, NUM_CYCLES, HOURS, TIME_PTS, output_path=DATA_OUTPUT)
+
+# string_sums = [0 for i in range(NUM_PARALLEL)]
+# for i in range(NUM_PARALLEL):
+      # for j in range(NUM_SERIES):
+            # string_sums[i] += df[pack.cells[j,i].voltage.name]
+
+# print(string_sums[1] - string_sums[0])

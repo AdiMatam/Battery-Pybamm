@@ -1,4 +1,5 @@
 import pybamm
+from ocp import NEG_OCP, POS_OCP
 from particle_anode import Anode
 from particle_cathode import Cathode
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
@@ -19,7 +20,6 @@ class Cell:
 
         self.iapp = iapp
         
-        ## JUST NAMESAKE (not used in DAE)
         self.voltage = pybamm.Variable(name + " Voltage")
 
         self.pos = Cathode(name + " Cathode", iapp)
@@ -38,17 +38,6 @@ class Cell:
             self.capacity: 0
         })
 
-        #self.cc_mode = pybamm.Negate(pybamm.Subtraction(cv_mode, 1))
-
-        ## CC / CV Charge Tethering
-        # model.algebraic.update({
-            # self.iapp: (ilock - self.iapp)*self.cc_mode + (vlock - self.vvolt)*cv_mode
-        # })
-
-        # model.initial_conditions.update({
-            # self.iapp: ilock
-        # }) 
-
         self.pos.process_model(model)
         self.neg.process_model(model, charging)
 
@@ -58,26 +47,15 @@ class Cell:
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)
 
-        #self.capacity = self.compute_capacity(self.GET)
+        model.initial_conditions.update({
+            self.voltage: POS_OCP(self.GET[self.pos.c0.name] / self.GET[self.pos.cmax.name]) 
+                - NEG_OCP(self.GET[self.neg.c0.name] / self.GET[self.neg.cmax.name])
+        })
 
         model.variables.update({
             self.voltage.name: self.vvolt,
             self.capacity.name: self.capacity
         })
-
-    # def compute_capacity(self, G: dict):
-        # # (csn_max - csn_min) * L * (1-eps_n) * (mols->Ah)
-        # # cathode
-        # pos_cap = (G[self.pos.cmax.name] - G[self.pos.c0.name])
-        # pos_cap *= G[self.pos.L.name] * (1-G[self.pos.eps_n.name]) * (c.F / 3600)
-
-        # # anode
-        # neg_cap = (G[self.neg.c0.name])
-        # neg_cap *= G[self.neg.L.name] * (1-G[self.neg.eps_n.name]) * (c.F / 3600)
-
-        # # TODO: anode is coming limited... wrong?
-
-        # return min(pos_cap, neg_cap)
 
     def __attach_parameters(self, param_dict: dict):
 

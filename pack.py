@@ -5,7 +5,7 @@ from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 import pandas as pd
 
 class Pack:
-    def __init__(self, parallel: int, series: int, cutoffs: tuple, 
+    def __init__(self, parallel: int, series: int, cutoffs: tuple, min_current: float, 
         model:pybamm.BaseModel, geo:dict, parameters:dict
     ):
 
@@ -24,44 +24,49 @@ class Pack:
         self.cv_mode = pybamm.Parameter("CV Mode")
         self.cc_mode = pybamm.Negate(pybamm.Subtraction(self.cv_mode, 1))
         self.charging = pybamm.Parameter("Pack Charging?")
-
         self.ilock = pybamm.Parameter("Current Lock")
-        parameters = {self.ilock.name: "[input]"}
+
+        BIND_VALUES(parameters, 
+            {
+                self.ilock: "[input]",
+                self.charging: "[input]",
+                self.cv_mode: "[input]"
+            }
+        )
 
         size = (series, parallel)
-        parameters[self.charging.name] = "[input]"
-        parameters[self.cv_mode.name] = "[input]"
 
         cells = np.empty(size, dtype=Cell)
         for i in range(series):
             for j in range(parallel):
-                cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", self.iapps[j],self.charging, model, geo, parameters)
-                # c = cells[i,j]
-                # model.algebraic[c.volt] = c.pos.phi - c.neg.phi - c.volt
+                cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", self.iapps[j], self.charging, model, geo, parameters)
+                c = cells[i,j]
+                model.algebraic[c.voltage] = c.pos.phi - c.neg.phi - c.voltage
         #c[0, 1] - c[0, 0] + c[1, 1] - c[1, 0]
 
         self.cells = cells
 
-        # TODO: temporary (for parallel-only pack)
-        self.voltage = cells[0, 0].vvolt
+        self.voltage = 0
+        for i in range(series):
+            self.voltage += cells[i, 0].vvolt
 
         # cutoffs[1] (max V-cut is effectively the vlock)
         model.algebraic.update({
-            self.i_total: (self.ilock - self.i_total)*self.cc_mode + (cutoffs[1] - self.voltage)*self.cv_mode
+            self.i_total: (self.ilock - self.i_total)*self.cc_mode + (cutoffs[1]*series - self.voltage)*self.cv_mode
         })
 
         model.algebraic.update({
-            self.iapps[0]: self.i_total - sum(self.iapps[1:]) - self.iapps[0],
+            self.iapps[0]: self.i_total - sum(self.iapps),
         })
 
         for i in range(1, parallel):
-            #vbalance = 0
-            #for j in range(series):
-                #vbalance += cells[j, i].volt
-                #vbalance -= cells[j, i-1].volt
+            vbalance = 0
+            for j in range(series):
+                vbalance += cells[j, i].vvolt
+                vbalance -= cells[j, i-1].vvolt
 
-            expr = cells[0, i].vvolt - cells[0, i-1].vvolt
-            model.algebraic[self.iapps[i]] = expr
+            #expr = cells[0, i].vvolt - cells[0, i-1].vvolt
+            model.algebraic[self.iapps[i]] = vbalance #expr
     
 
         model.initial_conditions.update({
@@ -74,12 +79,10 @@ class Pack:
 
         self.flat_cells = self.cells.flatten()
 
-        # TODO: MIN CURRENT SHOULD ALSO BE PASSED-IN 
-        # Something we want to change easily -- (C/20, C/50 ETC)
         model.events += [
             pybamm.Event("Min Voltage Cutoff", self.voltage - cutoffs[0]*series),
             pybamm.Event("Max Voltage Cutoff", (cutoffs[1]*series - self.voltage)*self.cc_mode + 1*self.cv_mode),
-            pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - (1.3)*parallel),
+            pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - min_current*parallel),
         ]
 
         for cell in self.flat_cells:

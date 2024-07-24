@@ -1,6 +1,6 @@
 from variatedparam import VariatedParameter
 
-#VariatedParameter.OVERRIDE_VARIATON = True
+VariatedParameter.OVERRIDE_VARIATON = True
 
 from ocp import NEG_OCP, POS_OCP
 
