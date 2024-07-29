@@ -11,6 +11,8 @@ class Pack:
 
         self.parallel = parallel
         self.series = series
+        self.cutoffs = cutoffs
+        self.min_current = min_current
 
         self.model = model
         self.geo = geo
@@ -102,26 +104,6 @@ class Pack:
         SET_MODEL_VARS(model,
             self.iapps
         )
-
-        
-        # for i in range(parallel):
-            # model.variables[self.iapps[i].name] = self.iapps[i]
-            # model.variables[self.volts[i].name] = 0
-
-            # for j in range(series):
-                # c = self.cells[j, i]
-                # model.variables[self.volts[i].name] += c.volt
-                # model.variables[c.volt.name] = c.volt
-
-                # if i == 0:
-                    # # capture symbolic sum of one of the strings
-                    # self.voltsum += c.volt
-
-
-        # self.capacity = 0 
-        # for i in range(self.parallel):
-            # cap = min(map(lambda c: c.capacity, self.cells[:, i]))
-            # self.capacity += cap
     
     def build(self, discrete_pts):
         particles = [] 
@@ -140,6 +122,9 @@ class Pack:
         disc.process_model(self.model)
 
     def cycler(self, iappt, cycles, hours, time_pts, output_path=""):
+        self.cycles = cycles
+        self.iappt = iappt
+
         solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, dt_max=1e-10, extra_options_setup={"max_num_steps": 100000})
 
         time_steps = np.linspace(0, 3600 * hours, time_pts)
@@ -197,8 +182,6 @@ class Pack:
 
                 subdf[key] = data
 
-            subdf = pd.concat({f'C{i+1}': subdf})
-            subdfs.append(subdf)
             print(f"Finished Cycle #{i}")
 
             for cell in self.flat_cells:
@@ -210,8 +193,11 @@ class Pack:
                     }
                 )
 
+            just_finished = 0
+
             # CC charge up next
             if (state == 0):
+                just_finished = "CC-discharge"
                 BIND_VALUES(inps, 
                     {
                         self.ilock: +iappt,
@@ -222,6 +208,7 @@ class Pack:
 
             # CV charge up next
             elif (state == 1):
+                just_finished = "CC-charge"
                 BIND_VALUES(inps, 
                     {
                         self.charging: 1,
@@ -231,6 +218,7 @@ class Pack:
 
             # Discharge next
             else:
+                just_finished = "CV-charge"
                 BIND_VALUES(inps, 
                     {
                         self.ilock: -iappt,
@@ -238,12 +226,14 @@ class Pack:
                         self.cv_mode: 0 
                     }
                 )
-                i += 1
 
+            subdf = pd.concat({(i+1, just_finished): subdf})
+            subdfs.append(subdf)
             state = (state + 1) % 3
+            if (state == 0):
+                i += 1
             
 
         df = pd.concat(subdfs)
-        print(df)
         df.to_csv(output_path)
         return df

@@ -44,7 +44,7 @@ class Anode(SingleParticle):
         x = cc.F / (2 * cc.R_GAS * cc.T) * (self.phi - self.ocp - (self.sei_L/KSEI)*self.j)
 
         ## SEE PAPER
-        kfs = 1.36e-12 * 10
+        kfs = 1.36e-12 #* 10
         cec_init = 0.05 * 4541
         is_rhs = charging * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
 

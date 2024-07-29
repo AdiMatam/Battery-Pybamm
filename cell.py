@@ -57,6 +57,12 @@ class Cell:
             self.capacity.name: self.capacity
         })
 
+    def __getitem__(self, index):
+        if (index not in self.GET.keys()):
+            raise IndexError(f"No such attribute in {self.name}")
+
+        return self.GET[index]
+
     def __attach_parameters(self, param_dict: dict):
 
         rad = p.PARTICLE_RADIUS.rand_sample()
