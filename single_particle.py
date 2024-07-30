@@ -1,6 +1,6 @@
 import pybamm
-import consts as cc
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from constant_parameter import ConstantParameter
 
 class SingleParticle:
     def __init__(self, name: str, charge: int, 
@@ -10,12 +10,12 @@ class SingleParticle:
         self.domain = name + " dDomain"
         self.charge = charge
 
-        self.c0 = pybamm.Parameter(name + " pInitial Concentration")
-        self.L = pybamm.Parameter(name + " pElectrode Thickness")
-        self.eps_n = pybamm.Parameter(name + " pElectrode Porosity")
-        self.cmax = pybamm.Parameter(name + " pMax Concentration")
-        self.D = pybamm.Parameter(name + " pDiffusion Coefficient")
-        self.R = pybamm.Parameter(name + " pParticle Radius")
+        self.c0 = ConstantParameter(name + " pInitial Concentration")
+        self.L = ConstantParameter(name + " pElectrode Thickness")
+        self.eps_n = ConstantParameter(name + " pElectrode Porosity")
+        self.cmax = ConstantParameter(name + " pMax Concentration")
+        self.D = ConstantParameter(name + " pDiffusion Coefficient")
+        self.R = ConstantParameter(name + " pParticle Radius")
 
         self.iapp = iapp
 

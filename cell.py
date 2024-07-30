@@ -25,6 +25,8 @@ class Cell:
         self.pos = Cathode(name + " Cathode", iapp)
         self.neg = Anode(name + " Anode", iapp)
 
+        self.sei = self.neg.sei_L
+
         self.vvolt = self.pos.phi - self.neg.phi
 
         self.capacity = pybamm.Variable(name + " Capacity by Area")
@@ -41,27 +43,20 @@ class Cell:
         self.pos.process_model(model)
         self.neg.process_model(model, charging)
 
-        self.GET = {}
         self.__attach_parameters(parameters)
         
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)
 
         model.initial_conditions.update({
-            self.voltage: POS_OCP(self.GET[self.pos.c0.name] / self.GET[self.pos.cmax.name]) 
-                - NEG_OCP(self.GET[self.neg.c0.name] / self.GET[self.neg.cmax.name])
+            self.voltage: POS_OCP(self.pos.c0.value / self.pos.cmax.value) 
+                - NEG_OCP(self.neg.c0.value / self.neg.cmax.value)
         })
 
         model.variables.update({
             self.voltage.name: self.vvolt,
             self.capacity.name: self.capacity
         })
-
-    def __getitem__(self, index):
-        if (index not in self.GET.keys()):
-            raise IndexError(f"No such attribute in {self.name}")
-
-        return self.GET[index]
 
     def __attach_parameters(self, param_dict: dict):
 
@@ -89,8 +84,12 @@ class Cell:
             self.neg.sei0:             "[input]",
         })
 
-        self.GET = param_dict.copy()
-        BIND_VALUES(self.GET, {
-            self.pos.c0: p.POS_CSN_INITIAL.rand_sample(),
-            self.neg.c0: p.NEG_CSN_INITIAL.rand_sample(),
-        })
+        self.pos.c0.set_value(p.POS_CSN_INITIAL.rand_sample()) 
+        self.neg.c0.set_value(p.NEG_CSN_INITIAL.rand_sample()) 
+
+        # self.GET = param_dict.copy()
+
+        # BIND_VALUES(self.GET, {
+            # self.pos.c0: p.POS_CSN_INITIAL.rand_sample(),
+            # self.neg.c0: p.NEG_CSN_INITIAL.rand_sample(),
+        # })

@@ -36,9 +36,9 @@ class Pack:
             }
         )
 
-        size = (series, parallel)
+        self.shape = (series, parallel)
 
-        cells = np.empty(size, dtype=Cell)
+        cells = np.empty(self.shape, dtype=Cell)
         for i in range(series):
             for j in range(parallel):
                 cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", self.iapps[j], self.charging, model, geo, parameters)
@@ -105,6 +105,12 @@ class Pack:
             self.iapps
         )
     
+    def __getitem__(self, index):
+        if (index[0] < 0 or index[0] >= self.series or index[1] < 0 or index[1] >= self.series):
+            raise IndexError(f"{index} invalid for {self.shape} Pack")
+
+        return self.cells[index]
+
     def build(self, discrete_pts):
         particles = [] 
         for cell in self.flat_cells:
@@ -145,8 +151,8 @@ class Pack:
 
             BIND_VALUES(inps, 
                 {
-                    cell.pos.c0: cell.GET[cell.pos.c0.name],
-                    cell.neg.c0: cell.GET[cell.neg.c0.name],
+                    cell.pos.c0: cell.pos.c0.value,
+                    cell.neg.c0: cell.neg.c0.value,
                     cell.neg.sei0: 5.e-9,
                 }
             )
@@ -237,3 +243,23 @@ class Pack:
         df = pd.concat(subdfs)
         df.to_csv(output_path)
         return df
+
+
+if __name__ == '__main__':
+
+    NUM_PARALLEL = 2
+    NUM_SERIES = 2
+    BASE_CURRENT = 13.6319183090575
+    I_INPUT = BASE_CURRENT * NUM_PARALLEL
+
+    VOLTAGE_LOW_CUT = 2.0
+    VOLTAGE_HIGH_CUT =4.1
+
+    #--------------------
+    model = pybamm.BaseModel()
+    geo = {}
+    parameters = {}
+
+    pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), I_INPUT / 10, model, geo, parameters)
+
+    print(pack[1, 1])
