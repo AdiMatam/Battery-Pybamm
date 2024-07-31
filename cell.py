@@ -1,5 +1,4 @@
 import pybamm
-from ocp import NEG_OCP, POS_OCP
 from particle_anode import Anode
 from particle_cathode import Cathode
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
@@ -49,8 +48,8 @@ class Cell:
         self.neg.process_geometry(geo)
 
         model.initial_conditions.update({
-            self.voltage: POS_OCP(self.pos.c0.value / self.pos.cmax.value) 
-                - NEG_OCP(self.neg.c0.value / self.neg.cmax.value)
+            self.voltage: p.POS_OCP(self.pos.c0.value / self.pos.cmax.value) 
+                - p.NEG_OCP(self.neg.c0.value / self.neg.cmax.value)
         })
 
         model.variables.update({
@@ -60,36 +59,29 @@ class Cell:
 
     def __attach_parameters(self, param_dict: dict):
 
-        rad = p.PARTICLE_RADIUS.rand_sample()
+        rad = p.PARTICLE_RADIUS.sample()
         BIND_VALUES(param_dict, {
             self.pos.c0:               "[input]",
-            self.pos.L:                p.POS_ELEC_THICKNESS.rand_sample(),
-            self.pos.eps_n:            p.POS_ELEC_POROSITY.rand_sample(),
-            self.pos.cmax:             p.POS_CSN_MAX.rand_sample(),
+            self.pos.L:                p.POS_ELEC_THICKNESS.sample(),
+            self.pos.eps_n:            p.POS_ELEC_POROSITY.sample(),
+            self.pos.cmax:             p.POS_CSN_MAX.sample(),
 
             self.pos.ocp:              p.POS_OCP,
-            self.pos.D:                p.POS_DIFFUSION.rand_sample(),
+            self.pos.D:                p.POS_DIFFUSION.sample(),
             self.pos.R:                rad,
         })
 
         BIND_VALUES(param_dict, {
             self.neg.c0:               "[input]",
-            self.neg.L:                p.NEG_ELEC_THICKNESS.rand_sample(),
-            self.neg.eps_n:            p.NEG_ELEC_POROSITY.rand_sample(),
-            self.neg.cmax:             p.NEG_CSN_MAX.rand_sample(),
+            self.neg.L:                p.NEG_ELEC_THICKNESS.sample(),
+            self.neg.eps_n:            p.NEG_ELEC_POROSITY.sample(),
+            self.neg.cmax:             p.NEG_CSN_MAX.sample(),
 
             self.neg.ocp:              p.NEG_OCP,
-            self.neg.D:                p.NEG_DIFFUSION.rand_sample(),
+            self.neg.D:                p.NEG_DIFFUSION.sample(),
             self.neg.R:                rad,
             self.neg.sei0:             "[input]",
         })
 
-        self.pos.c0.set_value(p.POS_CSN_INITIAL.rand_sample()) 
-        self.neg.c0.set_value(p.NEG_CSN_INITIAL.rand_sample()) 
-
-        # self.GET = param_dict.copy()
-
-        # BIND_VALUES(self.GET, {
-            # self.pos.c0: p.POS_CSN_INITIAL.rand_sample(),
-            # self.neg.c0: p.NEG_CSN_INITIAL.rand_sample(),
-        # })
+        self.pos.c0.set_value(p.POS_CSN_INITIAL.sample()) 
+        self.neg.c0.set_value(p.NEG_CSN_INITIAL.sample()) 

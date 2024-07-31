@@ -36,7 +36,7 @@ def generate_samples_gaussian(mean, std_dev, num_samples):
 # Parameters
 mean = 0.385
 percent_diff = 2
-std_dev = 0.005
+std_dev = 0.385 * 0.02 #0.005
 num_samples = 1000  # Number of samples to generate
 
 # Generate samples

@@ -1,29 +1,30 @@
-
 import random
 
-class VariatedParameter:
-    OVERRIDE_VARIATON = False
-
-    def __init__(self, value: float, low_high: tuple):
-        self.value = value
-        self.low_high = low_high
-
-    def __float__(self):
-        return float(self.get_value())
+class Variation:
+    def __init__(self, mean_value: float, func):
+        self.mean_value = mean_value
+        self.func = func
 
     @classmethod
-    def from_percent(cls, value: float, percent: float=1):
-        percent *= int(not cls.OVERRIDE_VARIATON)
-        offset = value * (percent / 100)
-        return cls(value, (value - offset, value + offset))
+    def from_percent(cls, mean: float, percent: float):
+        offset = mean * (percent / 100)
+        func = lambda: random.uniform(mean - offset, mean + offset)
+        return cls(mean, func)
 
     @classmethod
-    def from_gaussian(cls, value: float, stddev: float):
-        raise NotImplementedError("TBD")
+    def from_gaussian_percent(cls, mean: float, percent: float):
+        stddev = mean * (percent / 100)
+        func = lambda: random.gauss(mean, stddev)
+        return cls(mean, func)
 
-    def rand_sample(self):
-        return random.uniform(self.low_high[0], self.low_high[1]) 
+    @classmethod
+    def from_gaussian_stddev(cls, mean: float, stddev: float):
+        func = lambda: random.gauss(mean, stddev)
+        return cls(mean, func)
 
-    def get_value(self):
-        return self.value
+    def sample(self):
+        return self.func()
+
+    def get_mean_value(self):
+        return self.mean_value
 

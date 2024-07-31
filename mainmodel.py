@@ -15,7 +15,7 @@ LATER LATER:
 
 NUM_PARALLEL = 2
 NUM_SERIES = 2
-NUM_CYCLES = 3
+NUM_CYCLES = 100
 
 BASE_CURRENT = 13.6319183090575
 ### ESTIMATED FROM 0.5C RATE
@@ -32,7 +32,7 @@ DISCRETE_PTS = 30
 TIME_PTS = 100
 
 # Data is outputted to this file.
-DATA_OUTPUT = "data/2by2_3cycles_control"
+DATA_OUTPUT = "data/2by2_100cycles_control"
 
 #--------------------
 

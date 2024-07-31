@@ -131,7 +131,7 @@ class Pack:
         self.cycles = cycles
         self.iappt = iappt
 
-        solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, dt_max=1e-10, extra_options_setup={"max_num_steps": 100000})
+        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, extra_options_setup={"max_num_steps": 100000})
 
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
@@ -170,7 +170,8 @@ class Pack:
         while i < cycles:
             try:
                 solution = solver.solve(self.model, time_steps, inputs=inps)
-            except:
+            except Exception as e:
+                print(e)
                 print (f"FAILED AT CYCLE # {i}. Dumping collected data so far")
                 break
 

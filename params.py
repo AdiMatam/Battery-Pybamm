@@ -1,20 +1,29 @@
-from variatedparam import VariatedParameter
-
-VariatedParameter.OVERRIDE_VARIATON = True
-
-from ocp import NEG_OCP, POS_OCP
+from variatedparam import Variation
 
 ## .from_percent(value, % variation)
-POS_DIFFUSION       = VariatedParameter.from_percent(1.0e-14, 0)
-POS_CSN_MAX         = VariatedParameter.from_percent(51555, 0)  
-POS_CSN_INITIAL     = VariatedParameter.from_percent(51555*0.5, 0)
-POS_ELEC_THICKNESS  = VariatedParameter.from_percent(80e-6, 0)
-POS_ELEC_POROSITY   = VariatedParameter.from_percent(0.385, 2)   
+POS_DIFFUSION       = Variation.from_percent(1.0e-14, 0)
+POS_CSN_MAX         = Variation.from_percent(51555, 0)  
+POS_CSN_INITIAL     = Variation.from_percent(51555*0.5, 0)
+POS_ELEC_THICKNESS  = Variation.from_percent(80e-6, 0)
+POS_ELEC_POROSITY   = Variation.from_percent(0.385, 0)   
 
-NEG_DIFFUSION       = VariatedParameter.from_percent(2.0e-14, 0)
-NEG_CSN_MAX         = VariatedParameter.from_percent(30555, 0)   
-NEG_CSN_INITIAL     = VariatedParameter.from_percent(30555*0.74, 0)
-NEG_ELEC_THICKNESS  = VariatedParameter.from_percent(88e-6, 0.0)
-NEG_ELEC_POROSITY   = VariatedParameter.from_percent(0.485, 2)
+NEG_DIFFUSION       = Variation.from_percent(2.0e-14, 0)
+NEG_CSN_MAX         = Variation.from_percent(30555, 0)   
+NEG_CSN_INITIAL     = Variation.from_percent(30555*0.74, 0)
+NEG_ELEC_THICKNESS  = Variation.from_percent(88e-6, 0.0)
+NEG_ELEC_POROSITY   = Variation.from_percent(0.485, 0)
 
-PARTICLE_RADIUS     = VariatedParameter.from_percent(2e-06, 0)
+PARTICLE_RADIUS     = Variation.from_percent(2e-06, 0)
+
+
+import pybamm
+
+def NEG_OCP(sto):
+    x = sto
+    return 0.7222 + 0.1387*x + 0.029*x**0.5 - 0.0172/x + 0.0019/(x**1.5) + 0.2808*pybamm.exp(0.9-15*x) - 0.7984*pybamm.exp(0.4465*x - 0.4108)
+
+def POS_OCP(sto):
+    y = sto
+    num = -4.656 + 88.669*y**2 - 401.119*y**4 + 342.909*y**6 - 462.471*y**8 + 433.434*y**10
+    den = -1 + 18.933*y**2 - 79.532*y**4 + 37.311*y**6 - 73.083*y**8 + 95.96*y**10
+    return num / den
