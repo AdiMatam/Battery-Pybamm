@@ -100,7 +100,10 @@ class Pack:
         self.param_ob.process_model(model)
         self.param_ob.process_geometry(geo)
 
-
+        self.volt_var = pybamm.Variable("Pack Voltage")
+        model.variables.update({
+            self.volt_var.name: self.voltage
+        })
         SET_MODEL_VARS(model,
             self.iapps
         )
@@ -131,12 +134,12 @@ class Pack:
         self.cycles = cycles
         self.iappt = iappt
 
-        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, extra_options_setup={"max_num_steps": 100000})
+        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, dt_max=1e-10, extra_options_setup={"max_num_steps": 100000})
 
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
         inps = {}
-        outputs = []
+        outputs = [self.volt_var.name]
         SET_OUTPUTS(outputs, self.iapps)
 
         BIND_VALUES(inps, 
@@ -189,8 +192,6 @@ class Pack:
 
                 subdf[key] = data
 
-            print(f"Finished Cycle #{i}")
-
             for cell in self.flat_cells:
                 BIND_VALUES(inps, 
                     {
@@ -201,7 +202,7 @@ class Pack:
                 )
 
             just_finished = 0
-
+            
             # CC charge up next
             if (state == 0):
                 just_finished = "CC-discharge"
@@ -233,6 +234,8 @@ class Pack:
                         self.cv_mode: 0 
                     }
                 )
+
+            print(f"Finished Cycle #{i} -- {just_finished}")
 
             subdf = pd.concat({(i+1, just_finished): subdf})
             subdfs.append(subdf)

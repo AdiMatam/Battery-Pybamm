@@ -43,7 +43,7 @@ model = pybamm.BaseModel()
 geo = {}
 parameters = {}
 
-pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), I_INPUT / 10, model, geo, parameters)
+pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), I_INPUT / 50, model, geo, parameters)
 pack.build(DISCRETE_PTS)
 
 pack.cycler(I_INPUT, NUM_CYCLES, HOURS, TIME_PTS, output_path=DATA_OUTPUT+".csv")
