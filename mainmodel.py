@@ -13,9 +13,9 @@ LATER LATER:
 """
 
 
-NUM_PARALLEL = 2
 NUM_SERIES = 2
-NUM_CYCLES = 3
+NUM_PARALLEL = 10
+NUM_CYCLES = 2
 
 BASE_CURRENT = 13.6319183090575
 ### ESTIMATED FROM 0.5C RATE
@@ -28,11 +28,11 @@ VOLTAGE_HIGH_CUT =4.1
 
 ## Meshing and Discretization Parameters
 HOURS = 2 
-DISCRETE_PTS = 30
+DISCRETE_PTS = 50
 TIME_PTS = 100
 
 # Data is outputted to this file.
-DATA_OUTPUT = "data/2by2_3cycles_control"
+DATA_OUTPUT = "data/2by10_2cycles_porosityX"
 
 #--------------------
 
@@ -44,7 +44,7 @@ geo = {}
 parameters = {}
 
 # I_INPUT / 20
-pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), 1.3, model, geo, parameters)
+pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), I_INPUT/ 10, model, geo, parameters)
 pack.build(DISCRETE_PTS)
 
 pack.cycler(I_INPUT, NUM_CYCLES, HOURS, TIME_PTS, output_path=DATA_OUTPUT+".csv")

@@ -47,6 +47,8 @@ class Cell:
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)
 
+        self.volt0 = pybamm.Parameter(name + " Initial Voltage")
+
         model.initial_conditions.update({
             self.voltage: p.POS_OCP(self.pos.c0.value / self.pos.cmax.value) 
                 - p.NEG_OCP(self.neg.c0.value / self.neg.cmax.value)
@@ -60,6 +62,9 @@ class Cell:
     def __attach_parameters(self, param_dict: dict):
 
         rad = p.PARTICLE_RADIUS.sample()
+        BIND_VALUES(param_dict, {
+            self.volt0: "[input]"
+        })
         BIND_VALUES(param_dict, {
             self.pos.c0:               "[input]",
             self.pos.L:                p.POS_ELEC_THICKNESS.sample(),

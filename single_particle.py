@@ -19,8 +19,8 @@ class SingleParticle:
 
         self.iapp = iapp
 
-        self.phi = pybamm.Variable(name + " vPhi")
-        self.c = pybamm.Variable(name + " vConcentration", domain=self.domain)
+        self.phi = pybamm.Variable(name + " Phi")
+        self.c = pybamm.Variable(name + " Concentration", domain=self.domain)
         self.surf_c = pybamm.surf(self.c)
 
         self.ocp = self.u_func(self.surf_c / self.cmax)

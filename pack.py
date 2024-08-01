@@ -4,6 +4,8 @@ from cell import Cell
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 import pandas as pd
 
+from params import NEG_OCP, POS_OCP
+
 class Pack:
     def __init__(self, parallel: int, series: int, cutoffs: tuple, min_current: float, 
         model:pybamm.BaseModel, geo:dict, parameters:dict
@@ -17,7 +19,7 @@ class Pack:
         self.model = model
         self.geo = geo
         self.parameters = parameters
-        self.i_total = pybamm.Variable("Solved Total Current")
+        self.i_total = pybamm.Variable("Pack Total Current")
 
         self.iapps = [
             pybamm.Variable(f"String {i+1} Iapp") for i in range(parallel)
@@ -84,7 +86,7 @@ class Pack:
         model.events += [
             pybamm.Event("Min Voltage Cutoff", self.voltage - cutoffs[0]*series),
             pybamm.Event("Max Voltage Cutoff", (cutoffs[1]*series - self.voltage)*self.cc_mode + 1*self.cv_mode),
-            pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - min_current*parallel),
+            pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - min_current),
         ]
 
         for cell in self.flat_cells:
@@ -105,7 +107,7 @@ class Pack:
             self.volt_var.name: self.voltage
         })
         SET_MODEL_VARS(model,
-            self.iapps
+            [self.i_total] + self.iapps
         )
     
     def __getitem__(self, index):
@@ -134,12 +136,12 @@ class Pack:
         self.cycles = cycles
         self.iappt = iappt
 
-        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, dt_max=1e-10, extra_options_setup={"max_num_steps": 100000})
+        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, dt_max=1e-10, extra_options_setup={"max_num_steps": 100000}, return_solution_if_failed_early=True)
 
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
         inps = {}
-        outputs = [self.volt_var.name]
+        outputs = [self.volt_var.name, self.i_total.name]
         SET_OUTPUTS(outputs, self.iapps)
 
         BIND_VALUES(inps, 
@@ -154,6 +156,7 @@ class Pack:
 
             BIND_VALUES(inps, 
                 {
+                    cell.volt0: POS_OCP(cell.pos.c0.value / cell.pos.cmax.value) - NEG_OCP(cell.neg.c0.value / cell.neg.cmax.value),
                     cell.pos.c0: cell.pos.c0.value,
                     cell.neg.c0: cell.neg.c0.value,
                     cell.neg.sei0: 5.e-9,
@@ -235,7 +238,7 @@ class Pack:
                     }
                 )
 
-            print(f"Finished Cycle #{i} -- {just_finished}")
+            print(f"Finished Cycle #{i+1} -- {just_finished}")
 
             subdf = pd.concat({(i+1, just_finished): subdf})
             subdfs.append(subdf)

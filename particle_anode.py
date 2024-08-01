@@ -12,10 +12,10 @@ class Anode(SingleParticle):
 
         super().__init__(name, -1, iapp)
 
-        self.i_sei = pybamm.Variable(name + " vSide Current")
-        self.i_int = pybamm.Variable(name + " vIntercalation Current")
-        self.sei_L = pybamm.Variable(name + " vSEI Length")
-        self.sei0 = pybamm.Parameter(name + " pInitial SEI Length")
+        self.i_sei = pybamm.Variable(name + " Side Current")
+        self.i_int = pybamm.Variable(name + " Intercalation Current")
+        self.sei_L = pybamm.Variable(name + " SEI Length")
+        self.sei0 = pybamm.Parameter(name + " Initial SEI Length")
 
     def process_model(self, model: pybamm.BaseModel, charging):
         flux = self.D * -pybamm.grad(self.c)
