@@ -15,7 +15,7 @@ LATER LATER:
 
 NUM_PARALLEL = 2
 NUM_SERIES = 2
-NUM_CYCLES = 100
+NUM_CYCLES = 3
 
 BASE_CURRENT = 13.6319183090575
 ### ESTIMATED FROM 0.5C RATE
@@ -32,7 +32,7 @@ DISCRETE_PTS = 30
 TIME_PTS = 100
 
 # Data is outputted to this file.
-DATA_OUTPUT = "data/2by2_100cycles_control"
+DATA_OUTPUT = "data/2by2_3cycles_control"
 
 #--------------------
 
@@ -43,7 +43,8 @@ model = pybamm.BaseModel()
 geo = {}
 parameters = {}
 
-pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), I_INPUT / 50, model, geo, parameters)
+# I_INPUT / 20
+pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), 1.3, model, geo, parameters)
 pack.build(DISCRETE_PTS)
 
 pack.cycler(I_INPUT, NUM_CYCLES, HOURS, TIME_PTS, output_path=DATA_OUTPUT+".csv")
