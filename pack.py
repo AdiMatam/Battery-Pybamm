@@ -20,7 +20,7 @@ class Pack:
         self.model = model
         self.geo = geo
         self.parameters = parameters
-        self.i_total = pybamm.Variable("Pack Total Current")
+        self.i_total = pybamm.Variable("Pack Current")
 
         self.iapps = [
             pybamm.Variable(f"String {i+1} Iapp") for i in range(parallel)
@@ -46,7 +46,6 @@ class Pack:
             for j in range(parallel):
                 cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", self.iapps[j], self.charging, model, geo, parameters)
                 c = cells[i,j]
-                model.algebraic[c.voltage] = c.pos.phi - c.neg.phi - c.voltage
         #c[0, 1] - c[0, 0] + c[1, 1] - c[1, 0]
 
         self.cells = cells
@@ -66,6 +65,7 @@ class Pack:
 
         for i in range(1, parallel):
             vbalance = 0
+            ## V{str{n}} - V{str{n-1}} = 0 from n=[1, num-strings]
             for j in range(series):
                 vbalance += cells[j, i].vvolt
                 vbalance -= cells[j, i-1].vvolt
