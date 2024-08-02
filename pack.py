@@ -1,3 +1,4 @@
+import traceback
 import pybamm
 import numpy as np
 from cell import Cell
@@ -102,19 +103,12 @@ class Pack:
         self.param_ob.process_model(model)
         self.param_ob.process_geometry(geo)
 
-        self.volt_var = pybamm.Variable("Pack Voltage")
         model.variables.update({
-            self.volt_var.name: self.voltage
+            "Pack Voltage": self.voltage
         })
         SET_MODEL_VARS(model,
             [self.i_total] + self.iapps
         )
-    
-    def __getitem__(self, index):
-        if (index[0] < 0 or index[0] >= self.series or index[1] < 0 or index[1] >= self.series):
-            raise IndexError(f"{index} invalid for {self.shape} Pack")
-
-        return self.cells[index]
 
     def build(self, discrete_pts):
         particles = [] 
@@ -141,7 +135,7 @@ class Pack:
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
         inps = {}
-        outputs = [self.volt_var.name, self.i_total.name]
+        outputs = ['Pack Voltage', self.i_total.name]
         SET_OUTPUTS(outputs, self.iapps)
 
         BIND_VALUES(inps, 
@@ -152,11 +146,11 @@ class Pack:
             }
         )
         for cell in self.flat_cells:
-            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.neg.sei_L, cell.voltage, cell.capacity])
+            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
 
             BIND_VALUES(inps, 
                 {
-                    cell.volt0: POS_OCP(cell.pos.c0.value / cell.pos.cmax.value) - NEG_OCP(cell.neg.c0.value / cell.neg.cmax.value),
+                    #cell.volt0: POS_OCP(cell.pos.c0.value / cell.pos.cmax.value) - NEG_OCP(cell.neg.c0.value / cell.neg.cmax.value),
                     cell.pos.c0: cell.pos.c0.value,
                     cell.neg.c0: cell.neg.c0.value,
                     cell.neg.sei0: 5.e-9,
@@ -177,7 +171,7 @@ class Pack:
             try:
                 solution = solver.solve(self.model, time_steps, inputs=inps)
             except Exception as e:
-                print(e)
+                print(traceback.format_exc())
                 print (f"FAILED AT CYCLE # {i}. Dumping collected data so far")
                 break
 
@@ -216,6 +210,12 @@ class Pack:
                         self.cv_mode: 0 
                     }
                 )
+                #for cell in self.flat_cells:
+                    #BIND_VALUES(inps, 
+                        #{
+                            #cell.volt0: self.cutoffs[0]
+                        #}
+                    #)
 
             # CV charge up next
             elif (state == 1):
@@ -226,6 +226,12 @@ class Pack:
                         self.cv_mode: 1 
                     }
                 )
+                #for cell in self.flat_cells:
+                    #BIND_VALUES(inps, 
+                        #{
+                            #cell.volt0: self.cutoffs[1]
+                        #}
+                    #)
 
             # Discharge next
             else:
@@ -237,6 +243,12 @@ class Pack:
                         self.cv_mode: 0 
                     }
                 )
+                #for cell in self.flat_cells:
+                    #BIND_VALUES(inps, 
+                        #{
+                            #cell.volt0: self.cutoffs[1]
+                        #}
+                    #)
 
             print(f"Finished Cycle #{i+1} -- {just_finished}")
 

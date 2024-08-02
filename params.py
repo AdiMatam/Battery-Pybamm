@@ -1,19 +1,19 @@
-from variation import Variation
+from variator import Variator
 
 ## .from_percent(value, % variation)
-POS_DIFFUSION       = Variation.from_percent(1.0e-14, 0)
-POS_CSN_MAX         = Variation.from_percent(51555, 0)  
-POS_CSN_INITIAL     = Variation.from_percent(51555*0.5, 0)
-POS_ELEC_THICKNESS  = Variation.from_percent(80e-6, 0)
-POS_ELEC_POROSITY   = Variation.from_percent(0.385, 2)   
+POS_DIFFUSION       = Variator.from_percent(1.0e-14, 0)
+POS_CSN_MAX         = Variator.from_percent(51555, 0)  
+POS_CSN_INITIAL     = Variator.from_percent(51555*0.5, 0)
+POS_ELEC_THICKNESS  = Variator.from_percent(80e-6, 0)
+POS_ELEC_POROSITY   = Variator.from_percent(0.385, 2)   
 
-NEG_DIFFUSION       = Variation.from_percent(2.0e-14, 0)
-NEG_CSN_MAX         = Variation.from_percent(30555, 0)   
-NEG_CSN_INITIAL     = Variation.from_percent(30555*0.74, 0)
-NEG_ELEC_THICKNESS  = Variation.from_percent(88e-6, 0.0)
-NEG_ELEC_POROSITY   = Variation.from_percent(0.485, 2)
+NEG_DIFFUSION       = Variator.from_percent(2.0e-14, 0)
+NEG_CSN_MAX         = Variator.from_percent(30555, 0)   
+NEG_CSN_INITIAL     = Variator.from_percent(30555*0.74, 0)
+NEG_ELEC_THICKNESS  = Variator.from_percent(88e-6, 0.0)
+NEG_ELEC_POROSITY   = Variator.from_percent(0.485, 2)
 
-PARTICLE_RADIUS     = Variation.from_percent(2e-06, 0)
+PARTICLE_RADIUS     = Variator.from_percent(2e-06, 0)
 
 
 import pybamm

@@ -1,18 +1,3 @@
-"""
--Create (variety of tests, C-rates, etc)
----Cycle 1 cell 
----Cycle pack of cells
-*Without parameter variation.. we should see identical results.
-
--Processing output data in a plottable, friendly way
-
-LATER LATER:
-## -- Capacity Output --> should be plottable
-      ## -- For charge capacity:, use i_intercalation
-      ## -- i_sei is contributing to 'Capacity Loss'
-"""
-
-
 NUM_SERIES = 2
 NUM_PARALLEL = 10
 NUM_CYCLES = 2
@@ -38,6 +23,7 @@ DATA_OUTPUT = "data/2by10_2cycles_porosityX"
 
 import pybamm
 from pack import Pack
+pybamm.set_logging_level("DEBUG")
 
 model = pybamm.BaseModel()
 geo = {}

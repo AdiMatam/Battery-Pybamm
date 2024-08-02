@@ -27,6 +27,7 @@ class Cell:
         self.sei = self.neg.sei_L
 
         self.vvolt = self.pos.phi - self.neg.phi
+        self.volt0 = pybamm.Parameter(name + " Initial Voltage")
 
         self.capacity = pybamm.Variable(name + " Capacity by Area")
 
@@ -42,17 +43,18 @@ class Cell:
         self.pos.process_model(model)
         self.neg.process_model(model, charging)
 
+
         self.__attach_parameters(parameters)
         
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)
 
-        self.volt0 = pybamm.Parameter(name + " Initial Voltage")
 
         model.initial_conditions.update({
-            self.voltage: p.POS_OCP(self.pos.c0.value / self.pos.cmax.value) 
-                - p.NEG_OCP(self.neg.c0.value / self.neg.cmax.value)
+            self.voltage: p.POS_OCP(self.pos.c0 / self.pos.cmax.value) 
+                - p.NEG_OCP(self.neg.c0 / self.neg.cmax.value)
         })
+
 
         model.variables.update({
             self.voltage.name: self.vvolt,
