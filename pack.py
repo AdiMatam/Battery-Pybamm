@@ -4,13 +4,17 @@ import numpy as np
 from cell import Cell
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 import pandas as pd
-
-from params import NEG_OCP, POS_OCP
+import os
 
 class Pack:
-    def __init__(self, parallel: int, series: int, cutoffs: tuple, min_current: float, 
+    def __init__(self, experiment: str, parallel: int, series: int, cutoffs: tuple, min_current: float, 
         model:pybamm.BaseModel, geo:dict, parameters:dict
     ):
+
+        self.experiment = experiment
+
+        if not os.path.exists(f'data/{experiment}'):
+            os.makedirs(f'data/{experiment}')
 
         self.parallel = parallel
         self.series = series
@@ -126,11 +130,11 @@ class Pack:
         )
         disc.process_model(self.model)
 
-    def cycler(self, iappt, cycles, hours, time_pts, output_path=""):
+    def cycler(self, iappt, cycles, hours, time_pts):
         self.cycles = cycles
         self.iappt = iappt
 
-        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, dt_max=1e-10, root_method='hybr', extra_options_setup={"max_num_steps": 100000}, return_solution_if_failed_early=True)
+        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-10, dt_max=1e-10, root_method='lm', extra_options_setup={"max_num_steps": 100000}, return_solution_if_failed_early=True)
 
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
@@ -172,7 +176,8 @@ class Pack:
                 solution = solver.solve(self.model, time_steps, inputs=inps)
             except Exception as e:
                 print(traceback.format_exc())
-                print (f"FAILED AT CYCLE # {i}. Dumping collected data so far")
+                print (f"FAILED AT CYCLE # {i+1}. Dumping collected data so far")
+                self.cycles = i
                 break
 
             subdf = pd.DataFrame(columns=['Global Time', 'Time'] + outputs)
@@ -252,16 +257,15 @@ class Pack:
 
             print(f"Finished Cycle #{i+1} -- {just_finished}")
 
-            subdf = pd.concat({(i+1, just_finished): subdf})
+            subdf = pd.concat({(just_finished): subdf})
             subdfs.append(subdf)
+
             state = (state + 1) % 3
             if (state == 0):
+                merged = pd.concat(subdfs)
+                merged.to_csv(f"data/{self.experiment}/Cycle_{i+1}.csv")
+                subdfs.clear()
                 i += 1
-            
-
-        df = pd.concat(subdfs)
-        df.to_csv(output_path)
-        return df
 
 
 if __name__ == '__main__':

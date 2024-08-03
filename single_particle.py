@@ -27,7 +27,6 @@ class SingleParticle:
 
         self.r = pybamm.SpatialVariable(name + " svRadius", domain=self.domain, coord_sys="spherical polar")
 
-
         a_term = (3 * (1 - self.eps_n)) / self.R
         self.j = (self.charge * self.iapp) / (self.L * a_term)
 

@@ -1,6 +1,7 @@
 import pybamm
 import consts as cc
 from consts import SET_MODEL_VARS, SET_OUTPUTS, BIND_VALUES
+from params import NEG_OCP
 from single_particle import SingleParticle
 
 #pybamm.set_logging_level("DEBUG")
@@ -60,8 +61,8 @@ class Anode(SingleParticle):
         })
 
         model.initial_conditions.update({
-            self.c: pybamm.x_average(self.c0),
-            self.phi: Anode.OCP_INIT,
+            self.c: self.c0,
+            self.phi: NEG_OCP(self.c0 / self.cmax),
             self.i_sei: 1e-8,
             self.i_int: 1e-2,
             self.sei_L: self.sei0,

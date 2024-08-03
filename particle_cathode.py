@@ -1,5 +1,6 @@
 import pybamm
 import consts as c
+from params import POS_OCP
 from single_particle import SingleParticle
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 
@@ -33,8 +34,9 @@ class Cathode(SingleParticle):
         })
 
         model.initial_conditions.update({
-            self.c: pybamm.x_average(self.c0),
-            self.phi: Cathode.OCP_INIT,
+            self.c: self.c0,
+            #self.phi: Cathode.OCP_INIT,
+            self.phi: POS_OCP(self.c0 / self.cmax) #Cathode.OCP_INIT,
         }) 
 
         model.boundary_conditions.update({
