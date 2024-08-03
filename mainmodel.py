@@ -1,6 +1,6 @@
 NUM_SERIES = 2
 NUM_PARALLEL = 10
-NUM_CYCLES = 2
+NUM_CYCLES = 100
 
 BASE_CURRENT = 13.6319183090575
 ### ESTIMATED FROM 0.5C RATE
@@ -17,13 +17,13 @@ DISCRETE_PTS = 50
 TIME_PTS = 100
 
 # Data is outputted to this file.
-DATA_OUTPUT = "data/2by10_2cycles_porosityX"
+DATA_OUTPUT = "data/2by10_100cycles_porosityX"
 
 #--------------------
 
 import pybamm
 from pack import Pack
-pybamm.set_logging_level("DEBUG")
+pybamm.set_logging_level("WARNING")
 
 model = pybamm.BaseModel()
 geo = {}
