@@ -5,6 +5,7 @@ from cell import Cell
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 import pandas as pd
 import os
+import time
 
 class Pack:
     def __init__(self, experiment: str, parallel: int, series: int, cutoffs: tuple, min_current: float, 
@@ -12,14 +13,18 @@ class Pack:
     ):
 
         self.experiment = experiment
+        if os.path.exists(f"data/{self.experiment}"):
+            a = input()
 
-        if not os.path.exists(f'data/{experiment}'):
-            os.makedirs(f'data/{experiment}')
+        else:
+            os.makedirs(f"data/{self.experiment}")
 
         self.parallel = parallel
         self.series = series
         self.cutoffs = cutoffs
         self.min_current = min_current
+
+        self.exec_times = []
 
         self.model = model
         self.geo = geo
@@ -135,7 +140,6 @@ class Pack:
         self.iappt = iappt
 
         solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-10, dt_max=1e-10, root_method='lm', extra_options_setup={"max_num_steps": 100000}, return_solution_if_failed_early=True)
-
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
         inps = {}
@@ -151,13 +155,13 @@ class Pack:
         )
         for cell in self.flat_cells:
             SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
-
             BIND_VALUES(inps, 
                 {
-                    #cell.volt0: POS_OCP(cell.pos.c0.value / cell.pos.cmax.value) - NEG_OCP(cell.neg.c0.value / cell.neg.cmax.value),
                     cell.pos.c0: cell.pos.c0.value,
                     cell.neg.c0: cell.neg.c0.value,
                     cell.neg.sei0: 5.e-9,
+                    cell.pos.phi0: cell.pos.phi0.value,
+                    cell.neg.phi0: cell.neg.phi0.value,
                 }
             )
 
@@ -173,99 +177,92 @@ class Pack:
         i = 0
         while i < cycles:
             try:
+                start = time.process_time()
                 solution = solver.solve(self.model, time_steps, inputs=inps)
+                end = time.process_time()
+                exec_time = end - start
+
+                start = time.process_time()
+                subdf = pd.DataFrame(columns=['Global Time', 'Time'] + outputs)
+                subdf['Time'] = solution.t
+                subdf['Global Time'] = solution.t + prev_time
+                prev_time += solution.t[-1]
+
+                ## KEYS ARE VARIABLES
+                for key in outputs:
+                    data = solution[key].entries
+                    if len(data.shape) == 2:
+                        # TODO: see if there's a fix for this
+                        data = data[-1] # last node (all nodes 'equal' due to broadcasted surface concentration)
+
+                    subdf[key] = data
+
+                for cell in self.flat_cells:
+                    BIND_VALUES(inps, 
+                        {
+                            cell.pos.c0: solution[cell.pos.c.name].entries[-1][-1],
+                            cell.neg.c0: solution[cell.neg.c.name].entries[-1][-1],
+                            cell.neg.sei0: solution[cell.neg.sei_L.name].entries[-1],
+                            cell.pos.phi0: solution[cell.pos.phi.name].entries[-1],
+                            cell.neg.phi0: solution[cell.neg.phi.name].entries[-1]
+                        }
+                    )
+
+                just_finished = 0
+                
+                # CC charge up next
+                if (state == 0):
+                    just_finished = "CC-discharge"
+                    BIND_VALUES(inps, 
+                        {
+                            self.ilock: +iappt,
+                            self.charging: 1,
+                            self.cv_mode: 0 
+                        }
+                    )
+
+                # CV charge up next
+                elif (state == 1):
+                    just_finished = "CC-charge"
+                    BIND_VALUES(inps, 
+                        {
+                            self.charging: 1,
+                            self.cv_mode: 1 
+                        }
+                    )
+
+                # Discharge next
+                else:
+                    just_finished = "CV-charge"
+                    BIND_VALUES(inps, 
+                        {
+                            self.ilock: -iappt,
+                            self.charging: 0,
+                            self.cv_mode: 0 
+                        }
+                    )
+
+                print(f"Finished Cycle #{i+1} -- {just_finished}")
+
+                subdf = pd.concat({(just_finished): subdf})
+                subdfs.append(subdf)
+
+                state = (state + 1) % 3
+                end = time.process_time()
+
+                self.exec_times.append( (exec_time, end-start) )
+
+                if (state == 0):
+                    merged = pd.concat(subdfs)
+                    merged.to_csv(f"data/{self.experiment}/Cycle_{i+1}.csv")
+                    subdfs.clear()
+                    i += 1
+                
             except Exception as e:
                 print(traceback.format_exc())
                 print (f"FAILED AT CYCLE # {i+1}. Dumping collected data so far")
                 self.cycles = i
                 break
-
-            subdf = pd.DataFrame(columns=['Global Time', 'Time'] + outputs)
-            subdf['Time'] = solution.t
-            subdf['Global Time'] = solution.t + prev_time
-            prev_time += solution.t[-1]
-
-            ## KEYS ARE VARIABLES
-            for key in outputs:
-                data = solution[key].entries
-                if len(data.shape) == 2:
-                    # TODO: see if there's a fix for this
-                    data = data[-1] # last node (all nodes 'equal' due to broadcasted surface concentration)
-
-                subdf[key] = data
-
-            for cell in self.flat_cells:
-                BIND_VALUES(inps, 
-                    {
-                        cell.pos.c0: solution[cell.pos.c.name].entries[-1][-1],
-                        cell.neg.c0: solution[cell.neg.c.name].entries[-1][-1],
-                        cell.neg.sei0: solution[cell.neg.sei_L.name].entries[-1],
-                    }
-                )
-
-            just_finished = 0
-            
-            # CC charge up next
-            if (state == 0):
-                just_finished = "CC-discharge"
-                BIND_VALUES(inps, 
-                    {
-                        self.ilock: +iappt,
-                        self.charging: 1,
-                        self.cv_mode: 0 
-                    }
-                )
-                #for cell in self.flat_cells:
-                    #BIND_VALUES(inps, 
-                        #{
-                            #cell.volt0: self.cutoffs[0]
-                        #}
-                    #)
-
-            # CV charge up next
-            elif (state == 1):
-                just_finished = "CC-charge"
-                BIND_VALUES(inps, 
-                    {
-                        self.charging: 1,
-                        self.cv_mode: 1 
-                    }
-                )
-                #for cell in self.flat_cells:
-                    #BIND_VALUES(inps, 
-                        #{
-                            #cell.volt0: self.cutoffs[1]
-                        #}
-                    #)
-
-            # Discharge next
-            else:
-                just_finished = "CV-charge"
-                BIND_VALUES(inps, 
-                    {
-                        self.ilock: -iappt,
-                        self.charging: 0,
-                        self.cv_mode: 0 
-                    }
-                )
-                #for cell in self.flat_cells:
-                    #BIND_VALUES(inps, 
-                        #{
-                            #cell.volt0: self.cutoffs[1]
-                        #}
-                    #)
-
-            print(f"Finished Cycle #{i+1} -- {just_finished}")
-
-            subdf = pd.concat({(just_finished): subdf})
-            subdfs.append(subdf)
-
-            state = (state + 1) % 3
-            if (state == 0):
-                merged = pd.concat(subdfs)
-                merged.to_csv(f"data/{self.experiment}/Cycle_{i+1}.csv")
-                subdfs.clear()
-                i += 1
 
 
 if __name__ == '__main__':

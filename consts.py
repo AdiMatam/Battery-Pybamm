@@ -12,10 +12,6 @@ T = 298 # kelvin
 RTF = R_GAS * T / F
 
 def BIND_VALUES(fulldict: dict, subdict: dict):
-    # absorption of particle parameters
-    # fulldict.update(
-        # {key.name : value for key, value in subdict.items()}
-    # )
     for key, value in subdict.items():
         if isinstance(key, ConstantParameter) and type(value) is not str:
             key.value = value ## for querying purposes, the parameter will also store its assigned value

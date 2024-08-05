@@ -62,7 +62,8 @@ class Anode(SingleParticle):
 
         model.initial_conditions.update({
             self.c: self.c0,
-            self.phi: NEG_OCP(self.c0 / self.cmax),
+            # self.phi: NEG_OCP(self.c0 / self.cmax),
+            self.phi: self.phi0,
             self.i_sei: 1e-8,
             self.i_int: 1e-2,
             self.sei_L: self.sei0,
@@ -111,13 +112,13 @@ if __name__ == '__main__':
     BIND_VALUES(parameters, {
         iapp:               "[input]",
         a.c0:               "[input]",
-        a.L:                p.NEG_ELEC_THICKNESS.get_value(),
-        a.eps_n:            p.NEG_ELEC_POROSITY.get_value(),
-        a.cmax:             p.NEG_CSN_MAX.get_value(),
+        a.L:                p.NEG_ELEC_THICKNESS.sample(),
+        a.eps_n:            p.NEG_ELEC_POROSITY.sample(),
+        a.cmax:             p.NEG_CSN_MAX.sample(),
 
         a.ocp:              p.NEG_OCP,
-        a.D:                p.NEG_DIFFUSION.get_value(),
-        a.R:                p.PARTICLE_RADIUS.get_value(),
+        a.D:                p.NEG_DIFFUSION.sample(),
+        a.R:                p.PARTICLE_RADIUS.sample(),
         a.sei0:             "[input]",
         a.charging:            "[input]",
     })

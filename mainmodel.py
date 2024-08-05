@@ -1,6 +1,6 @@
 NUM_SERIES = 2
-NUM_PARALLEL = 4
-NUM_CYCLES = 100
+NUM_PARALLEL = 5
+NUM_CYCLES = 300
 
 # 13.6319183090575
 BASE_CURRENT = 13.3
@@ -9,16 +9,16 @@ BASE_CURRENT = 13.3
 ## input current (you can change to anything)
 I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
-VOLTAGE_LOW_CUT = 2.0
+VOLTAGE_LOW_CUT = 2.5
 VOLTAGE_HIGH_CUT =4.1
 
 ## Meshing and Discretization Parameters
 HOURS = 2 
 DISCRETE_PTS = 100
-TIME_PTS = 100
+TIME_PTS = 250
 
 # Data is outputted to this file.
-EXPERIMENT = "2by4_100cycles_porosity_tests2"
+EXPERIMENT = "2by5_300cycles_isoc"
 
 #--------------------
 

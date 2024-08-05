@@ -35,8 +35,8 @@ class Cathode(SingleParticle):
 
         model.initial_conditions.update({
             self.c: self.c0,
-            #self.phi: Cathode.OCP_INIT,
-            self.phi: POS_OCP(self.c0 / self.cmax) #Cathode.OCP_INIT,
+            #self.phi: POS_OCP(self.c0.value / self.cmax.value) #Cathode.OCP_INIT,
+            self.phi: self.phi0
         }) 
 
         model.boundary_conditions.update({
@@ -50,7 +50,6 @@ class Cathode(SingleParticle):
         SET_MODEL_VARS(model,
             [
                 self.c, 
-                ## eventually this can be removed. We will only care about cell-level voltage?
                 self.phi, 
             ]
         )
@@ -60,10 +59,10 @@ if __name__ == '__main__':
     import numpy as np
     import pandas as pd
 
-    HOURS = 10 
-    I_INPUT = 2.4
-    DISCRETE_PTS = 30
-    TIME_PTS = 250
+    HOURS = 2 
+    I_INPUT = 13.3
+    DISCRETE_PTS = 100
+    TIME_PTS = 100
 
     geo = {}
     model = pybamm.BaseModel()
@@ -77,18 +76,18 @@ if __name__ == '__main__':
     BIND_VALUES(parameters, {
         iapp:               "[input]",
         cc.c0:               "[input]",
-        cc.L:                p.POS_ELEC_THICKNESS.get_value(),
-        cc.eps_n:            p.POS_ELEC_POROSITY.get_value(),
-        cc.cmax:             p.POS_CSN_MAX.get_value(),
+        cc.L:                p.POS_ELEC_THICKNESS.sample(),
+        cc.eps_n:            p.POS_ELEC_POROSITY.sample(),
+        cc.cmax:             p.POS_CSN_MAX.sample(),
 
         cc.ocp:              p.POS_OCP,
-        cc.D:                p.POS_DIFFUSION.get_value(),
-        cc.R:                p.PARTICLE_RADIUS.get_value(),
+        cc.D:                p.POS_DIFFUSION.sample(),
+        cc.R:                p.PARTICLE_RADIUS.sample(),
     })
 
     model.events += [
         pybamm.Event("Min Concentration", cc.surf_c - 500),
-        pybamm.Event("Max Concentration", p.POS_CSN_MAX.get_value() + 100 - cc.surf_c)
+        pybamm.Event("Max Concentration", cc.cmax.value + 100 - cc.surf_c)
     ]
 
     param_ob = pybamm.ParameterValues(parameters)
@@ -113,54 +112,58 @@ if __name__ == '__main__':
 
     time_steps = np.linspace(0, 3600 * HOURS, TIME_PTS)
     total_time_steps = np.linspace(0, 3600 * HOURS * cycles, TIME_PTS * cycles)
-    
-    sign = -1
+
     inps = {
-        iapp.name: sign * I_INPUT,
-        cc.c0.name: p.POS_CSN_INITIAL.get_value(),
+        iapp.name: -1 * I_INPUT,
+        cc.c0.name: p.POS_CSN_INITIAL.sample(),
     }
 
-    ### EVERYTHING BELOW THIS IS JUST RUNNING / CAPTURING SIMULATION DATA.
-    ### NO PARAMETER-RELEVANT CODE BELOW
-
-    outputs = SET_OUTPUTS([cc.c, cc.phi])
-    caps = []
-    subdfs = []
-
-    solution = None
-    prev_time = 0
-
-    for _ in range(cycles):
-
-        solution = solver.solve(model, time_steps, inputs=inps)
-
-        subdf = pd.DataFrame(columns=['Time'] + outputs)
-        subdf['Time'] = solution.t + prev_time
-        prev_time += solution.t[-1]
-
-        caps.append( I_INPUT * solution.t[-1] / 3600 )
-
-        ## KEYS ARE VARIABLES
-        for key in outputs:
-            data = solution[key].entries
-            if len(data.shape) == 2:
-                data = data[-1] # last node (all nodes 'equal' due to broadcasted surface concentration)
-
-            subdf[key] = data
-
-        subdfs.append(subdf)
-
-        sign *= -1
-        BIND_VALUES(inps, 
-            {
-                iapp: sign * I_INPUT,
-                cc.c0: solution[cc.c.name].entries[-1][-1],
-            }
-        )
-
-    df = pd.concat(subdfs, ignore_index=True)
+    solution = solver.solve(model, time_steps, inputs=inps)
+    solution.plot([cc.c.name])
     
-    print(df)
-    print(caps)
+    # sign = -1
 
-    df.to_csv(f"CATHODE_{cycles}.csv", index=False)
+    # ### EVERYTHING BELOW THIS IS JUST RUNNING / CAPTURING SIMULATION DATA.
+    # ### NO PARAMETER-RELEVANT CODE BELOW
+
+    # outputs = SET_OUTPUTS([cc.c, cc.phi])
+    # caps = []
+    # subdfs = []
+
+    # solution = None
+    # prev_time = 0
+
+    # for _ in range(cycles):
+
+        # solution = solver.solve(model, time_steps, inputs=inps)
+
+        # subdf = pd.DataFrame(columns=['Time'] + outputs)
+        # subdf['Time'] = solution.t + prev_time
+        # prev_time += solution.t[-1]
+
+        # caps.append( I_INPUT * solution.t[-1] / 3600 )
+
+        # ## KEYS ARE VARIABLES
+        # for key in outputs:
+            # data = solution[key].entries
+            # if len(data.shape) == 2:
+                # data = data[-1] # last node (all nodes 'equal' due to broadcasted surface concentration)
+
+            # subdf[key] = data
+
+        # subdfs.append(subdf)
+
+        # sign *= -1
+        # BIND_VALUES(inps, 
+            # {
+                # iapp: sign * I_INPUT,
+                # cc.c0: solution[cc.c.name].entries[-1][-1],
+            # }
+        # )
+
+    # df = pd.concat(subdfs, ignore_index=True)
+    
+    # print(df)
+    # print(caps)
+
+    # df.to_csv(f"CATHODE_{cycles}.csv", index=False)

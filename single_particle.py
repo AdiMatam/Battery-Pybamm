@@ -16,6 +16,7 @@ class SingleParticle:
         self.cmax = ConstantParameter(name + " pMax Concentration")
         self.D = ConstantParameter(name + " pDiffusion Coefficient")
         self.R = ConstantParameter(name + " pParticle Radius")
+        self.phi0 = ConstantParameter(name + " pInitial Potential")
 
         self.iapp = iapp
 

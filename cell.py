@@ -57,11 +57,10 @@ class Cell:
     def __attach_parameters(self, param_dict: dict):
 
         rad = p.PARTICLE_RADIUS.sample()
-        # BIND_VALUES(param_dict, {
-            # self.volt0: "[input]"
-        # })
+
         BIND_VALUES(param_dict, {
             self.pos.c0:               "[input]",
+            self.pos.phi0:             "[input]",
             self.pos.L:                p.POS_ELEC_THICKNESS.sample(),
             self.pos.eps_n:            p.POS_ELEC_POROSITY.sample(),
             self.pos.cmax:             p.POS_CSN_MAX.sample(),
@@ -73,11 +72,12 @@ class Cell:
 
         BIND_VALUES(param_dict, {
             self.neg.c0:               "[input]",
+            self.neg.phi0:             "[input]",
             self.neg.L:                p.NEG_ELEC_THICKNESS.sample(),
             self.neg.eps_n:            p.NEG_ELEC_POROSITY.sample(),
             self.neg.cmax:             p.NEG_CSN_MAX.sample(),
 
-            self.neg.ocp:              p.NEG_OCP,
+            self.neg.ocp:              p.NEG_OCP2,
             self.neg.D:                p.NEG_DIFFUSION.sample(),
             self.neg.R:                rad,
             self.neg.sei0:             "[input]",
@@ -85,3 +85,10 @@ class Cell:
 
         self.pos.c0.set_value(p.POS_CSN_INITIAL.sample()) 
         self.neg.c0.set_value(p.NEG_CSN_INITIAL.sample()) 
+        self.pos.phi0.value = p.POS_OCP(self.pos.c0.value / self.pos.cmax.value)
+        self.neg.phi0.value = p.NEG_OCP(self.neg.c0.value / self.neg.cmax.value)
+
+        #BIND_VALUES(param_dict, {
+            #self.pos.phi0: p.POS_OCP(self.pos.c0.value / self.pos.cmax.value),
+            #self.neg.phi0: p.NEG_OCP(self.neg.c0.value / self.neg.cmax.value),
+        #})
