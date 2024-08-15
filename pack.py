@@ -168,8 +168,8 @@ class Pack:
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
         inps = {}
-        outputs = ['Pack Voltage', self.i_total.name]
-        SET_OUTPUTS(outputs, self.iapps)
+        csv_cols = ['Pack Voltage', "Pack Current"]
+        SET_OUTPUTS(csv_cols, self.iapps)
 
         BIND_VALUES(inps, 
             {
@@ -178,8 +178,10 @@ class Pack:
                 self.charging: 0,
             }
         )
+        
+        capacity_dict = {}
         for cell in self.flat_cells:
-            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
+            SET_OUTPUTS(csv_cols, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
             BIND_VALUES(inps, 
                 {
                     cell.pos.c0: cell.pos.c0.value,
@@ -189,9 +191,7 @@ class Pack:
                     cell.neg.phi0: cell.neg.phi0.value,
                 }
             )
-
-        ### EVERYTHING BELOW THIS IS JUST RUNNING / CAPTURING SIMULATION DATA.
-        ### NO PARAMETER-RELEVANT CODE BELOW
+            capacity_dict[cell.name] = []
 
         subdfs = []
 
@@ -208,13 +208,13 @@ class Pack:
                 exec_time = end - start
 
                 start = time.process_time()
-                subdf = pd.DataFrame(columns=['Global Time', 'Time'] + outputs)
+                subdf = pd.DataFrame(columns=['Global Time', 'Time'] + csv_cols)
                 subdf['Time'] = solution.t
                 subdf['Global Time'] = solution.t + prev_time
                 prev_time += solution.t[-1]
 
                 ## KEYS ARE VARIABLES
-                for key in outputs:
+                for key in csv_cols:
                     data = solution[key].entries
                     if len(data.shape) == 2:
                         # TODO: see if there's a fix for this
@@ -232,9 +232,10 @@ class Pack:
                             cell.neg.phi0: solution[cell.neg.phi.name].entries[-1]
                         }
                     )
+                    if (state == 0):
+                        capacity_dict[cell.name].append(solution[cell.capacity.name].entries[-1])
 
                 just_finished = 0
-                
                 # CC charge up next
                 if (state == 0):
                     just_finished = "CC-discharge"
@@ -291,9 +292,10 @@ class Pack:
         finally:
             merged = pd.concat(subdfs)
             merged.to_csv(f"data/{self.experiment}/data.csv")
+            pd.DataFrame(capacity_dict).to_csv(f"data/{self.experiment}/capacities.csv")
 
-        with open(f"data/{self.experiment}/model.pkl", 'wb') as f:
-            pickle.dump(self, f)
+            with open(f"data/{self.experiment}/model.pkl", 'wb') as f:
+                pickle.dump(self, f)
 
 
 if __name__ == '__main__':

@@ -5,8 +5,6 @@ from constant_parameter import ConstantParameter
 
 
 F = 96485
-
-# not scaling radius at the moment... 
 R_GAS = 8.314
 T = 298 # kelvin
 RTF = R_GAS * T / F

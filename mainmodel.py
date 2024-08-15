@@ -1,10 +1,6 @@
 """
-A given simulation run needs a 'operating condition' attribute
---> Make sure Temperature, time, C-rate all stored
---> Param values are stored, but NOT config. Make sure latter is also stored!! 
-----> VIA Profile object ??
+TODO: Parameterization of temperature (so that variation can be applied)
 """
-
 
 NUM_SERIES = 1
 NUM_PARALLEL = 2
@@ -42,10 +38,7 @@ pack = Pack(EXPERIMENT, NUM_PARALLEL, NUM_SERIES, I_INPUT, NUM_CYCLES, (VOLTAGE_
 
 pack.export_profile()
 
-# pack.build(DISCRETE_PTS)
+pack.build(DISCRETE_PTS)
 
-# pack.cycler(HOURS, TIME_PTS)
+pack.cycler(HOURS, TIME_PTS)
 
-# import pickle
-# with open(f"data/{EXPERIMENT}/model.pkl", 'wb') as f:
-      # pickle.dump(pack, f)
