@@ -1,6 +1,6 @@
 import pybamm
-from particle_anode import Anode
-from particle_cathode import Cathode
+from src.particle_anode import Anode
+from src.particle_cathode import Cathode
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 import params as p
 

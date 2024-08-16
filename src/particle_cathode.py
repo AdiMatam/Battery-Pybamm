@@ -1,7 +1,7 @@
 import pybamm
 import consts as c
 from params import POS_OCP
-from single_particle import SingleParticle
+from src.single_particle import SingleParticle
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 
 

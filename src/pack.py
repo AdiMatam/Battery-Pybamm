@@ -2,14 +2,14 @@ import json
 import traceback
 import pybamm
 import numpy as np
-from cell import Cell
-from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
+from src.cell import Cell
+from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS, T
 import pandas as pd
 import os
 import time
 import pickle
 
-from variator import Variator
+from src.variator import Variator
 
 class Pack:
     def __init__(self, experiment: str, parallel, series, iappt, cycles, cutoffs, i_factor, 
@@ -31,6 +31,8 @@ class Pack:
         self.cycles = cycles
         self.i_factor = i_factor
         self.min_current = iappt * i_factor
+
+        self.temperature = T
 
         self.exec_times = []
 
@@ -132,6 +134,7 @@ class Pack:
             'Experiment': self.experiment,
             'Parallel': self.parallel,
             'Series': self.series,
+            'Temperature': self.temperature,
             'Cutoffs': self.cutoffs,
             'I-app': self.iappt,
             'I-app factor cut': self.i_factor,

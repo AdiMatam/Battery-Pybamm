@@ -1,7 +1,7 @@
 # assuming "Diffusion Coefficient" is constant w/ respect to Concentration @ r
 # D = 2.0e-14 #3.9e-14
 # D = 3.9e-14 # pybamm.Parameter("pDiffusion Coefficient")
-from constant_parameter import ConstantParameter
+from src.constant_parameter import ConstantParameter
 
 
 F = 96485

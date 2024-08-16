@@ -1,6 +1,6 @@
 import pybamm
 from abc import abstractmethod
-from constant_parameter import ConstantParameter
+from src.constant_parameter import ConstantParameter
 
 class SingleParticle:
     def __init__(self, name: str, charge: int, 

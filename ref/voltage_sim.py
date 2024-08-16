@@ -1,7 +1,7 @@
 import pickle
 import pybamm
 import consts as cc
-from particle_anode import Anode
+from src.particle_anode import Anode
 from ref.marquis import lico2_ocp_Dualfoil1998 as Up
 from ref.marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
 

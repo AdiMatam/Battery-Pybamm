@@ -1,6 +1,6 @@
 from tkinter import W
 from  matplotlib import pyplot as plt
-from pack import Pack
+from src.pack import Pack
 
 def plot(df, pack: Pack):
 

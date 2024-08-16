@@ -1,5 +1,5 @@
 from math import exp
-from variator import Variator
+from src.variator import Variator
 
 ## .from_percent(value, % variation)
 POS_DIFFUSION       = Variator.from_percent("Cathode Diffusion", 1.0e-14, 0)

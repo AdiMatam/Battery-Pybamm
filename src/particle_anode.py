@@ -2,7 +2,7 @@ import pybamm
 import consts as cc
 from consts import SET_MODEL_VARS, SET_OUTPUTS, BIND_VALUES
 from params import NEG_OCP
-from single_particle import SingleParticle
+from src.single_particle import SingleParticle
 
 #pybamm.set_logging_level("DEBUG")
 

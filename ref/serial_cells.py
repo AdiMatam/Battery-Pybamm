@@ -7,7 +7,7 @@ DISCHARGE_CURRENT = -1.2
 import pybamm
 import numpy as np
 import consts as cc
-from cell import Cell
+from src.cell import Cell
 
 model = pybamm.BaseModel()
 geo = {}

@@ -1,7 +1,3 @@
-"""
-TODO: Parameterization of temperature (so that variation can be applied)
-"""
-
 NUM_SERIES = 1
 NUM_PARALLEL = 2
 NUM_CYCLES = 5
@@ -12,6 +8,7 @@ BASE_CURRENT = 13.3
 
 ## input current (you can change to anything)
 I_INPUT = BASE_CURRENT * NUM_PARALLEL
+CURRENT_CUT_FACTOR = 1/10
 
 VOLTAGE_LOW_CUT = 2.5
 VOLTAGE_HIGH_CUT =4.1
@@ -27,16 +24,19 @@ EXPERIMENT = "1by2_5cycles_isocz"
 #--------------------
 
 import pybamm
-from pack import Pack
+from src.pack import Pack
 pybamm.set_logging_level("WARNING")
 
 model = pybamm.BaseModel()
 geo = {}
 parameters = {}
 
-pack = Pack(EXPERIMENT, NUM_PARALLEL, NUM_SERIES, I_INPUT, NUM_CYCLES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), 1/10, model, geo, parameters)
-
-pack.export_profile()
+pack = Pack(
+      EXPERIMENT, 
+      NUM_PARALLEL, NUM_SERIES, I_INPUT, NUM_CYCLES, 
+      (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), CURRENT_CUT_FACTOR, 
+      model, geo, parameters
+)
 
 pack.build(DISCRETE_PTS)
 
