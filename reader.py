@@ -8,9 +8,15 @@ smallpack.select_cycles(
     protocols=[CC_CHARGE]
 )
 
-smallpack.select_attributes(["Cathode Concentration"])
+smallpack.select_attributes(["SEI"])
 
-#print(smallpack.get_data())
+print(smallpack.get_data())
+# d = smallpack.get_data()
+# for key, group in d.groupby(level=0):
+    # print(f"Section: {key}")
+    # print(group)
+    # print()
+
 smallpack.plotter(local_time=True)
 
 # smallpack.reset()

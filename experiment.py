@@ -1,9 +1,5 @@
-from multiprocessing.sharedctypes import Value
-import sys
 import pandas as pd 
 from matplotlib import pyplot as plt
-import numpy as np
-import pickle
 import json
 from src.pack import Pack
 
@@ -48,34 +44,34 @@ class Experiment:
         joined = '|'.join(attrs)
         self.data = self.data.filter(regex=f'Time|{joined}')
 
-    def plotter(self, columns=[], local_time=False):
+    def plotter(self, local_time=False, isolate_cycles=True):
+        # Helper function to encapsulate the plotting logic
+        def plot_columns(data, t, label_prefix=''):
+            """Helper function to plot columns."""
+            for col in data.columns.drop(['Time', 'Global Time']):
+                label = f'{label_prefix}{col}' if label_prefix else col
+                plt.plot(data[t], data[col], label=label)
+        
+
         t = 'Global Time'
         if local_time:
             t = 'Time'
-    
-        d = self.data
-        if len(columns) != 0:
-            pass
-            # d = self.data.loc[: columns]
-            # joined = '|'.join(columns)
-            # a = d.filter(regex=f"{t}|{joined}")
-            # return lambda: a.plot(x=t, y=d.filter(regex=joined).columns, kind='line')
 
+        if isolate_cycles:
+            for cnum, group in self.data.groupby(level=0):
+                plot_columns(group, t, label_prefix=f'C{cnum}_')
         else:
-            for col in d.columns.drop(['Time', 'Global Time']):
-                plt.plot(d[t], d[col], label=col)
+            plot_columns(self.data, t)
 
-            plt.xlabel(t)
-            plt.legend()
-            plt.show()
-            # return lambda: d.plot(x=t, y=d.columns.drop(t), kind='line')
+        plt.xlabel(t)
+        plt.legend()
+        plt.show()
 
     def get_data(self):
         return self.data
 
-    def plot(self):
-        # Plot the experiment data
-        pass
-
     def reset(self):
         self.data = pd.read_csv(self.path+"data.csv", index_col=[0,1,2])
+
+    def to_csv(self, filename: str):
+        self.data.to_csv(self.path+filename, index=True)
