@@ -19,8 +19,8 @@ n = 250
  
 t_eval = np.linspace(0, 3600 * 20, n)
 solution = solver.solve(model, t_eval)
-# print(solution["Negative particle surface concentration [mol.m-3]"].entries)
-solution.plot(list(model.variables.keys()))
+print(solution["Negative particle surface concentration [mol.m-3]"].entries)
+# solution.plot(list(model.variables.keys()))
 # print(list(model.variables.keys()))
 
 

@@ -1,0 +1,2 @@
+- General problem with corrector convergence (close to t=0) at start of CC-discharge
+---> Must be some stiffness issue, need to check solver method, IC estimation algorithm

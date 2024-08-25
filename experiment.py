@@ -12,18 +12,19 @@ class Experiment:
     def __init__(self, experiment: str):
         self.path = f"data/{experiment}/"
 
-        profile = None
+        self.profile = None
         with open(self.path+"profile.json", 'r') as f:
-            profile = json.load(f)
+            self.profile = json.load(f)
 
-        self.profile =json.dumps(profile, indent=4)
+        self.profile_str =json.dumps(self.profile, indent=4)
 
         self.data = pd.read_csv(self.path+"data.csv", index_col=[0,1,2])
+        self.caps = pd.read_csv(self.path+"capacities.csv", index_col=0)
         self.CYCLE = self.data.index.get_level_values(0)
         self.PROTOCOL = self.data.index.get_level_values(1)
 
-    def show_profile(self):
-        print(self.profile)
+    def __str__(self):
+        return self.profile_str
 
     def select_cycles(self, cycles=[], protocols=[]):
         flts = [True, True]
@@ -66,6 +67,21 @@ class Experiment:
         plt.xlabel(t)
         plt.legend()
         plt.show()
+
+    def plot_capacities(self):
+        for column in self.caps.columns:
+            plt.scatter(self.caps.index, self.caps[column], label=column)
+
+        plt.xlabel('Cycle #')
+        plt.ylabel('Discharge Capacity (A/m2)')
+        plt.title('Discharge Capacity by Cycle #')
+
+        plt.legend()
+        plt.show()
+        self.caps
+
+    def get_capacities(self):
+        return self.caps
 
     def get_data(self):
         return self.data

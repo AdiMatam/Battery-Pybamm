@@ -12,7 +12,7 @@ import pickle
 from src.variator import Variator
 
 class Pack:
-    def __init__(self, experiment: str, parallel, series, iappt, cycles, cutoffs, i_factor, 
+    def __init__(self, experiment: str, parallel, series, iappt, cycles, crate, cutoffs, i_factor, 
         model:pybamm.BaseModel, geo:dict, parameters:dict
     ):
 
@@ -31,10 +31,11 @@ class Pack:
         self.cycles = cycles
         self.i_factor = i_factor
         self.min_current = iappt * i_factor
+        self.c_rate = crate
 
         self.temperature = T
 
-        self.exec_times = []
+        self.next_cycle = False
 
         self.model = model
         self.geo = geo
@@ -64,70 +65,22 @@ class Pack:
         for i in range(series):
             for j in range(parallel):
                 cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", self.iapps[j], self.charging, model, geo, parameters)
-                c = cells[i,j]
-        #c[0, 1] - c[0, 0] + c[1, 1] - c[1, 0]
 
         self.cells = cells
 
-        self.voltage = 0
-        for i in range(series):
-            self.voltage += cells[i, 0].vvolt
-
-        # cutoffs[1] (max V-cut is effectively the vlock)
-        model.algebraic.update({
-            self.i_total: (self.ilock - self.i_total)*self.cc_mode + (cutoffs[1]*series - self.voltage)*self.cv_mode
-        })
-
-        model.algebraic.update({
-            self.iapps[0]: self.i_total - sum(self.iapps),
-        })
-
-        for i in range(1, parallel):
-            vbalance = 0
-            ## V{str{n}} - V{str{n-1}} = 0 from n=[1, num-strings]
-            for j in range(series):
-                vbalance += cells[j, i].vvolt
-                vbalance -= cells[j, i-1].vvolt
-
-            #expr = cells[0, i].vvolt - cells[0, i-1].vvolt
-            model.algebraic[self.iapps[i]] = vbalance #expr
-    
-
-        model.initial_conditions.update({
-            self.i_total: self.ilock
-        })
-
-        model.initial_conditions.update({
-            **{ self.iapps[i]: self.ilock / parallel for i in range(parallel) },
-        })
-
-        self.flat_cells = self.cells.flatten()
-
-        model.events += [
-            pybamm.Event("Min Voltage Cutoff", self.voltage - cutoffs[0]*series),
-            pybamm.Event("Max Voltage Cutoff", (cutoffs[1]*series - self.voltage)*self.cc_mode + 1*self.cv_mode),
-            pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - self.min_current),
-        ]
-
-        for cell in self.flat_cells:
-            model.events.extend([
-                pybamm.Event(f"{cell.name} Min Anode Concentration Cutoff", cell.neg.surf_c - 10),
-                pybamm.Event(f"{cell.name} Max Cathode Concentration Cutoff", cell.pos.cmax - cell.pos.surf_c),
-
-                pybamm.Event(f"{cell.name} Max Anode Concentration Cutoff", cell.neg.cmax - cell.neg.surf_c),
-            ])
-
+        self.__setupDAE()
+        self.__IC_and_StopC()
 
         self.param_ob = pybamm.ParameterValues(parameters)
         self.param_ob.process_model(model)
         self.param_ob.process_geometry(geo)
 
         model.variables.update({
-            "Pack Voltage": self.voltage
+            "Pack Voltage": self.voltage,
+            "Pack Current": self.i_total
         })
-        SET_MODEL_VARS(model,
-            [self.i_total] + self.iapps
-        )
+        SET_MODEL_VARS(model, self.iapps)
+
 
     def export_profile(self):
         data = {
@@ -135,6 +88,7 @@ class Pack:
             'Parallel': self.parallel,
             'Series': self.series,
             'Temperature': self.temperature,
+            "C-rate": self.c_rate,
             'Cutoffs': self.cutoffs,
             'I-app': self.iappt,
             'I-app factor cut': self.i_factor,
@@ -164,14 +118,75 @@ class Pack:
         )
         disc.process_model(self.model)
 
-    def cycler(self, hours, time_pts):
-        self.export_profile()
-
+    def cycler(self, hours, time_pts, till_event=True):
         solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-10, dt_max=1e-10, root_method='lm', extra_options_setup={"max_num_steps": 100000}, return_solution_if_failed_early=True)
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
         inps = {}
-        csv_cols = ['Pack Voltage', "Pack Current"]
+        csv_cols= self.__setup_initialization(inps)
+
+        subdfs = []
+        cycle_storage = {col: [] for col in csv_cols}
+
+        prev_time = 0
+        #prev_cycle_time = 0
+
+        state = 0
+        i = 0
+        #cont = False
+        first = True
+
+        try:
+            while i < self.cycles:
+                solution = solver.solve(self.model, time_steps, inputs=inps)
+                print(solution.termination)
+                # cont = True if ('time' in solution.termination and till_event) else False
+                # a = 0 if first else 1
+
+                cycle_storage['Time'] = solution.t
+                cycle_storage['Global Time'] = solution.t + prev_time
+                prev_time += solution.t[-1]
+
+                ## KEYS ARE SOLVED VARIABLES
+                for col in csv_cols:
+                    data = solution[col].entries
+                    if len(data.shape) == 2:
+                        data = data[-1]
+                    cycle_storage[col].extend(data)
+
+                ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
+                ## 2) Store discharge capacity in sep capacity_dict
+                self.__update_pack_state(inps, solution, state, i)
+
+                #if (cont is False):
+                just_finished, state = self.__next_protocol(inps, state)
+
+                subdf = pd.DataFrame(cycle_storage)
+                subdf = pd.concat({(i+1, just_finished): subdf})
+                subdfs.append(subdf)
+                print(subdf)
+
+                cycle_storage = {col: [] for col in cycle_storage}
+                print(f"Completed cycle {i+1}, {just_finished}")                
+
+                if (self.next_cycle):
+                    i += 1
+                
+        except Exception as e:
+            print(traceback.format_exc())
+            print (f"FAILED AT CYCLE # {i+1}. Dumping collected data so far")
+            self.cycles = i
+
+        finally:
+            merged = pd.concat(subdfs)
+            merged.to_csv(f"data/{self.experiment}/data.csv")
+            pd.DataFrame(self.capacity_dict).to_csv(f"data/{self.experiment}/capacities.csv")
+
+            with open(f"data/{self.experiment}/model.pkl", 'wb') as f:
+                pickle.dump(self, f)
+
+    def __setup_initialization(self, inps: dict):
+        csv_cols = ["Pack Voltage", "Pack Current"]
         SET_OUTPUTS(csv_cols, self.iapps)
 
         BIND_VALUES(inps, 
@@ -182,7 +197,7 @@ class Pack:
             }
         )
         
-        capacity_dict = {}
+        self.capacity_dict = {}
         for cell in self.flat_cells:
             SET_OUTPUTS(csv_cols, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
             BIND_VALUES(inps, 
@@ -194,111 +209,119 @@ class Pack:
                     cell.neg.phi0: cell.neg.phi0.value,
                 }
             )
-            capacity_dict[cell.name] = []
+            self.capacity_dict[cell.name] = [0 for _ in range(self.cycles)]
 
-        subdfs = []
+        return csv_cols
 
-        solution = None
-        prev_time = 0
 
-        state = 0
-        i = 0
-        try:
-            while i < self.cycles:
-                start = time.process_time()
-                solution = solver.solve(self.model, time_steps, inputs=inps)
-                end = time.process_time()
-                exec_time = end - start
+    def __update_pack_state(self, inps: dict, solution: pybamm.Solution, state: int, cycle_num: int):
+        for cell in self.flat_cells:
+            BIND_VALUES(inps, 
+                {
+                    cell.pos.c0: solution[cell.pos.c.name].entries[-1][-1],
+                    cell.neg.c0: solution[cell.neg.c.name].entries[-1][-1],
+                    cell.pos.phi0: solution[cell.pos.phi.name].entries[-1],
+                    cell.neg.phi0: solution[cell.neg.phi.name].entries[-1],
+                    cell.neg.sei0: solution[cell.neg.sei_L.name].entries[-1],
+                }
+            )
+            if (state == 0):
+                self.capacity_dict[cell.name][cycle_num] = (solution[cell.capacity.name].entries[-1])
 
-                start = time.process_time()
-                subdf = pd.DataFrame(columns=['Global Time', 'Time'] + csv_cols)
-                subdf['Time'] = solution.t
-                subdf['Global Time'] = solution.t + prev_time
-                prev_time += solution.t[-1]
+        return
+        
+    def __next_protocol(self, inps: dict, state: int):
+        # CC charge up next
+        if (state == 0):
+            just_finished = "CC-discharge"
+            BIND_VALUES(inps, 
+                {
+                    self.ilock: +self.iappt,
+                    self.charging: 1,
+                    self.cv_mode: 0 
+                }
+            )
 
-                ## KEYS ARE VARIABLES
-                for key in csv_cols:
-                    data = solution[key].entries
-                    if len(data.shape) == 2:
-                        # TODO: see if there's a fix for this
-                        data = data[-1] # last node (all nodes 'equal' due to broadcasted surface concentration)
+        # CV charge up next
+        elif (state == 1):
+            just_finished = "CC-charge"
+            BIND_VALUES(inps, 
+                {
+                    self.charging: 1,
+                    self.cv_mode: 1 
+                }
+            )
 
-                    subdf[key] = data
+        # Discharge next
+        else:
+            just_finished = "CV-charge"
+            BIND_VALUES(inps, 
+                {
+                    self.ilock: -self.iappt,
+                    self.charging: 0,
+                    self.cv_mode: 0 
+                }
 
-                for cell in self.flat_cells:
-                    BIND_VALUES(inps, 
-                        {
-                            cell.pos.c0: solution[cell.pos.c.name].entries[-1][-1],
-                            cell.neg.c0: solution[cell.neg.c.name].entries[-1][-1],
-                            cell.neg.sei0: solution[cell.neg.sei_L.name].entries[-1],
-                            cell.pos.phi0: solution[cell.pos.phi.name].entries[-1],
-                            cell.neg.phi0: solution[cell.neg.phi.name].entries[-1]
-                        }
-                    )
-                    if (state == 0):
-                        capacity_dict[cell.name].append(solution[cell.capacity.name].entries[-1])
+            )
+    
+        nstate = (state + 1) % 3
+        self.next_cycle = (nstate == 0)
 
-                just_finished = 0
-                # CC charge up next
-                if (state == 0):
-                    just_finished = "CC-discharge"
-                    BIND_VALUES(inps, 
-                        {
-                            self.ilock: +self.iappt,
-                            self.charging: 1,
-                            self.cv_mode: 0 
-                        }
-                    )
+        return just_finished, nstate
 
-                # CV charge up next
-                elif (state == 1):
-                    just_finished = "CC-charge"
-                    BIND_VALUES(inps, 
-                        {
-                            self.charging: 1,
-                            self.cv_mode: 1 
-                        }
-                    )
 
-                # Discharge next
-                else:
-                    just_finished = "CV-charge"
-                    BIND_VALUES(inps, 
-                        {
-                            self.ilock: -self.iappt,
-                            self.charging: 0,
-                            self.cv_mode: 0 
-                        }
-                    )
 
-                print(f"Completed cycle {i+1}, {just_finished}")                
+    def __setupDAE(self):
+        self.voltage = 0
+        for i in range(self.series):
+            self.voltage += self.cells[i, 0].vvolt
 
-                subdf = pd.concat({(i+1, just_finished): subdf})
-                subdfs.append(subdf)
+        # cutoffs[1] (max V-cut is effectively the vlock)
+        self.model.algebraic.update({
+            self.i_total: (self.ilock - self.i_total)*self.cc_mode + 
+            (self.cutoffs[1]*self.series - self.voltage)*self.cv_mode
+        })
 
-                state = (state + 1) % 3
-                end = time.process_time()
+        self.model.algebraic.update({
+            self.iapps[0]: self.i_total - sum(self.iapps),
+        })
 
-                self.exec_times.append( (exec_time, end-start) )
+        for i in range(1, self.parallel):
+            vbalance = 0
+            ## V{str{n}} - V{str{n-1}} = 0 from n=[1, num-strings]
+            for j in range(self.series):
+                vbalance += self.cells[j, i].vvolt
+                vbalance -= self.cells[j, i-1].vvolt
 
-                if (state == 0):
-                    #merged = pd.concat(subdfs)
-                    #merged.to_csv(f"data/{self.experiment}/Cycle_{i+1}.csv")
-                    #subdfs.clear()
-                    i += 1
-                
-        except Exception as e:
-            print(traceback.format_exc())
-            print (f"FAILED AT CYCLE # {i+1}. Dumping collected data so far")
-            self.cycles = i
+            #expr = cells[0, i].vvolt - cells[0, i-1].vvolt
+            self.model.algebraic[self.iapps[i]] = vbalance #expr
+    
 
-        finally:
-            merged = pd.concat(subdfs)
-            merged.to_csv(f"data/{self.experiment}/data.csv")
-            pd.DataFrame(capacity_dict).to_csv(f"data/{self.experiment}/capacities.csv")
+    def __IC_and_StopC(self):
+        self.model.initial_conditions.update({
+            self.i_total: self.ilock
+        })
 
-            with open(f"data/{self.experiment}/model.pkl", 'wb') as f:
-                pickle.dump(self, f)
+        self.model.initial_conditions.update({
+            **{ self.iapps[i]: self.ilock / self.parallel for i in range(self.parallel) },
+        })
+
+        self.flat_cells = self.cells.flatten()
+
+        self.model.events += [
+            pybamm.Event("Min Voltage Cutoff", self.voltage - self.cutoffs[0]*self.series),
+            pybamm.Event("Max Voltage Cutoff", (self.cutoffs[1]*self.series - self.voltage)*self.cc_mode + 1*self.cv_mode),
+            pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - self.min_current),
+        ]
+
+        for cell in self.flat_cells:
+            self.model.events.extend([
+                pybamm.Event(f"{cell.name} Min Anode Concentration Cutoff", cell.neg.surf_c - 10),
+                pybamm.Event(f"{cell.name} Max Cathode Concentration Cutoff", cell.pos.cmax - cell.pos.surf_c),
+
+                pybamm.Event(f"{cell.name} Max Anode Concentration Cutoff", cell.neg.cmax - cell.neg.surf_c),
+            ])
+
 
 
 if __name__ == '__main__':
