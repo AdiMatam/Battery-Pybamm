@@ -1,7 +1,11 @@
+import numpy as np
 import pandas as pd 
 from matplotlib import pyplot as plt
 import json
 from src.pack import Pack
+import sys
+import os
+import pickle
 
 DISCHARGE = "CC-discharge"
 CV_CHARGE = "CV-charge"
@@ -11,6 +15,12 @@ CHARGE = "CV-charge|CC-charge"
 class Experiment:
     def __init__(self, experiment: str):
         self.path = f"data/{experiment}/"
+
+        sys.path.append(os.path.join(os.getcwd(), "src"))
+
+        self.pack = None
+        with open(self.path+"model.pkl", 'rb') as f:
+            self.pack = pickle.load(f)
 
         self.profile = None
         with open(self.path+"profile.json", 'r') as f:
@@ -27,13 +37,16 @@ class Experiment:
         return self.profile_str
 
     def select_cycles(self, cycles=[], protocols=[]):
+        CYCLE = self.data.index.get_level_values(0)
+        PROTOCOL = self.data.index.get_level_values(1)
+
         flts = [True, True]
         if len(cycles) != 0:
-            flts[0] = self.CYCLE.isin(cycles)
+            flts[0] = CYCLE.isin(cycles)
             #self.data = self.data.loc[self.CYCLE.isin(cycles)]
 
         if len(protocols) != 0:
-            flts[1] = self.PROTOCOL.str.contains("|".join(protocols))
+            flts[1] = PROTOCOL.str.contains("|".join(protocols))
             # print("|".join(protocols))
             # self.data = self.data.loc[
                 # self.PROTOCOL.str.contains("|".join(protocols))
@@ -68,26 +81,55 @@ class Experiment:
         plt.legend()
         plt.show()
 
-    def plot_capacities(self):
-        for column in self.caps.columns:
-            plt.scatter(self.caps.index, self.caps[column], label=column)
+    def plot_capacities(self, cycles=[], cells=[]):
+        cyc = self.caps.index
+        cap_data = self.caps
+        if len(cycles) != 0:
+            cyc = cycles
+            cap_data = self.caps.loc[cycles]
 
-        plt.xlabel('Cycle #')
-        plt.ylabel('Discharge Capacity (A/m2)')
-        plt.title('Discharge Capacity by Cycle #')
+        cell_list = self.caps.columns
+        if type(cells) is np.ndarray:
+            # 'cells' looks like self.pack.cells[IND: IND]
+            cell_list = [cell.name for cell in cells.flatten()]
 
-        plt.legend()
+        fig, ax = plt.subplots()
+
+        # Plot data with a legend
+        for column in cell_list:
+            ax.scatter(cyc, cap_data[column], label=column)
+
+        # Customize labels and title
+        ax.set_xlabel('Cycle #')
+        ax.set_ylabel('Discharge Capacity (A/m2)')
+        ax.set_title('Discharge Capacity by Cycle #')
+
+        # Move the legend (just annoying configuration)
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0 + box.height * 0.2,
+                        box.width, box.height * 0.8])
+
+        ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.4), 
+                ncol=self.pack.series, fancybox=True, shadow=True)
+
+        # Add grid and show plot
+        ax.grid()
         plt.show()
-        self.caps
 
-    def get_capacities(self):
+    def get_capacities(self) -> pd.DataFrame:
         return self.caps
 
-    def get_data(self):
+    def get_data(self) -> pd.DataFrame:
         return self.data
 
-    def reset(self):
+    def get_pack(self) -> Pack:
+        return self.pack
+
+    def get_profile(self) -> dict:
+        return self.profile
+
+    def reset(self) -> None:
         self.data = pd.read_csv(self.path+"data.csv", index_col=[0,1,2])
 
-    def to_csv(self, filename: str):
+    def to_csv(self, filename: str) -> None:
         self.data.to_csv(self.path+filename, index=True)
