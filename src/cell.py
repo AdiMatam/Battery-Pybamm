@@ -87,8 +87,3 @@ class Cell:
         self.neg.c0.set_value(p.NEG_CSN_INITIAL.sample()) 
         self.pos.phi0.value = p.POS_OCP(self.pos.c0.value / self.pos.cmax.value)
         self.neg.phi0.value = p.NEG_OCP(self.neg.c0.value / self.neg.cmax.value)
-
-        #BIND_VALUES(param_dict, {
-            #self.pos.phi0: p.POS_OCP(self.pos.c0.value / self.pos.cmax.value),
-            #self.neg.phi0: p.NEG_OCP(self.neg.c0.value / self.neg.cmax.value),
-        #})

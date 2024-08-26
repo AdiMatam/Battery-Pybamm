@@ -1,6 +1,7 @@
 ### ESTIMATED FROM THEORETICAL CAPACITY FORMULATION
 ESTIMATED_CAPACITY = 13.6319183090575 * 2
 
+### CHANGE SIMULATION PROFILE / OPERATING CONDITIONS HERE
 # ------------------
 
 NUM_SERIES = 5
@@ -26,6 +27,11 @@ TIME_PTS = 100
 EXPERIMENT = "5by5_100cycles_const"
 
 #--------------------
+
+
+
+
+### DON'T CHANGE BELOW THIS!
 
 import pybamm
 from src.pack import Pack
