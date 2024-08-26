@@ -3,6 +3,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import json
 from src.pack import Pack
+from src.cell import Cell
 import sys
 import os
 import pickle
@@ -92,6 +93,9 @@ class Experiment:
         if type(cells) is np.ndarray:
             # 'cells' looks like self.pack.cells[IND: IND]
             cell_list = [cell.name for cell in cells.flatten()]
+
+        elif type(cells) is Cell:
+            cell_list = [cells.name]
 
         fig, ax = plt.subplots()
 
