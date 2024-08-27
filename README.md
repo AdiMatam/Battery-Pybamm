@@ -27,7 +27,7 @@ The following **operating conditions** are enumerated at the top of `mainmodel.p
 | NUM_PARALLEL            | Number of cells in PARALLEL                                                     | 5                                      |
 | NUM_CYCLES              | Number of cycles (full discharge + CC-charge + CV-charge is one cycle)          | 100                                    |
 | C_RATE                  | Rate of CC-discharge/charge. Applied current computed from this                 | 1.0                                   |
-| BASE_CURRENT            | Estimated capacity * C_RATE                                                     | _Derived_                                      |
+| BASE_CURRENT            | THEORETICAL_CAPACITY * C_RATE                                                     | _Derived_                                      |
 | I_INPUT                 | BASE_CURRENT * NUM_PARALLEL                                                     | _Derived_                                      |
 | CURRENT_CUT_FACTOR      | Stop condition for CV-charge; if the solved pack current <= CUT_FACTOR*I_INPUT, halt! | 1/10                                     |
 | VOLTAGE_LOW_CUT         | Cutoff voltage at which to stop discharging                                      | 2.5 * NUM_SERIES                         |
@@ -69,7 +69,7 @@ $\sigma$ = porosity standard deviation
 
 | **Code**                                                     | **Distribution Notation**                                        |
 |--------------------------------------------------------------|--------------------------------------------------|
-| `POS_ELEC_POROSITY = Variator.from_gaussian_percent("any name", v, p)` | $\epsilon_k \sim Uniform(v - \frac{p*v}{100}, v + \frac{p*v}{100})$ |
+| `POS_ELEC_POROSITY = Variator.from_gaussian_percent("any name", v, p)` | $\epsilon_k \sim U(v-\frac{p*v}{100},v+\frac{p*v}{100})$ |
 | `POS_ELEC_POROSITY = Variator.from_gaussian_percent("any name", v, p)` | $\epsilon_k \sim N(v, \frac{p*v}{100})$          |
 | `POS_ELEC_POROSITY = Variator.from_gaussian_stddev("any name", v, \sigma)` | $\epsilon_k \sim N(v, \sigma)$                   |
 
