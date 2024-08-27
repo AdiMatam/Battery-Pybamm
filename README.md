@@ -71,7 +71,7 @@ $\sigma$ = porosity standard deviation
 |--------------------------------------------------------------|--------------------------------------------------|
 | `POROSITY = Variator.from_percent("", v, p)` | $\epsilon_k \sim Uniform(v - \frac{p*v}{100},v + \frac{p*v}{100})$ |
 | `POROSITY = Variator.from_gaussian_percent("", v, p)` | $\epsilon_k \sim N(v, \frac{p*v}{100})$          |
-| `POROSITY = Variator.from_gaussian_stddev("", v, \sigma)` | $\epsilon_k \sim N(v, \sigma)$                   |
+| `POROSITY = Variator.from_gaussian_stddev("", v, σ)` | $\epsilon_k \sim N(v,σ)$                   |
 
 
 ## Post-processing and Plotting
