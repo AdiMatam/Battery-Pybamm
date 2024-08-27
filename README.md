@@ -69,9 +69,9 @@ $\sigma$ = porosity standard deviation
 
 | **Code**                                                     | **Distribution Notation**                                        |
 |--------------------------------------------------------------|--------------------------------------------------|
-| `POS_ELEC_POROSITY = Variator.from_gaussian_percent("any name", v, p)` | $\epsilon_k \sim Uniform(v - \frac{p*v}{100},v + \frac{p*v}{100})$ |
-| `POS_ELEC_POROSITY = Variator.from_gaussian_percent("any name", v, p)` | $\epsilon_k \sim N(v, \frac{p*v}{100})$          |
-| `POS_ELEC_POROSITY = Variator.from_gaussian_stddev("any name", v, \sigma)` | $\epsilon_k \sim N(v, \sigma)$                   |
+| `POROSITY = Variator.from_gaussian_percent("any name", v, p)` | $\epsilon_k \sim Uniform(v - \frac{p*v}{100},v + \frac{p*v}{100})$ |
+| `POROSITY = Variator.from_gaussian_percent("any name", v, p)` | $\epsilon_k \sim N(v, \frac{p*v}{100})$          |
+| `POROSITY = Variator.from_gaussian_stddev("any name", v, \sigma)` | $\epsilon_k \sim N(v, \sigma)$                   |
 
 
 ## Post-processing and Plotting
