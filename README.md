@@ -18,6 +18,7 @@ Along the aforementioned lines, the following repository seeks to accomplish sev
 `mainmodel.py` provides an example of a pack simulation setup
 
 ### Operating Conditions
+The following **operating conditions** are enumerated at the top of `mainmodel.py`
 
 | **Parameter**           | **Description**                                                                 | **Example**                                |
 |-------------------------|---------------------------------------------------------------------------------|------------------------------------------|
@@ -38,6 +39,40 @@ Along the aforementioned lines, the following repository seeks to accomplish sev
 
 
 ### Parameter Variation
+Model parameters can be varied across all the cells in a pack. This is useful for characterizing performance of heterogenous battery modules.
+
+The following parameters (for simple SPM model) are enumerated in `params.py`
+
+| **Parameter**           | **Description**              | **Example Value** |
+|-------------------------|------------------------------|-------------------|
+| **POS_DIFFUSION**       | Cathode Diffusion            | 1.0e-14           |
+| **POS_CSN_MAX**         | Cathode Max Concentration     | 51555             |
+| **POS_CSN_INITIAL**     | Cathode Initial SOC          | 51555*0.5         |
+| **POS_ELEC_THICKNESS**  | Cathode Thickness            | 80e-6             |
+| **POS_ELEC_POROSITY**   | Cathode Porosity             | 0.385             |
+| **NEG_DIFFUSION**       | Anode Diffusion              | 2.0e-14           |
+| **NEG_CSN_MAX**         | Anode Max Concentration      | 30555             |
+| **NEG_CSN_INITIAL**     | Anode Initial SOC            | 30555*0.74        |
+| **NEG_ELEC_THICKNESS**  | Anode Thickness              | 88e-6             |
+| **NEG_ELEC_POROSITY**   | Anode Porosity               | 0.485             |
+| **PARTICLE_RADIUS**     | Particle Radius              | 2e-06             |
+
+_For further remarks on how parameters 'fit' into the model equations/DAE, see the `Electrochemical Model POV` section below_
+ 
+Variations can be applied using a few different schemes. See the following examples with cathode porosity:
+
+**Notations**  
+$\epsilon_k$ = porosity of a given cell 'k'  
+$v$ = porosity value  
+$p$ = porosity percent  
+$\sigma$ = porosity standard deviation
+
+| **Code**                                                     | **Distribution Notation**                                        |
+|--------------------------------------------------------------|--------------------------------------------------|
+| `POS_ELEC_POROSITY = Variator.from_gaussian_percent("any name", v, p)` | $\epsilon_k \sim Uniform(v - \frac{p*v}{100}, v + \frac{p*v}{100})$ |
+| `POS_ELEC_POROSITY = Variator.from_gaussian_percent("any name", v, p)` | $\epsilon_k \sim N(v, \frac{p*v}{100})$          |
+| `POS_ELEC_POROSITY = Variator.from_gaussian_stddev("any name", v, \sigma)` | $\epsilon_k \sim N(v, \sigma)$                   |
+
 
 ## Post-processing and Plotting
 
