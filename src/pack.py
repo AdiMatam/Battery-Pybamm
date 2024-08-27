@@ -118,7 +118,7 @@ class Pack:
         )
         disc.process_model(self.model)
 
-    def cycler(self, hours, time_pts, till_event=True):
+    def cycler(self, hours, time_pts):
         solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-10, dt_max=1e-10, root_method='lm', extra_options_setup={"max_num_steps": 100000}, return_solution_if_failed_early=True)
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
@@ -309,8 +309,8 @@ class Pack:
         self.flat_cells = self.cells.flatten()
 
         self.model.events += [
-            pybamm.Event("Min Voltage Cutoff", self.voltage - self.cutoffs[0]*self.series),
-            pybamm.Event("Max Voltage Cutoff", (self.cutoffs[1]*self.series - self.voltage)*self.cc_mode + 1*self.cv_mode),
+            pybamm.Event("Min Voltage Cutoff", self.voltage - self.cutoffs[0]),
+            pybamm.Event("Max Voltage Cutoff", (self.cutoffs[1] - self.voltage)*self.cc_mode + 1*self.cv_mode),
             pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - self.min_current),
         ]
 
