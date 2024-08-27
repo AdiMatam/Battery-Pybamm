@@ -18,6 +18,12 @@ PARTICLE_RADIUS     = Variator.from_percent("Particle Radius",          2e-06,  
 
 
 
+
+
+
+
+
+
 import pybamm
 
 def NEG_OCP(sto):
