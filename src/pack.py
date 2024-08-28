@@ -101,15 +101,15 @@ class Pack:
         self.__setupDAE()
         self.__IC_and_StopC()
 
-        self.param_ob = pybamm.ParameterValues(parameters)
-        self.param_ob.process_model(model)
-        self.param_ob.process_geometry(geo)
+        self.param_ob = pybamm.ParameterValues(self.parameters)
+        self.param_ob.process_model(self.model)
+        self.param_ob.process_geometry(self.geo)
 
-        model.variables.update({
+        self.model.variables.update({
             "Pack Voltage": self.voltage,
             "Pack Current": self.i_total
         })
-        SET_MODEL_VARS(model, self.iapps)
+        SET_MODEL_VARS(self.model, self.iapps)
 
 
         particles = [] 
@@ -173,7 +173,7 @@ class Pack:
                 subdf = pd.DataFrame(cycle_storage)
                 subdf = pd.concat({(i+1, just_finished): subdf})
                 subdfs.append(subdf)
-                print(subdf)
+                print(subdf.iloc[:, :2])
 
                 print(f"Completed cycle {i+1}, {just_finished}")                
 
@@ -298,7 +298,7 @@ class Pack:
         # cutoffs[1] (max V-cut is effectively the vlock)
         self.model.algebraic.update({
             self.i_total: (self.ilock - self.i_total)*self.cc_mode + 
-            (self.voltage_window[1]*self.series - self.voltage)*self.cv_mode
+            (self.voltage_window[1] - self.voltage)*self.cv_mode
         })
 
         self.model.algebraic.update({
@@ -327,10 +327,12 @@ class Pack:
 
         self.flat_cells = self.cells.flatten()
 
+        min_current = self.iappt * self.current_cut
+
         self.model.events += [
             pybamm.Event("Min Voltage Cutoff", self.voltage - self.voltage_window[0]),
             pybamm.Event("Max Voltage Cutoff", (self.voltage_window[1] - self.voltage)*self.cc_mode + 1*self.cv_mode),
-            pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - self.min_current),
+            pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - min_current),
         ]
 
         # for cell in self.flat_cells:

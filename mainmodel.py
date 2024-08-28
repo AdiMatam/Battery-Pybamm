@@ -15,7 +15,7 @@ VOLTAGE_WINDOW = (
 )
 
 CURRENT_CUT_FACTOR = 1/10
-CAPACITY_CUT_FACTOR = 0.8
+CAPACITY_CUT_FACTOR = 0.95
 
 ## Meshing and Discretization Parameters
 DISCRETE_PTS = 30
@@ -23,7 +23,7 @@ HOURS = 2
 TIME_PTS = 100
 
 # Data is outputted to this file.
-EXPERIMENT = "5by5_100cycles_const"
+EXPERIMENT = "5by5_100cycles_por3"
 
 #--------------------
 
