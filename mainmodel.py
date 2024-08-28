@@ -1,6 +1,3 @@
-### ESTIMATED FROM THEORETICAL CAPACITY FORMULATION
-THEORETICAL_CAPACITY = 27.263836618115
-
 ### CHANGE SIMULATION PROFILE / OPERATING CONDITIONS HERE
 # ------------------
 
@@ -9,14 +6,16 @@ NUM_PARALLEL = 5
 NUM_CYCLES = 100
 
 C_RATE = 1.0
-BASE_CURRENT = THEORETICAL_CAPACITY * C_RATE
+# BASE_CURRENT = THEORETICAL_CAPACITY * C_RATE
+# I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
-## input current (you can change to anything)
-I_INPUT = BASE_CURRENT * NUM_PARALLEL
+VOLTAGE_WINDOW = (
+      2.5 * NUM_SERIES,
+      4.1 * NUM_SERIES
+)
+
 CURRENT_CUT_FACTOR = 1/10
-
-VOLTAGE_LOW_CUT = 2.5 * NUM_SERIES
-VOLTAGE_HIGH_CUT =4.1 * NUM_SERIES
+CAPACITY_CUT_FACTOR = 0.8
 
 ## Meshing and Discretization Parameters
 DISCRETE_PTS = 30
@@ -30,7 +29,6 @@ EXPERIMENT = "5by5_100cycles_const"
 
 
 
-
 ### DON'T CHANGE BELOW THIS!
 
 import pybamm
@@ -41,12 +39,9 @@ model = pybamm.BaseModel()
 geo = {}
 parameters = {}
 
-pack = Pack(
-      EXPERIMENT, 
-      NUM_PARALLEL, NUM_SERIES, I_INPUT, NUM_CYCLES, C_RATE,
-      (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), CURRENT_CUT_FACTOR, 
-      model, geo, parameters
-)
+pack = Pack(EXPERIMENT, NUM_PARALLEL, NUM_SERIES, model, geo, parameters)
+pack.set_charge_protocol(NUM_CYCLES, C_RATE, c_rate=True)
+pack.set_cutoffs(VOLTAGE_WINDOW, CURRENT_CUT_FACTOR, CAPACITY_CUT_FACTOR)
 
 pack.export_profile()
 

@@ -3,7 +3,7 @@ import traceback
 import pybamm
 import numpy as np
 from src.cell import Cell
-from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS, T
+from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS, T, THEORETICAL_CAPACITY
 import pandas as pd
 import os
 import time
@@ -12,7 +12,7 @@ import pickle
 from src.variator import Variator
 
 class Pack:
-    def __init__(self, experiment: str, parallel, series, iappt, cycles, crate, cutoffs, i_factor, 
+    def __init__(self, experiment: str, parallel, series,
         model:pybamm.BaseModel, geo:dict, parameters:dict
     ):
 
@@ -26,16 +26,7 @@ class Pack:
 
         self.parallel = parallel
         self.series = series
-        self.cutoffs = cutoffs
-        self.iappt = iappt
-        self.cycles = cycles
-        self.i_factor = i_factor
-        self.min_current = iappt * i_factor
-        self.c_rate = crate
-
         self.temperature = T
-
-        self.next_cycle = False
 
         self.model = model
         self.geo = geo
@@ -68,6 +59,45 @@ class Pack:
 
         self.cells = cells
 
+
+    def set_charge_protocol(self, cycles, crate_or_current, c_rate=True):
+        self.cycles = cycles
+        if c_rate:
+            self.c_rate = crate_or_current
+            self.iappt = THEORETICAL_CAPACITY * self.c_rate * self.parallel
+        else:
+            self.iappt = crate_or_current
+            self.c_rate = self.iappt / (THEORETICAL_CAPACITY * self.parallel)
+
+    def set_cutoffs(self, voltage_window: tuple, current_cut, capacity_cut):
+        self.voltage_window = voltage_window
+        self.current_cut = current_cut
+        self.capacity_cut = capacity_cut
+
+    
+    # ------------
+
+    def export_profile(self):
+        data = {
+            'Experiment': self.experiment,
+            'Parallel': self.parallel,
+            'Series': self.series,
+            'Temperature': self.temperature,
+            'Voltage Window': self.voltage_window,
+            "C-rate": self.c_rate,
+            'I-app': self.iappt,
+            'I-app Cut Factor': self.current_cut,
+            'Cycles': self.cycles,
+        }
+
+        data.update(Variator.JSON())
+
+        file_path = f"data/{self.experiment}/profile.json"
+        with open(file_path, 'w') as json_file:
+            json.dump(data, json_file, indent=4)
+
+    def build(self, discrete_pts):
+        
         self.__setupDAE()
         self.__IC_and_StopC()
 
@@ -82,27 +112,6 @@ class Pack:
         SET_MODEL_VARS(model, self.iapps)
 
 
-    def export_profile(self):
-        data = {
-            'Experiment': self.experiment,
-            'Parallel': self.parallel,
-            'Series': self.series,
-            'Temperature': self.temperature,
-            "C-rate": self.c_rate,
-            'Cutoffs': self.cutoffs,
-            'I-app': self.iappt,
-            'I-app factor cut': self.i_factor,
-            'Cycles': self.cycles,
-            'Min_current': self.min_current
-        }
-
-        data.update(Variator.JSON())
-
-        file_path = f"data/{self.experiment}/profile.json"
-        with open(file_path, 'w') as json_file:
-            json.dump(data, json_file, indent=4)
-
-    def build(self, discrete_pts):
         particles = [] 
         for cell in self.flat_cells:
             particles.append(cell.pos)
@@ -156,7 +165,7 @@ class Pack:
 
                 ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
                 ## 2) Store discharge capacity in sep capacity_dict
-                self.__update_pack_state(inps, solution, state, i)
+                terminate = self.__update_pack_state(inps, solution, state, i)
 
                 #if (cont is False):
                 just_finished, state = self.__next_protocol(inps, state)
@@ -166,10 +175,14 @@ class Pack:
                 subdfs.append(subdf)
                 print(subdf)
 
-                cycle_storage = {col: [] for col in cycle_storage}
                 print(f"Completed cycle {i+1}, {just_finished}")                
 
-                if (self.next_cycle):
+                if (terminate):
+                    break
+
+                cycle_storage = {col: [] for col in cycle_storage}
+
+                if (state == 0):
                     i += 1
                 
         except Exception as e:
@@ -186,8 +199,8 @@ class Pack:
                 pickle.dump(self, f)
 
     def __setup_initialization(self, inps: dict):
-        csv_cols = ["Pack Voltage", "Pack Current"]
-        SET_OUTPUTS(csv_cols, self.iapps)
+        outputs = ["Pack Voltage", "Pack Current"]
+        SET_OUTPUTS(outputs, self.iapps)
 
         BIND_VALUES(inps, 
             {
@@ -199,19 +212,19 @@ class Pack:
         
         self.capacity_dict = {}
         for cell in self.flat_cells:
-            SET_OUTPUTS(csv_cols, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
+            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
             BIND_VALUES(inps, 
                 {
                     cell.pos.c0: cell.pos.c0.value,
                     cell.neg.c0: cell.neg.c0.value,
-                    cell.neg.sei0: 5.e-9,
                     cell.pos.phi0: cell.pos.phi0.value,
                     cell.neg.phi0: cell.neg.phi0.value,
+                    cell.neg.sei0: 5.e-9,
                 }
             )
             self.capacity_dict[cell.name] = [0 for _ in range(self.cycles)]
 
-        return csv_cols
+        return outputs
 
 
     def __update_pack_state(self, inps: dict, solution: pybamm.Solution, state: int, cycle_num: int):
@@ -227,8 +240,15 @@ class Pack:
             )
             if (state == 0):
                 self.capacity_dict[cell.name][cycle_num] = (solution[cell.capacity.name].entries[-1])
+                if (cycle_num > 1):
+                    ## degradation check
+                    cur = self.capacity_dict[cell.name][cycle_num]
+                    orig = self.capacity_dict[cell.name][1]
 
-        return
+                    if (cur <= orig*self.capacity_cut):
+                        return 1
+
+        return 0
         
     def __next_protocol(self, inps: dict, state: int):
         # CC charge up next
@@ -265,7 +285,6 @@ class Pack:
             )
     
         nstate = (state + 1) % 3
-        self.next_cycle = (nstate == 0)
 
         return just_finished, nstate
 
@@ -279,7 +298,7 @@ class Pack:
         # cutoffs[1] (max V-cut is effectively the vlock)
         self.model.algebraic.update({
             self.i_total: (self.ilock - self.i_total)*self.cc_mode + 
-            (self.cutoffs[1]*self.series - self.voltage)*self.cv_mode
+            (self.voltage_window[1]*self.series - self.voltage)*self.cv_mode
         })
 
         self.model.algebraic.update({
@@ -309,18 +328,18 @@ class Pack:
         self.flat_cells = self.cells.flatten()
 
         self.model.events += [
-            pybamm.Event("Min Voltage Cutoff", self.voltage - self.cutoffs[0]),
-            pybamm.Event("Max Voltage Cutoff", (self.cutoffs[1] - self.voltage)*self.cc_mode + 1*self.cv_mode),
+            pybamm.Event("Min Voltage Cutoff", self.voltage - self.voltage_window[0]),
+            pybamm.Event("Max Voltage Cutoff", (self.voltage_window[1] - self.voltage)*self.cc_mode + 1*self.cv_mode),
             pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - self.min_current),
         ]
 
-        for cell in self.flat_cells:
-            self.model.events.extend([
-                pybamm.Event(f"{cell.name} Min Anode Concentration Cutoff", cell.neg.surf_c - 10),
-                pybamm.Event(f"{cell.name} Max Cathode Concentration Cutoff", cell.pos.cmax - cell.pos.surf_c),
+        # for cell in self.flat_cells:
+            # self.model.events.extend([
+                # pybamm.Event(f"{cell.name} Min Anode Concentration Cutoff", cell.neg.surf_c - 10),
+                # pybamm.Event(f"{cell.name} Max Cathode Concentration Cutoff", cell.pos.cmax - cell.pos.surf_c),
 
-                pybamm.Event(f"{cell.name} Max Anode Concentration Cutoff", cell.neg.cmax - cell.neg.surf_c),
-            ])
+                # pybamm.Event(f"{cell.name} Max Anode Concentration Cutoff", cell.neg.cmax - cell.neg.surf_c),
+            # ])
 
 
 

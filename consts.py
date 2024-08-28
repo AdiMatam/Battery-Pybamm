@@ -1,5 +1,7 @@
 T = 298 # kelvin
 
+### ESTIMATED FROM THEORETICAL CAPACITY FORMULATION
+THEORETICAL_CAPACITY = 27.263836618115
 
 
 from src.constant_parameter import ConstantParameter

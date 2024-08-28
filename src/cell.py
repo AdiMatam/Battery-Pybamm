@@ -19,18 +19,16 @@ class Cell:
 
         self.iapp = iapp
         
-        self.voltage = pybamm.Variable(name + " Voltage")
-
         self.pos = Cathode(name + " Cathode", iapp)
         self.neg = Anode(name + " Anode", iapp)
 
+        ## cell-level 'reference' to sei length 
         self.sei = self.neg.sei_L
 
+        self.voltage = pybamm.Variable(name + " Voltage")
         self.vvolt = self.pos.phi - self.neg.phi
-        #self.volt0 = pybamm.Parameter(name + " Initial Voltage")
 
         self.capacity = pybamm.Variable(name + " Capacity by Area")
-
         discharging = pybamm.Negate(pybamm.Subtraction(charging, 1))
         model.rhs.update({
             self.capacity: discharging * pybamm.AbsoluteValue(iapp / 3600)
@@ -43,7 +41,6 @@ class Cell:
         self.pos.process_model(model)
         self.neg.process_model(model, charging)
 
-
         self.__attach_parameters(parameters)
         
         self.pos.process_geometry(geo)
@@ -53,6 +50,16 @@ class Cell:
             self.voltage.name: self.vvolt,
             self.capacity.name: self.capacity
         })
+
+        self.__stopC()
+
+    def __stopC(self):
+        self.model.events.extend([
+            pybamm.Event(f"{self.name} Min Anode Concentration Cutoff", self.neg.surf_c - 10),
+            pybamm.Event(f"{self.name} Max Cathode Concentration Cutoff", self.pos.cmax - self.pos.surf_c),
+
+            pybamm.Event(f"{self.name} Max Anode Concentration Cutoff", self.neg.cmax - self.neg.surf_c),
+        ])
 
     def __attach_parameters(self, param_dict: dict):
 
