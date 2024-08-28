@@ -23,7 +23,7 @@ HOURS = 2
 TIME_PTS = 100
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "5by5_2cycles_por3"
+EXPERIMENT = "5by5_2cycles_ASY"
 
 #--------------------
 

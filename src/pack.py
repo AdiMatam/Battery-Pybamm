@@ -10,6 +10,7 @@ import pickle
 import time
 
 from src.variator import Variator
+import concurrent.futures
 
 class Pack:
     def __init__(self, experiment: str, parallel, series,
@@ -136,87 +137,87 @@ class Pack:
 
         subdfs = []
         cycle_storage = {col: [] for col in csv_cols}
+        pd.DataFrame(columns=csv_cols).to_csv(f"data/{self.experiment}/data.csv", index=False)
+
         time_storage = {"Simulation": [], "Data-Processing": []}
         time_storage_indicies = []
 
         prev_time = 0
-        #prev_cycle_time = 0
-
         state = 0
         i = 0
-        #cont = False
-        first = True
 
-        try:
-            while i < self.cycles:
-                start = time.process_time()
-                solution = solver.solve(self.model, time_steps, inputs=inps)
-                end = time.process_time()
+        def transmit(storage: dict, i: int, just_finished: str):
+            subdf = pd.DataFrame(storage)
+            subdf = pd.concat({(i+1, just_finished): subdf})
+            #subdfs.append(subdf)
+            print(subdf.iloc[:, :2])
 
-                time_storage["Simulation"].append(end - start)
+            subdf = subdf.rename_axis(index=["Cycle", "Protocol", "Stamps"])            
+            subdf.to_csv(f"data/{self.experiment}/data.csv", mode='a', header=False, index=True)
 
-                start = time.process_time()
-                print(f"{i}) {solution.termination}")
-                # cont = True if ('time' in solution.termination and till_event) else False
-                # a = 0 if first else 1
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            try:
+                while i < self.cycles:
+                    start = time.process_time()
+                    solution = solver.solve(self.model, time_steps, inputs=inps)
+                    end = time.process_time()
 
-                cycle_storage['Time'] = solution.t
-                cycle_storage['Global Time'] = solution.t + prev_time
-                prev_time += solution.t[-1]
+                    time_storage["Simulation"].append(end - start)
 
-                ## KEYS ARE SOLVED VARIABLES
-                for col in csv_cols:
-                    data = solution[col].entries
-                    if len(data.shape) == 2:
-                        data = data[-1]
-                    cycle_storage[col].extend(data)
+                    start = time.process_time()
+                    print(f"{i}) {solution.termination}")
+                    # cont = True if ('time' in solution.termination and till_event) else False
+                    # a = 0 if first else 1
 
-                ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
-                ## 2) Store discharge capacity in sep capacity_dict
-                terminate = self.__update_pack_state(inps, solution, state, i)
+                    cycle_storage['Time'] = solution.t
+                    cycle_storage['Global Time'] = solution.t + prev_time
+                    prev_time += solution.t[-1]
 
-                #if (cont is False):
-                just_finished, state = self.__next_protocol(inps, state)
+                    ## KEYS ARE SOLVED VARIABLES
+                    for col in csv_cols:
+                        data = solution[col].entries
+                        if len(data.shape) == 2:
+                            data = data[-1]
+                        cycle_storage[col].extend(data)
 
-                subdf = pd.DataFrame(cycle_storage)
-                subdf = pd.concat({(i+1, just_finished): subdf})
-                subdfs.append(subdf)
-                print(subdf.iloc[:, :2])
+                    ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
+                    ## 2) Store discharge capacity in sep capacity_dict
+                    terminate = self.__update_pack_state(inps, solution, state, i)
 
-                print(f"Completed cycle {i+1}, {just_finished}")                
+                    #if (cont is False):
+                    just_finished, state = self.__next_protocol(inps, state)
 
-                if (terminate):
-                    break
+                    executor.submit(transmit, cycle_storage, i, just_finished)
+                    print(f"Completed cycle {i+1}, {just_finished}")                
 
-                cycle_storage = {col: [] for col in cycle_storage}
+                    if (terminate):
+                        break
 
-                end = time.process_time()
-                time_storage["Data-Processing"].append(end - start)
-                time_storage_indicies.append((i+1, just_finished))
+                    cycle_storage = {col: [] for col in cycle_storage}
 
-                if (state == 0):
-                    i += 1
-                
-        except Exception as e:
-            print(traceback.format_exc())
-            print (f"FAILED AT CYCLE # {i+1}. Dumping collected data so far")
-            self.cycles = i
+                    end = time.process_time()
+                    time_storage["Data-Processing"].append(end - start)
+                    time_storage_indicies.append((i+1, just_finished))
 
-        finally:
-            merged = pd.concat(subdfs)
-            merged = merged.rename_axis(index=["Cycle", "Protocol", "Stamps"])            
+                    if (state == 0):
+                        i += 1
+                    
+            except Exception as e:
+                print(traceback.format_exc())
+                print (f"FAILED AT CYCLE # {i+1}. Dumping collected data so far")
+                self.cycles = i
 
-            merged.to_csv(f"data/{self.experiment}/data.csv")
-            caps = pd.DataFrame(self.capacity_dict)
-            caps = caps.loc[~(caps == 0).all(axis=1)]
-            caps.to_csv(f"data/{self.experiment}/capacities.csv")
+            finally:
+                caps = pd.DataFrame(self.capacity_dict)
+                caps = caps.loc[~(caps == 0).all(axis=1)]
+                caps.to_csv(f"data/{self.experiment}/capacities.csv")
 
-            index = pd.MultiIndex.from_tuples(time_storage_indicies, names=["Cycle", "Protocol"])
-            times = pd.DataFrame(time_storage, index=index)
-            times.to_csv(f"data/{self.experiment}/times.csv")
+                index = pd.MultiIndex.from_tuples(time_storage_indicies, names=["Cycle", "Protocol"])
+                times = pd.DataFrame(time_storage, index=index)
+                times.to_csv(f"data/{self.experiment}/times.csv")
 
-            with open(f"data/{self.experiment}/model.pkl", 'wb') as f:
-                pickle.dump(self, f)
+                with open(f"data/{self.experiment}/model.pkl", 'wb') as f:
+                    pickle.dump(self, f)
 
     def __setup_initialization(self, inps: dict):
         outputs = ["Pack Voltage", "Pack Current"]
