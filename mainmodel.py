@@ -3,7 +3,7 @@
 
 NUM_SERIES = 5
 NUM_PARALLEL = 5
-NUM_CYCLES = 100
+NUM_CYCLES = 2
 
 C_RATE = 1.0
 # BASE_CURRENT = THEORETICAL_CAPACITY * C_RATE
@@ -22,8 +22,8 @@ DISCRETE_PTS = 30
 HOURS = 2 
 TIME_PTS = 100
 
-# Data is outputted to this file.
-EXPERIMENT = "5by5_100cycles_por3"
+# Data is outputted to this subfolder of 'data/'.
+EXPERIMENT = "5by5_2cycles_por3"
 
 #--------------------
 
@@ -40,7 +40,7 @@ geo = {}
 parameters = {}
 
 pack = Pack(EXPERIMENT, NUM_PARALLEL, NUM_SERIES, model, geo, parameters)
-pack.set_charge_protocol(NUM_CYCLES, C_RATE, c_rate=True)
+pack.set_charge_protocol(NUM_CYCLES, C_RATE)
 pack.set_cutoffs(VOLTAGE_WINDOW, CURRENT_CUT_FACTOR, CAPACITY_CUT_FACTOR)
 
 pack.export_profile()

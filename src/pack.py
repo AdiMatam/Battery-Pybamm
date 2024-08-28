@@ -6,8 +6,8 @@ from src.cell import Cell
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS, T, THEORETICAL_CAPACITY
 import pandas as pd
 import os
-import time
 import pickle
+import time
 
 from src.variator import Variator
 
@@ -136,6 +136,8 @@ class Pack:
 
         subdfs = []
         cycle_storage = {col: [] for col in csv_cols}
+        time_storage = {"Simulation": [], "Data-Processing": []}
+        time_storage_indicies = []
 
         prev_time = 0
         #prev_cycle_time = 0
@@ -147,8 +149,14 @@ class Pack:
 
         try:
             while i < self.cycles:
+                start = time.process_time()
                 solution = solver.solve(self.model, time_steps, inputs=inps)
-                print(solution.termination)
+                end = time.process_time()
+
+                time_storage["Simulation"].append(end - start)
+
+                start = time.process_time()
+                print(f"{i}) {solution.termination}")
                 # cont = True if ('time' in solution.termination and till_event) else False
                 # a = 0 if first else 1
 
@@ -182,6 +190,10 @@ class Pack:
 
                 cycle_storage = {col: [] for col in cycle_storage}
 
+                end = time.process_time()
+                time_storage["Data-Processing"].append(end - start)
+                time_storage_indicies.append((i+1, just_finished))
+
                 if (state == 0):
                     i += 1
                 
@@ -192,8 +204,16 @@ class Pack:
 
         finally:
             merged = pd.concat(subdfs)
+            merged = merged.rename_axis(index=["Cycle", "Protocol", "Stamps"])            
+
             merged.to_csv(f"data/{self.experiment}/data.csv")
-            pd.DataFrame(self.capacity_dict).to_csv(f"data/{self.experiment}/capacities.csv")
+            caps = pd.DataFrame(self.capacity_dict)
+            caps = caps.loc[~(caps == 0).all(axis=1)]
+            caps.to_csv(f"data/{self.experiment}/capacities.csv")
+
+            index = pd.MultiIndex.from_tuples(time_storage_indicies, names=["Cycle", "Protocol"])
+            times = pd.DataFrame(time_storage, index=index)
+            times.to_csv(f"data/{self.experiment}/times.csv")
 
             with open(f"data/{self.experiment}/model.pkl", 'wb') as f:
                 pickle.dump(self, f)
@@ -222,12 +242,13 @@ class Pack:
                     cell.neg.sei0: 5.e-9,
                 }
             )
-            self.capacity_dict[cell.name] = [0 for _ in range(self.cycles)]
+            self.capacity_dict[cell.name] = []
 
         return outputs
 
 
     def __update_pack_state(self, inps: dict, solution: pybamm.Solution, state: int, cycle_num: int):
+        a = 0
         for cell in self.flat_cells:
             BIND_VALUES(inps, 
                 {
@@ -239,16 +260,17 @@ class Pack:
                 }
             )
             if (state == 0):
-                self.capacity_dict[cell.name][cycle_num] = (solution[cell.capacity.name].entries[-1])
+                self.capacity_dict[cell.name].append( solution[cell.capacity.name].entries[-1] )
                 if (cycle_num > 1):
                     ## degradation check
                     cur = self.capacity_dict[cell.name][cycle_num]
                     orig = self.capacity_dict[cell.name][1]
 
                     if (cur <= orig*self.capacity_cut):
-                        return 1
+                        print(f"Capacity cut triggered: {cell.name}")
+                        a = 1
 
-        return 0
+        return a
         
     def __next_protocol(self, inps: dict, state: int):
         # CC charge up next
