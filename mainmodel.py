@@ -6,12 +6,12 @@ NUM_SERIES = 5
 NUM_PARALLEL = 5
 NUM_CYCLES = 2
 
+### disable this flag and use own or provided I_INPUT to directly apply desired current
+USE_C_RATE = True
 C_RATE = 1.0
 BASE_CURRENT = THEORETICAL_CAPACITY * C_RATE
 I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
-### disable this flag and use own or provided I_INPUT to directly apply desired current
-USE_C_RATE = True
 
 VOLTAGE_WINDOW = (
       2.5 * NUM_SERIES,
@@ -45,9 +45,9 @@ parameters = {}
 
 pack = Pack(EXPERIMENT, NUM_PARALLEL, NUM_SERIES, model, geo, parameters)
 if USE_C_RATE:
-      pack.set_charge_protocol(NUM_CYCLES, C_RATE, using_c_rate=True)
+      pack.set_charge_protocol(NUM_CYCLES, C_RATE, use_c_rate=True)
 else:
-      pack.set_charge_protocol(NUM_CYCLES, I_INPUT, using_c_rate=False)
+      pack.set_charge_protocol(NUM_CYCLES, I_INPUT, use_c_rate=False)
 pack.set_cutoffs(VOLTAGE_WINDOW, CURRENT_CUT_FACTOR, CAPACITY_CUT_FACTOR)
 
 pack.export_profile()
