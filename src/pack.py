@@ -13,6 +13,13 @@ from src.variator import Variator
 import concurrent.futures
 
 class Pack:
+    STATEMAP = {
+        0: 'CC-discharge',
+        1: 'CC-charge',
+        2: 'CV-charge'
+    }
+
+
     def __init__(self, experiment: str, parallel, series,
         model:pybamm.BaseModel, geo:dict, parameters:dict
     ):
@@ -144,9 +151,9 @@ class Pack:
         state = 0
         i = 0
 
-        def cycle_dump(storage: dict, i: int, just_finished: str):
+        def cycle_dump(storage: dict, i: int, state: int):
             subdf = pd.DataFrame(storage)
-            subdf = pd.concat({(i+1, just_finished): subdf})
+            subdf = pd.concat({(i+1, Pack.STATEMAP[state]): subdf})
             print(subdf.iloc[:, :2])
 
             subdf = subdf.rename_axis(index=["Cycle", "Protocol", "Stamps"])            
@@ -165,6 +172,7 @@ class Pack:
                     solution = solver.solve(self.model, time_steps, inputs=inps)
 
                     print(f"{i}) {solution.termination}")
+                    print(f"Completed cycle {i+1}, {Pack.STATEMAP[state]}")                
 
                     cycle_storage['Time'] = solution.t
                     cycle_storage['Global Time'] = solution.t + prev_time
@@ -180,13 +188,13 @@ class Pack:
                     ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
                     ## 2) Store discharge capacity in sep capacity_dict
                     terminate = self.__update_pack_state(inps, solution, state, i)
+                    
+                    executor.submit(cycle_dump, cycle_storage, i, state)
                     if (state == 0):
                         executor.submit(cap_dump, i)
 
-                    just_finished, state = self.__next_protocol(inps, state)
-                    executor.submit(cycle_dump, cycle_storage, i, just_finished)
+                    state = self.__next_protocol(inps, state)
 
-                    print(f"Completed cycle {i+1}, {just_finished}")                
                     if (terminate):
                         break
 
@@ -265,7 +273,6 @@ class Pack:
     def __next_protocol(self, inps: dict, state: int):
         # CC charge up next
         if (state == 0):
-            just_finished = "CC-discharge"
             BIND_VALUES(inps, 
                 {
                     self.ilock: +self.iappt,
@@ -276,7 +283,6 @@ class Pack:
 
         # CV charge up next
         elif (state == 1):
-            just_finished = "CC-charge"
             BIND_VALUES(inps, 
                 {
                     self.charging: 1,
@@ -286,7 +292,6 @@ class Pack:
 
         # Discharge next
         else:
-            just_finished = "CV-charge"
             BIND_VALUES(inps, 
                 {
                     self.ilock: -self.iappt,
@@ -298,7 +303,7 @@ class Pack:
     
         nstate = (state + 1) % 3
 
-        return just_finished, nstate
+        return nstate
 
 
 
