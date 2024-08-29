@@ -68,9 +68,9 @@ class Pack:
         self.cells = cells
 
 
-    def set_charge_protocol(self, cycles, crate_or_current, c_rate=True):
+    def set_charge_protocol(self, cycles, crate_or_current, use_c_rate=True):
         self.cycles = cycles
-        if c_rate:
+        if use_c_rate:
             self.c_rate = crate_or_current
             self.iappt = THEORETICAL_CAPACITY * self.c_rate * self.parallel
         else:

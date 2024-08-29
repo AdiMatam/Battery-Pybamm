@@ -22,16 +22,13 @@ The following **operating conditions** are enumerated at the top of `mainmodel.p
 
 | **Parameter**           | **Description**                                                                 | **Example**                                |
 |-------------------------|---------------------------------------------------------------------------------|------------------------------------------|
-| THEORETICAL_CAPACITY     | Theoretical capacity per unit area in A/m² of the cells                         |27.263836618115                    |
 | NUM_SERIES              | Number of cells in SERIES                                                       | 5                                      |
 | NUM_PARALLEL            | Number of cells in PARALLEL                                                     | 5                                      |
 | NUM_CYCLES              | Number of cycles (full discharge + CC-charge + CV-charge is one cycle)          | 100                                    |
 | C_RATE                  | Rate of CC-discharge/charge. Applied current computed from this                 | 1.0                                   |
-| BASE_CURRENT            | THEORETICAL_CAPACITY * C_RATE                                                     | _Derived_                                      |
-| I_INPUT                 | BASE_CURRENT * NUM_PARALLEL                                                     | _Derived_                                      |
+| VOLTAGE_WINDOW         | Low and High Cutoff voltages                                      | (2.5 * NUM_SERIES, 4.1 * NUM_SERIES)                         |
 | CURRENT_CUT_FACTOR      | Stop condition for CV-charge; if the solved pack current <= CUT_FACTOR*I_INPUT, halt! | 1/10                                     |
-| VOLTAGE_LOW_CUT         | Cutoff voltage at which to stop discharging                                      | 2.5 * NUM_SERIES                         |
-| VOLTAGE_HIGH_CUT        | Cutoff voltage at which to stop CC-charging                                      | 4.1 * NUM_SERIES                         |
+| CAPACITY_CUT_FACTOR      | Stop condition for capacity fade. If ANY cell's capacity is CUT_FACTOR of original capacity, halt! | 0.8                                     |
 | DISCRETE_PTS            | How many points in particle mesh                                                | 30                                       |
 | HOURS                   | Duration of simulation. Ideally, derived from C-rate                            | 2                                        |
 | TIME_PTS                | Number of time points to return solution PER charge/discharge                   | 100                                      |
@@ -58,6 +55,7 @@ The following parameters (for simple SPM model) are enumerated in `params.py`
 | **PARTICLE_RADIUS**     | Particle Radius              | 2e-06             |
 
 _For further remarks on how parameters 'fit' into the model equations/DAE, see the `Electrochemical Model POV` section below_
+_For source of parameter values, see the `References` section below_ **include pointer to paper**
  
 Variations can be applied using a few different schemes. See the following examples with cathode porosity:
 

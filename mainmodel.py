@@ -6,6 +6,7 @@ NUM_PARALLEL = 5
 NUM_CYCLES = 2
 
 C_RATE = 1.0
+USE_C_RATE = True
 # BASE_CURRENT = THEORETICAL_CAPACITY * C_RATE
 # I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
@@ -40,7 +41,7 @@ geo = {}
 parameters = {}
 
 pack = Pack(EXPERIMENT, NUM_PARALLEL, NUM_SERIES, model, geo, parameters)
-pack.set_charge_protocol(NUM_CYCLES, C_RATE)
+pack.set_charge_protocol(NUM_CYCLES, C_RATE, using_c_rate=USE_C_RATE)
 pack.set_cutoffs(VOLTAGE_WINDOW, CURRENT_CUT_FACTOR, CAPACITY_CUT_FACTOR)
 
 pack.export_profile()
