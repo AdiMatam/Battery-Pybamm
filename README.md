@@ -1,8 +1,8 @@
-# Simple Pack Modeling Interface
+# Simple Pack Modeling Interface w/PyBAMM
 
-Lithium-ion batteries have been ubiquitious for numerous energy applications. In particular, there is great interest in researching battery packs (i.e. simulating modules with multiple cells in series/parallel). Often, reduced-order models are preferred for pack-level investigation, so as to reduce computational overhead.
+Lithium-ion batteries have been ubiquitious for numerous energy applications. In particular, there is great interest in researching battery packs (i.e. simulating modules with multiple cells in series/parallel). Often, reduced-order models are preferred for pack-level studies so as to reduce computational overhead.
 
-Along the aforementioned lines, the following repository seeks to accomplish several targets:
+Along these lines, this repository seeks to accomplish the following: 
 1) Detail an easy-to-use, robust API for simulating 'variable-size' battery packs 
 2) Allow modelers to rapidly conduct cycling studies with variated operating conditions and parameters
 3) Provide a post-processing and plotting interface to readily wrangle with large volumes of simulation results
@@ -42,17 +42,17 @@ The following parameters (for simple SPM model) are enumerated in `params.py`
 
 | **Parameter**           | **Description**              | **Example Value** |
 |-------------------------|------------------------------|-------------------|
-| **POS_DIFFUSION**       | Cathode Diffusion            | 1.0e-14           |
+| **POS_DIFFUSION**       | Cathode Diffusion Coefficient            | 1.0e-14           |
 | **POS_CSN_MAX**         | Cathode Max Concentration     | 51555             |
-| **POS_CSN_INITIAL**     | Cathode Initial SOC          | 51555*0.5         |
-| **POS_ELEC_THICKNESS**  | Cathode Thickness            | 80e-6             |
-| **POS_ELEC_POROSITY**   | Cathode Porosity             | 0.385             |
-| **NEG_DIFFUSION**       | Anode Diffusion              | 2.0e-14           |
+| **POS_CSN_INITIAL**     | Cathode Initial SOC (mol/m3)        | 51555*0.5         |
+| **POS_ELEC_THICKNESS**  | Cathode Thickness (m)          | 80e-6             |
+| **POS_ELEC_POROSITY**   | Cathode Porosity  (%)           | 0.385             |
+| **NEG_DIFFUSION**       | Anode Diffusion Coefficient              | 2.0e-14           |
 | **NEG_CSN_MAX**         | Anode Max Concentration      | 30555             |
-| **NEG_CSN_INITIAL**     | Anode Initial SOC            | 30555*0.74        |
-| **NEG_ELEC_THICKNESS**  | Anode Thickness              | 88e-6             |
-| **NEG_ELEC_POROSITY**   | Anode Porosity               | 0.485             |
-| **PARTICLE_RADIUS**     | Particle Radius              | 2e-06             |
+| **NEG_CSN_INITIAL**     | Anode Initial SOC (mol/m3)           | 30555*0.74        |
+| **NEG_ELEC_THICKNESS**  | Anode Thickness (m)             | 88e-6             |
+| **NEG_ELEC_POROSITY**   | Anode Porosity  (%)             | 0.485             |
+| **PARTICLE_RADIUS**     | Particle Radius (m)             | 2e-06             |
 
 _For further remarks on how parameters 'fit' into the model equations/DAE, see the `Electrochemical Model POV` section below_
 _For source of parameter values, see the `References` section below_ **include pointer to paper**
@@ -71,9 +71,25 @@ $\sigma$ = porosity standard deviation
 | `POROSITY = Variator.from_gaussian_percent("", v, p)` | $\epsilon_k \sim N(v, \frac{p\dot v}{100})$          |
 | `POROSITY = Variator.from_gaussian_stddev("", v, σ)` | $\epsilon_k \sim N(v,σ)$                   |
 
+_The first argument (empty string) is an arbitrary name that can be given to the parameter (no functional importance)_
+
+## Data Output
+Each `experiment` is outputted to namesake folder under `data/`.  
+`data/EXAMPLE/` provides an example of a simulation study output (all files generated from a SINGLE experiment)
+
+| Name          | Info                                                                                                 |
+|---------------|------------------------------------------------------------------------------------------------------|
+| capacities.csv| Discharge capacity of EACH cell after EACH discharge cycle                                         |
+| data.csv      | Master simulation data. <br> -Cols 1-3: Cycle #, Protocol, Time Index. <br> -Cols for **top-level** attributes: Pack Voltage, Pack Current, String Currents ('String' is a chain of cells in series). <br> -Cols for **cell-level** attributes: Concentration SOC, SEI Length, Voltage, Capacity Integration. |
+| profile.json  | Simulation attributes, operating conditions, applied parameter variations enumerated                 |
+| model.pkl     | The "Pack" object (src/pack.py). Pickled/unpickled to access internal attributes                      |
+
+**Cell naming convention:**  
+A cell in **3rd** 'string' in parallel and **2nd** cell in series: **Cell 2,3**
 
 ## Post-processing and Plotting
-
+`reader.py` provides an example of the data post-processing interface  
+_Refer to comments in file until further documentation written... TBD_
 
 ## Developers' Guide
 

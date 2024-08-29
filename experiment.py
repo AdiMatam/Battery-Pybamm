@@ -59,7 +59,7 @@ class Experiment:
         joined = '|'.join(attrs)
         self.data = self.data.filter(regex=f'Time|{joined}')
 
-    def plotter(self, local_time=False, isolate_cycles=True):
+    def plotter(self, isolate_cycles=True):
         # Helper function to encapsulate the plotting logic
         def plot_columns(data, t, label_prefix=''):
             """Helper function to plot columns."""
@@ -67,15 +67,12 @@ class Experiment:
                 label = f'{label_prefix}{col}' if label_prefix else col
                 plt.plot(data[t], data[col], label=label)
         
-
-        t = 'Global Time'
-        if local_time:
-            t = 'Time'
-
         if isolate_cycles:
+            t = 'Time'
             for cnum, group in self.data.groupby(level=0):
                 plot_columns(group, t, label_prefix=f'C{cnum}_')
         else:
+            t = 'Global Time'
             plot_columns(self.data, t)
 
         plt.xlabel(t)
