@@ -133,41 +133,38 @@ class Pack:
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
         inps = {}
+        self.capacity_dict = {}
         csv_cols= self.__setup_initialization(inps)
 
-        subdfs = []
         cycle_storage = {col: [] for col in csv_cols}
-        pd.DataFrame(columns=csv_cols).to_csv(f"data/{self.experiment}/data.csv", index=False)
-
-        time_storage = {"Simulation": [], "Data-Processing": []}
-        time_storage_indicies = []
+        pd.DataFrame(columns=csv_cols)                         .to_csv(f"data/{self.experiment}/data.csv", index=False)
+        pd.DataFrame(columns=list(self.capacity_dict.keys()))  .to_csv(f"data/{self.experiment}/capacities.csv", index=False)
 
         prev_time = 0
         state = 0
         i = 0
 
-        def transmit(storage: dict, i: int, just_finished: str):
+        def cycle_dump(storage: dict, i: int, just_finished: str):
             subdf = pd.DataFrame(storage)
             subdf = pd.concat({(i+1, just_finished): subdf})
-            #subdfs.append(subdf)
             print(subdf.iloc[:, :2])
 
             subdf = subdf.rename_axis(index=["Cycle", "Protocol", "Stamps"])            
             subdf.to_csv(f"data/{self.experiment}/data.csv", mode='a', header=False, index=True)
 
+        def cap_dump(i: int):
+            with open(f"data/{self.experiment}/capacities.csv", mode='a') as f:
+                f.write(str(i+1))
+                for vals in self.capacity_dict.values():
+                    f.write(f",{str(vals[1])}")
+                f.write('\n')
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             try:
                 while i < self.cycles:
-                    start = time.process_time()
                     solution = solver.solve(self.model, time_steps, inputs=inps)
-                    end = time.process_time()
 
-                    time_storage["Simulation"].append(end - start)
-
-                    start = time.process_time()
                     print(f"{i}) {solution.termination}")
-                    # cont = True if ('time' in solution.termination and till_event) else False
-                    # a = 0 if first else 1
 
                     cycle_storage['Time'] = solution.t
                     cycle_storage['Global Time'] = solution.t + prev_time
@@ -183,21 +180,17 @@ class Pack:
                     ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
                     ## 2) Store discharge capacity in sep capacity_dict
                     terminate = self.__update_pack_state(inps, solution, state, i)
+                    if (state == 0):
+                        executor.submit(cap_dump, i)
 
-                    #if (cont is False):
                     just_finished, state = self.__next_protocol(inps, state)
+                    executor.submit(cycle_dump, cycle_storage, i, just_finished)
 
-                    executor.submit(transmit, cycle_storage, i, just_finished)
                     print(f"Completed cycle {i+1}, {just_finished}")                
-
                     if (terminate):
                         break
 
-                    cycle_storage = {col: [] for col in cycle_storage}
-
-                    end = time.process_time()
-                    time_storage["Data-Processing"].append(end - start)
-                    time_storage_indicies.append((i+1, just_finished))
+                    cycle_storage = {col: [] for col in csv_cols}
 
                     if (state == 0):
                         i += 1
@@ -208,16 +201,9 @@ class Pack:
                 self.cycles = i
 
             finally:
-                caps = pd.DataFrame(self.capacity_dict)
-                caps = caps.loc[~(caps == 0).all(axis=1)]
-                caps.to_csv(f"data/{self.experiment}/capacities.csv")
-
-                index = pd.MultiIndex.from_tuples(time_storage_indicies, names=["Cycle", "Protocol"])
-                times = pd.DataFrame(time_storage, index=index)
-                times.to_csv(f"data/{self.experiment}/times.csv")
-
                 with open(f"data/{self.experiment}/model.pkl", 'wb') as f:
                     pickle.dump(self, f)
+
 
     def __setup_initialization(self, inps: dict):
         outputs = ["Pack Voltage", "Pack Current"]
@@ -231,7 +217,6 @@ class Pack:
             }
         )
         
-        self.capacity_dict = {}
         for cell in self.flat_cells:
             SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
             BIND_VALUES(inps, 
@@ -243,7 +228,7 @@ class Pack:
                     cell.neg.sei0: 5.e-9,
                 }
             )
-            self.capacity_dict[cell.name] = []
+            self.capacity_dict[cell.name] = [0, 0]
 
         return outputs
 
@@ -261,11 +246,15 @@ class Pack:
                 }
             )
             if (state == 0):
-                self.capacity_dict[cell.name].append( solution[cell.capacity.name].entries[-1] )
-                if (cycle_num > 1):
+                self.capacity_dict[cell.name][1] = solution[cell.capacity.name].entries[-1] 
+                if (cycle_num == 1):
+                    ## store reference capacity at index 0
+                    self.capacity_dict[cell.name][0] = solution[cell.capacity.name].entries[-1] 
+
+                elif (cycle_num > 1):
                     ## degradation check
-                    cur = self.capacity_dict[cell.name][cycle_num]
-                    orig = self.capacity_dict[cell.name][1]
+                    cur = self.capacity_dict[cell.name][1]
+                    orig = self.capacity_dict[cell.name][0]
 
                     if (cur <= orig*self.capacity_cut):
                         print(f"Capacity cut triggered: {cell.name}")
