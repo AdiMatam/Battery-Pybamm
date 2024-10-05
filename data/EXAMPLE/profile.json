@@ -1,14 +1,14 @@
 {
-    "Experiment": "5by5_2cycles_ASY",
-    "Parallel": 5,
-    "Series": 5,
+    "Experiment": "EXAMPLE",
+    "Parallel": 2,
+    "Series": 2,
     "Temperature": 298,
     "Voltage Window": [
-        12.5,
-        20.5
+        5.0,
+        8.2
     ],
     "C-rate": 1.0,
-    "I-app": 136.319183090575,
+    "I-app": 54.52767323623,
     "I-app Cut Factor": 0.1,
     "Cycles": 2,
     "Parameter Variations": {
