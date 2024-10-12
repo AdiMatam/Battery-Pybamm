@@ -34,6 +34,9 @@ The following **operating conditions** are enumerated at the top of `mainmodel.p
 | TIME_PTS                | Number of time points to return solution PER charge/discharge                   | 100                                      |
 | EXPERIMENT              | Name of study. Each study should get a unique name; all data outputted to namesake folder | "5by5_100cycles_const"          |
 
+`USE_C_RATE = True`,  `C_RATE` value is used to compute **applied pack current**
+`USE_C_RATE = False`, `I_INPUT` value is used AS the **applied pack current**
+
 
 ### Parameter Variation
 Model parameters can be varied across all the cells in a pack. This is useful for characterizing performance of heterogenous battery modules.
