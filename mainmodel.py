@@ -2,8 +2,8 @@ from consts import THEORETICAL_CAPACITY
 
 ### CHANGE SIMULATION PROFILE / OPERATING CONDITIONS HERE
 # ------------------
-NUM_SERIES = 5
-NUM_PARALLEL = 5
+NUM_SERIES = 2
+NUM_PARALLEL = 2
 NUM_CYCLES = 2
 
 ### disable this flag and use own or provided I_INPUT to directly apply desired current
@@ -27,7 +27,7 @@ HOURS = 2
 TIME_PTS = 100
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "5by5_2cycles_ASY"
+EXPERIMENT = "EXAMPLE"
 
 #--------------------
 

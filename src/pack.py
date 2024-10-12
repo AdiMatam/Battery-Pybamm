@@ -135,36 +135,24 @@ class Pack:
         )
         disc.process_model(self.model)
 
+
     def cycler(self, hours, time_pts):
         solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-10, dt_max=1e-10, root_method='lm', extra_options_setup={"max_num_steps": 100000}, return_solution_if_failed_early=True)
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
         inps = {}
-        self.capacity_dict = {}
-        csv_cols= self.__setup_initialization(inps)
+        outputs = self.__setup_initialization_and_outputs(inps)
 
-        cycle_storage = {col: [] for col in csv_cols}
-        pd.DataFrame(columns=csv_cols)                         .to_csv(f"data/{self.experiment}/data.csv", index=False)
-        pd.DataFrame(columns=list(self.capacity_dict.keys()))  .to_csv(f"data/{self.experiment}/capacities.csv", index=False)
+        ## insert at front
+        cycle_columns = ['Time (s)', 'Global Time (s)'] + outputs
+        cycle_data = {col: [] for col in cycle_columns}
+        cap_data = {cell.name: [0,0] for cell in self.flat_cells}
+
+        self.__create_dataframe_files(cycle_columns, cap_data.keys())
 
         prev_time = 0
         state = 0
         i = 0
-
-        def cycle_dump(storage: dict, i: int, state: int):
-            subdf = pd.DataFrame(storage)
-            subdf = pd.concat({(i+1, Pack.STATEMAP[state]): subdf})
-            print(subdf.iloc[:, :2])
-
-            subdf = subdf.rename_axis(index=["Cycle", "Protocol", "Stamps"])            
-            subdf.to_csv(f"data/{self.experiment}/data.csv", mode='a', header=False, index=True)
-
-        def cap_dump(i: int):
-            with open(f"data/{self.experiment}/capacities.csv", mode='a') as f:
-                f.write(str(i+1))
-                for vals in self.capacity_dict.values():
-                    f.write(f",{str(vals[1])}")
-                f.write('\n')
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             try:
@@ -174,32 +162,31 @@ class Pack:
                     print(f"{i}) {solution.termination}")
                     print(f"Completed cycle {i+1}, {Pack.STATEMAP[state]}")                
 
-                    cycle_storage['Time'] = solution.t
-                    cycle_storage['Global Time'] = solution.t + prev_time
+                    cycle_data['Time (s)'] = solution.t
+                    cycle_data['Global Time (s)'] = solution.t + prev_time
                     prev_time += solution.t[-1]
 
                     ## KEYS ARE SOLVED VARIABLES
-                    for col in csv_cols:
-                        data = solution[col].entries
+                    for var in outputs:
+                        data = solution[var].entries
                         if len(data.shape) == 2:
                             data = data[-1]
-                        cycle_storage[col].extend(data)
-
+                        cycle_data[var].extend(data)
+                    
                     ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
                     ## 2) Store discharge capacity in sep capacity_dict
-                    terminate = self.__update_pack_state(inps, solution, state, i)
+                    terminate = self.__update_pack_state(inps, solution, cap_data, i, state)
                     
-                    executor.submit(cycle_dump, cycle_storage, i, state)
+                    executor.submit(self.__cycle_dump, cycle_data, i, state)
                     if (state == 0):
-                        executor.submit(cap_dump, i)
-
-                    state = self.__next_protocol(inps, state)
+                        executor.submit(self.__cap_dump, cap_data, i)
 
                     if (terminate):
                         break
 
-                    cycle_storage = {col: [] for col in csv_cols}
+                    cycle_data = {col: [] for col in cycle_columns}
 
+                    state = self.__next_protocol(inps, state)
                     if (state == 0):
                         i += 1
                     
@@ -213,7 +200,32 @@ class Pack:
                     pickle.dump(self, f)
 
 
-    def __setup_initialization(self, inps: dict):
+    def __cycle_dump(self, data: dict, i: int, state: int):
+        subdf = pd.DataFrame(data)
+        subdf = pd.concat({(i+1, Pack.STATEMAP[state]): subdf})
+        print(subdf)
+        subdf.to_csv(f"data/{self.experiment}/data.csv", mode='a', header=False, index=True)
+
+    def __cap_dump(self, data, i: int):
+        with open(f"data/{self.experiment}/capacities.csv", mode='a') as f:
+            f.write(str(i+1))
+            for caps in data.values():
+                f.write(f",{str(caps[1])}")
+            f.write('\n')
+
+    def __create_dataframe_files(self, cycle_columns, cell_names):
+        pd.DataFrame(
+            columns=cycle_columns, 
+            index=pd.MultiIndex.from_product([[], [], []], names=["Cycle", "Protocol", "Stamps"])
+        ).to_csv(f"data/{self.experiment}/data.csv", index=True)
+
+        pd.DataFrame(
+            columns=cell_names,
+            index=pd.MultiIndex.from_product([[]], names=["Cycle"])
+        ).to_csv(f"data/{self.experiment}/capacities.csv", index=True)
+    
+
+    def __setup_initialization_and_outputs(self, inps: dict):
         outputs = ["Pack Voltage", "Pack Current"]
         SET_OUTPUTS(outputs, self.iapps)
 
@@ -236,12 +248,11 @@ class Pack:
                     cell.neg.sei0: 5.e-9,
                 }
             )
-            self.capacity_dict[cell.name] = [0, 0]
 
         return outputs
 
 
-    def __update_pack_state(self, inps: dict, solution: pybamm.Solution, state: int, cycle_num: int):
+    def __update_pack_state(self, inps: dict, solution: pybamm.Solution, cap_data: dict, i: int, state: int):
         a = 0
         for cell in self.flat_cells:
             BIND_VALUES(inps, 
@@ -254,15 +265,15 @@ class Pack:
                 }
             )
             if (state == 0):
-                self.capacity_dict[cell.name][1] = solution[cell.capacity.name].entries[-1] 
-                if (cycle_num == 1):
+                cap_data[cell.name][1] = solution[cell.capacity.name].entries[-1] 
+                if (i == 1):
                     ## store reference capacity at index 0
-                    self.capacity_dict[cell.name][0] = solution[cell.capacity.name].entries[-1] 
+                    cap_data[cell.name][0] = solution[cell.capacity.name].entries[-1] 
 
-                elif (cycle_num > 1):
+                elif (i > 1):
                     ## degradation check
-                    cur = self.capacity_dict[cell.name][1]
-                    orig = self.capacity_dict[cell.name][0]
+                    cur = cap_data[cell.name][1]
+                    orig = cap_data[cell.name][0]
 
                     if (cur <= orig*self.capacity_cut):
                         print(f"Capacity cut triggered: {cell.name}")
@@ -363,20 +374,4 @@ class Pack:
 
 
 if __name__ == '__main__':
-
-    NUM_PARALLEL = 2
-    NUM_SERIES = 2
-    BASE_CURRENT = 13.6319183090575
-    I_INPUT = BASE_CURRENT * NUM_PARALLEL
-
-    VOLTAGE_LOW_CUT = 2.0
-    VOLTAGE_HIGH_CUT =4.1
-
-    #--------------------
-    model = pybamm.BaseModel()
-    geo = {}
-    parameters = {}
-
-    pack = Pack(NUM_PARALLEL, NUM_SERIES, (VOLTAGE_LOW_CUT, VOLTAGE_HIGH_CUT), I_INPUT / 10, model, geo, parameters)
-
-    print(pack[1, 1])
+    pass
