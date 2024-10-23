@@ -88,7 +88,7 @@ Each `experiment` is outputted to namesake folder under `data/`.
 | model.pkl     | The "Pack" object (src/pack.py). Pickled/unpickled to access internal attributes                      |
 
 **Cell naming convention:**  
-A cell in **3rd** 'string' in parallel and **2nd** cell in series: **Cell 2,3**
+A cell in the **1st** parallel 'string' and in the **2nd** 'row': **Cell 2,1**
 
 ## Post-processing and Plotting
 `reader.py` provides an example of the data post-processing interface  
