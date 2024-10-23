@@ -324,6 +324,7 @@ class Pack:
             self.voltage += self.cells[i, 0].vvolt
 
         # cutoffs[1] (max V-cut is effectively the vlock)
+        # 'boolean algebra' to switch state from CC <-> CV
         self.model.algebraic.update({
             self.i_total: (self.ilock - self.i_total)*self.cc_mode + 
             (self.voltage_window[1] - self.voltage)*self.cv_mode

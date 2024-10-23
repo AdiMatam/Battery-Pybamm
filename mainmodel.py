@@ -6,7 +6,7 @@ NUM_SERIES = 2
 NUM_PARALLEL = 2
 NUM_CYCLES = 2
 
-### disable this flag and use own or provided I_INPUT to directly apply desired current
+### disable this flag and use I_INPUT to directly apply desired current
 USE_C_RATE = True
 C_RATE = 1.0
 BASE_CURRENT = THEORETICAL_CAPACITY * C_RATE
@@ -22,9 +22,11 @@ CURRENT_CUT_FACTOR = 1/10
 CAPACITY_CUT_FACTOR = 0.95
 
 ## Meshing and Discretization Parameters
-DISCRETE_PTS = 30
-HOURS = 2 
+### Change 'hours' for lower/higher simulation runtime cutoff
+### Change 'time_pts' for more/fewer time outputs
+HOURS = (1./C_RATE) * 1.5 
 TIME_PTS = 100
+DISCRETE_PTS = 30
 
 # Data is outputted to this subfolder of 'data/'.
 EXPERIMENT = "EXAMPLE"

@@ -14,8 +14,8 @@ class Cathode(SingleParticle):
         super().__init__(name, +1, iapp)
     
     def process_model(self, model: pybamm.BaseModel):
-        flux = self.D * -pybamm.grad(self.c)
         # dc/dt = d^2c/dr^2
+        flux = self.D * -pybamm.grad(self.c)
         dcdt = -pybamm.div(flux)
 
         KINT = 1.04e-11
@@ -28,7 +28,6 @@ class Cathode(SingleParticle):
         x = c.F / (2 * c.R_GAS * c.T) * (self.phi - self.ocp)
         j0 = c.F * KINT * self.surf_c**0.5 * (self.cmax - self.surf_c)**0.5 
 
-        ## CV-MODE  
         model.algebraic.update({
             self.phi: j0 * 2 * pybamm.sinh(x) - self.j,
         })
