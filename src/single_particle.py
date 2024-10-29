@@ -1,6 +1,6 @@
 import pybamm
 from abc import abstractmethod
-from src.constant_parameter import ConstantParameter
+from src.wrapped_parameter import WrappedParameter
 
 class SingleParticle:
     def __init__(self, name: str, charge: int, 
@@ -10,13 +10,13 @@ class SingleParticle:
         self.domain = name + " dDomain"
         self.charge = charge
 
-        self.c0 = ConstantParameter(name + " pInitial Concentration")
-        self.L = ConstantParameter(name + " pElectrode Thickness")
-        self.eps_n = ConstantParameter(name + " pElectrode Porosity")
-        self.cmax = ConstantParameter(name + " pMax Concentration")
-        self.D = ConstantParameter(name + " pDiffusion Coefficient")
-        self.R = ConstantParameter(name + " pParticle Radius")
-        self.phi0 = ConstantParameter(name + " pInitial Potential")
+        self.c0 = WrappedParameter(name + " pInitial Concentration")
+        self.L = WrappedParameter(name + " pElectrode Thickness")
+        self.eps_n = WrappedParameter(name + " pElectrode Porosity")
+        self.cmax = WrappedParameter(name + " pMax Concentration")
+        self.D = WrappedParameter(name + " pDiffusion Coefficient")
+        self.R = WrappedParameter(name + " pParticle Radius")
+        self.phi0 = WrappedParameter(name + " pInitial Potential")
 
         self.iapp = iapp
 

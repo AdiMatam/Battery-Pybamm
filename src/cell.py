@@ -61,11 +61,9 @@ class Cell:
             pybamm.Event(f"{self.name} Max Anode Concentration Cutoff", self.neg.cmax - self.neg.surf_c),
         ])
 
-    def __attach_parameters(self, param_dict: dict):
+    def __attach_parameters(self, parameters: dict):
 
-        rad = p.PARTICLE_RADIUS.sample()
-
-        BIND_VALUES(param_dict, {
+        BIND_VALUES(parameters, {
             self.pos.c0:               "[input]",
             self.pos.phi0:             "[input]",
             self.pos.L:                p.POS_ELEC_THICKNESS.sample(),
@@ -74,10 +72,10 @@ class Cell:
 
             self.pos.ocp:              p.POS_OCP,
             self.pos.D:                p.POS_DIFFUSION.sample(),
-            self.pos.R:                rad,
+            self.pos.R:                p.PARTICLE_RADIUS.sample(),
         })
 
-        BIND_VALUES(param_dict, {
+        BIND_VALUES(parameters, {
             self.neg.c0:               "[input]",
             self.neg.phi0:             "[input]",
             self.neg.L:                p.NEG_ELEC_THICKNESS.sample(),
@@ -86,11 +84,11 @@ class Cell:
 
             self.neg.ocp:              p.NEG_OCP2,
             self.neg.D:                p.NEG_DIFFUSION.sample(),
-            self.neg.R:                rad,
+            self.neg.R:                p.PARTICLE_RADIUS.sample(),
             self.neg.sei0:             "[input]",
         })
 
         self.pos.c0.set_value(p.POS_CSN_INITIAL.sample()) 
         self.neg.c0.set_value(p.NEG_CSN_INITIAL.sample()) 
-        self.pos.phi0.value = p.POS_OCP(self.pos.c0.value / self.pos.cmax.value)
-        self.neg.phi0.value = p.NEG_OCP(self.neg.c0.value / self.neg.cmax.value)
+        self.pos.phi0.set_value(p.POS_OCP(self.pos.c0.value / self.pos.cmax.value))
+        self.neg.phi0.set_value(p.NEG_OCP(self.neg.c0.value / self.neg.cmax.value))
