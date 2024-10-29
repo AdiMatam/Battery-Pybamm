@@ -1,24 +1,20 @@
-import random
-from marquis import lico2_electrolyte_exchange_current_density_Dualfoil1998 as j0p
-from marquis import graphite_electrolyte_exchange_current_density_Dualfoil1998 as j0n
-from marquis import lico2_ocp_Dualfoil1998 as Up
-from marquis import graphite_mcmb2528_ocp_Dualfoil1998 as Un
+from math import exp
+from src.variator import Variator
 
-class VariatedParameter:
-    def __init__(self, value: float, low_high: tuple):
-        self.value = value
-        self.low_high = low_high
+## .from_percent(value, % variation)
+POS_DIFFUSION       = Variator.from_percent("Cathode Diffusion",       1.0e-14,     0)
+POS_CSN_MAX         = Variator.from_percent("Cathode Max Concentration", 51555,     0)  
+POS_CSN_INITIAL     = Variator.from_percent("Cathode Initial SOC",      51555*0.5,  0)
+POS_ELEC_THICKNESS  = Variator.from_percent("Cathode Thickness",        80e-6,      0)
+POS_ELEC_POROSITY   = Variator.from_percent("Cathode Porosity",         0.385,      3)   
 
-    @classmethod
-    def from_percent(cls, value: float, percent: float=1):
-        offset = value * (percent / 100)
-        return cls(value, (value - offset, value + offset))
+NEG_DIFFUSION       = Variator.from_percent("Anode Diffusion",          2.0e-14,    0)
+NEG_CSN_MAX         = Variator.from_percent("Anode Max Concentration",  30555,      0)   
+NEG_CSN_INITIAL     = Variator.from_percent("Anode Initial SOC",       30555*0.74,  0)
+NEG_ELEC_THICKNESS  = Variator.from_percent("Anode Thickness",          88e-6,      0)
+NEG_ELEC_POROSITY   = Variator.from_percent("Anode Porosity",           0.485,      3)
 
-    def rand_sample(self):
-        return random.uniform(self.low_high[0], self.low_high[1]) 
-
-    def get_value(self):
-        return self.value
+PARTICLE_RADIUS     = Variator.from_percent("Particle Radius",          2e-06,      0)
 
 
 
@@ -28,25 +24,23 @@ class VariatedParameter:
 
 
 
+import pybamm
+
+def NEG_OCP(sto):
+    x = sto
+    return 0.7222 + 0.1387*x + 0.029*x**0.5 - 0.0172/x + 0.0019/(x**1.5) + 0.2808*exp(0.9-15*x) - 0.7984*exp(0.4465*x - 0.4108)
+
+def NEG_OCP2(sto):
+    x = sto
+    return 0.7222 + 0.1387*x + 0.029*x**0.5 - 0.0172/x + 0.0019/(x**1.5) + 0.2808*pybamm.exp(0.9-15*x) - 0.7984*pybamm.exp(0.4465*x - 0.4108)
+
+def POS_OCP(sto):
+    y = sto
+    num = -4.656 + 88.669*y**2 - 401.119*y**4 + 342.909*y**6 - 462.471*y**8 + 433.434*y**10
+    den = -1 + 18.933*y**2 - 79.532*y**4 + 37.311*y**6 - 73.083*y**8 + 95.96*y**10
+    return num / den
 
 
-POS_CSN_MAX         = VariatedParameter.from_percent(51218, 0)  
-POS_CSN_INITIAL     = VariatedParameter.from_percent(30730, 0)
-POS_ELEC_THICKNESS  = VariatedParameter.from_percent(0.0001, 0)
-POS_ELEC_POROSITY   = VariatedParameter.from_percent(0.50, 0)   
-
-NEG_CSN_MIN         = VariatedParameter.from_percent(5027, 0)
-NEG_CSN_INITIAL     = VariatedParameter.from_percent(19986, 0)
-NEG_CSN_MAX         = VariatedParameter.from_percent(24983, 0)   
-NEG_ELEC_THICKNESS  = VariatedParameter.from_percent(0.0001, 0.0)
-NEG_ELEC_POROSITY   = VariatedParameter.from_percent(0.40, 0)
-
-ELECTROLYTE_CONC    = VariatedParameter.from_percent(1000, 0)
-
-PARTICLE_RADIUS     = VariatedParameter.from_percent(1e-05, 0)
-
-POS_J0 = j0p
-POS_OCP = Up
-
-NEG_J0 = j0n
-NEG_OCP = Un
+if __name__ == '__main__':
+    for _ in range(10):
+        print(POS_ELEC_POROSITY.sample())

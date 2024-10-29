@@ -1,4 +1,4 @@
-pybamm==23.5
+pybamm
 numpy
 pandas
 matplotlib
