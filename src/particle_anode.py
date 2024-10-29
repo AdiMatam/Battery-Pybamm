@@ -3,6 +3,7 @@ import consts as cc
 from consts import SET_MODEL_VARS, SET_OUTPUTS, BIND_VALUES
 from params import NEG_OCP
 from src.single_particle import SingleParticle
+import params as p
 
 #pybamm.set_logging_level("DEBUG")
 
@@ -88,6 +89,22 @@ class Anode(SingleParticle):
             ]
         )
 
+    def attach_parameters(self, parameters: dict):
+        BIND_VALUES(parameters, {
+            self.c0:               "[input]",
+            self.phi0:             "[input]",
+            self.L:                p.NEG_ELEC_THICKNESS.sample(),
+            self.eps_n:            p.NEG_ELEC_POROSITY.sample(),
+            self.cmax:             p.NEG_CSN_MAX.sample(),
+
+            self.ocp:              p.NEG_OCP2,
+            self.D:                p.NEG_DIFFUSION.sample(),
+            self.R:                p.PARTICLE_RADIUS.sample(),
+            self.sei0:             "[input]",
+        })
+
+        self.c0.set_value(p.NEG_CSN_INITIAL.sample()) 
+        self.phi0.set_value(p.NEG_OCP(self.c0.value / self.cmax.value))
 
 if __name__ == '__main__':
     import params as p

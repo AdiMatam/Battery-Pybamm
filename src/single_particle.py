@@ -43,6 +43,10 @@ class SingleParticle:
     def process_model(self, model: pybamm.BaseModel):
         pass
 
+    @abstractmethod    
+    def attach_parameters(self, parameters: dict):
+        pass
+
     def process_geometry(self, geo: dict):
         geo.update({
             self.domain: {self.r: {"min": 0, "max": self.R}}

@@ -41,7 +41,9 @@ class Cell:
         self.pos.process_model(model)
         self.neg.process_model(model, charging)
 
-        self.__attach_parameters(parameters)
+        self.pos.attach_parameters(parameters)
+        self.neg.attach_parameters(parameters)
+        # self.__attach_parameters(parameters)
         
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)
@@ -60,35 +62,3 @@ class Cell:
 
             pybamm.Event(f"{self.name} Max Anode Concentration Cutoff", self.neg.cmax - self.neg.surf_c),
         ])
-
-    def __attach_parameters(self, parameters: dict):
-
-        BIND_VALUES(parameters, {
-            self.pos.c0:               "[input]",
-            self.pos.phi0:             "[input]",
-            self.pos.L:                p.POS_ELEC_THICKNESS.sample(),
-            self.pos.eps_n:            p.POS_ELEC_POROSITY.sample(),
-            self.pos.cmax:             p.POS_CSN_MAX.sample(),
-
-            self.pos.ocp:              p.POS_OCP,
-            self.pos.D:                p.POS_DIFFUSION.sample(),
-            self.pos.R:                p.PARTICLE_RADIUS.sample(),
-        })
-
-        BIND_VALUES(parameters, {
-            self.neg.c0:               "[input]",
-            self.neg.phi0:             "[input]",
-            self.neg.L:                p.NEG_ELEC_THICKNESS.sample(),
-            self.neg.eps_n:            p.NEG_ELEC_POROSITY.sample(),
-            self.neg.cmax:             p.NEG_CSN_MAX.sample(),
-
-            self.neg.ocp:              p.NEG_OCP2,
-            self.neg.D:                p.NEG_DIFFUSION.sample(),
-            self.neg.R:                p.PARTICLE_RADIUS.sample(),
-            self.neg.sei0:             "[input]",
-        })
-
-        self.pos.c0.set_value(p.POS_CSN_INITIAL.sample()) 
-        self.neg.c0.set_value(p.NEG_CSN_INITIAL.sample()) 
-        self.pos.phi0.set_value(p.POS_OCP(self.pos.c0.value / self.pos.cmax.value))
-        self.neg.phi0.set_value(p.NEG_OCP(self.neg.c0.value / self.neg.cmax.value))

@@ -1,6 +1,7 @@
 import pybamm
 import consts as c
 from params import POS_OCP
+import params as p
 from src.single_particle import SingleParticle
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 
@@ -52,6 +53,22 @@ class Cathode(SingleParticle):
                 self.phi, 
             ]
         )
+
+    def attach_parameters(self, parameters: dict):
+        BIND_VALUES(parameters, {
+            self.c0:               "[input]",
+            self.phi0:             "[input]",
+            self.L:                p.POS_ELEC_THICKNESS.sample(),
+            self.eps_n:            p.POS_ELEC_POROSITY.sample(),
+            self.cmax:             p.POS_CSN_MAX.sample(),
+
+            self.ocp:              p.POS_OCP,
+            self.D:                p.POS_DIFFUSION.sample(),
+            self.R:                p.PARTICLE_RADIUS.sample(),
+        })
+
+        self.c0.set_value(p.POS_CSN_INITIAL.sample()) 
+        self.phi0.set_value(p.POS_OCP(self.c0.value / self.cmax.value))
 
 if __name__ == '__main__':
     import params as p
