@@ -175,13 +175,13 @@ class Pack:
                     
                     ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
                     ## 2) Store discharge capacity in sep capacity_dict
-                    terminate = self.__update_pack_state(inps, solution, cap_data, i, state)
+                    cap_cut = self.__update_pack_state(inps, solution, cap_data, i, state)
                     
                     executor.submit(self.__cycle_dump, cycle_data, i, state)
                     if (state == 0):
                         executor.submit(self.__cap_dump, cap_data, i)
 
-                    if (terminate):
+                    if (cap_cut):
                         break
 
                     cycle_data = {col: [] for col in cycle_columns}

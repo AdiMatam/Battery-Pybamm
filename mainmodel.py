@@ -4,7 +4,7 @@ from consts import THEORETICAL_CAPACITY
 # ------------------
 NUM_SERIES = 2
 NUM_PARALLEL = 2
-NUM_CYCLES = 2
+NUM_CYCLES = 10
 
 ### disable this flag and use I_INPUT to directly apply desired current
 USE_C_RATE = True
@@ -29,7 +29,7 @@ TIME_PTS = 100
 DISCRETE_PTS = 30
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "EXAMPLE"
+EXPERIMENT = "EXAMPLE2"
 
 #--------------------
 
