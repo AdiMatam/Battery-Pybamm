@@ -19,6 +19,11 @@ class Pack:
         2: 'CV-charge'
     }
 
+    class CapStruct:
+        def __init__(self, reference, current):
+            self.reference = reference
+            self.current = current
+
 
     def __init__(self, experiment: str, parallel, series,
         model:pybamm.BaseModel, geo:dict, parameters:dict
@@ -77,10 +82,11 @@ class Pack:
             self.iappt = crate_or_current
             self.c_rate = self.iappt / (THEORETICAL_CAPACITY * self.parallel)
 
-    def set_cutoffs(self, voltage_window: tuple, current_cut, capacity_cut):
+    def set_cutoffs(self, voltage_window: tuple, current_cut, capacity_cut, capacity_cut_count):
         self.voltage_window = voltage_window
         self.current_cut = current_cut
         self.capacity_cut = capacity_cut
+        self.capacity_cut_count = capacity_cut_count
 
     
     # ------------
@@ -146,7 +152,7 @@ class Pack:
         ## insert at front
         cycle_columns = ['Time (s)', 'Global Time (s)'] + outputs
         cycle_data = {col: [] for col in cycle_columns}
-        cap_data = {cell.name: [0,0] for cell in self.flat_cells}
+        cap_data = {cell.name: self.CapStruct(0,0) for cell in self.flat_cells}
 
         self.__create_dataframe_files(cycle_columns, cap_data.keys())
 
@@ -181,7 +187,7 @@ class Pack:
                     if (state == 0):
                         executor.submit(self.__cap_dump, cap_data, i)
 
-                    if (cap_cut):
+                    if (cap_cut >= self.capacity_cut_count):
                         break
 
                     cycle_data = {col: [] for col in cycle_columns}
@@ -209,8 +215,8 @@ class Pack:
     def __cap_dump(self, data, i: int):
         with open(f"data/{self.experiment}/capacities.csv", mode='a') as f:
             f.write(str(i+1))
-            for caps in data.values():
-                f.write(f",{str(caps[1])}")
+            for cap in data.values():
+                f.write(f",{str(cap.current)}")
             f.write('\n')
 
     def __create_dataframe_files(self, cycle_columns, cell_names):
@@ -265,19 +271,19 @@ class Pack:
                 }
             )
             if (state == 0):
-                cap_data[cell.name][1] = solution[cell.capacity.name].entries[-1] 
+                cap_data[cell.name].current = solution[cell.capacity.name].entries[-1] 
                 if (i == 1):
                     ## store reference capacity at index 0
-                    cap_data[cell.name][0] = solution[cell.capacity.name].entries[-1] 
+                    cap_data[cell.name].reference = solution[cell.capacity.name].entries[-1] 
 
                 elif (i > 1):
                     ## degradation check
-                    cur = cap_data[cell.name][1]
-                    orig = cap_data[cell.name][0]
+                    cur = cap_data[cell.name].current
+                    ref = cap_data[cell.name].reference
 
-                    if (cur <= orig*self.capacity_cut):
-                        print(f"Capacity cut triggered: {cell.name}")
-                        a = 1
+                    if (cur <= ref*self.capacity_cut):
+                        print(f"{cell.name} capacity of {cur} below {self.capacity_cut*100}% threshold")
+                        a += 1
 
         return a
         
