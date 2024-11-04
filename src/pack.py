@@ -19,12 +19,6 @@ class Pack:
         2: 'CV-charge'
     }
 
-    class CapStruct:
-        def __init__(self, reference, current):
-            self.reference = reference
-            self.current = current
-
-
     def __init__(self, experiment: str, parallel, series,
         model:pybamm.BaseModel, geo:dict, parameters:dict
     ):
@@ -156,7 +150,7 @@ class Pack:
         # cap_data = {"Pack Capacity": 0}
         # cap_data.update( {cell.name: 0 for cell in self.flat_cells} )
 
-        self.__create_dataframe_files(cycle_columns, ["Pack Capacity"] + [c.name for c in self.flat_cells])
+        self.__create_dataframe_files(cycle_columns, ["Pack Capacity"] + [c.name for c in self.cells[0]])
 
         prev_time = 0
         state = 0
@@ -218,8 +212,12 @@ class Pack:
         with open(f"data/{self.experiment}/capacities.csv", mode='a') as f:
             f.write(str(i+1))
             f.write(f",{self.capacity_value}")
-            for cell in self.flat_cells:
+
+            ## Only need to look at the first row of cells (first cell in each parallel branch)
+            ## Each cell in a branch will have the same 'real' capacity (same current integrated over time)
+            for cell in self.cells[0]:
                 f.write(f",{cell.capacity_value}")
+
             f.write('\n')
 
     def __create_dataframe_files(self, cycle_columns, cell_names):
@@ -247,7 +245,7 @@ class Pack:
         )
         
         for cell in self.flat_cells:
-            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
+            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage])
             BIND_VALUES(inps, 
                 {
                     cell.pos.c0: cell.pos.c0.value,
@@ -285,26 +283,13 @@ class Pack:
             if (self.capacity_value <= self.capacity_ref*self.capacity_cut):
                 print(f"Pack capacity of {self.capacity_value} below {self.capacity_cut*100}% threshold")
                 return True
-
-                # if (i == 1):
-                    # ## store reference capacity at index 0
-                    # cap_data[cell.name].reference = solution[cell.capacity.name].entries[-1] 
-
-                # elif (i > 1):
-                    # ## degradation check
-                    # cur = cap_data[cell.name].current
-                    # ref = cap_data[cell.name].reference
-
-                    # if (cur <= ref*self.capacity_cut):
-                        # print(f"{cell.name} capacity of {cur} below {self.capacity_cut*100}% threshold")
-                        # a += 1
         
         return False
 
     def __compute_pack_capacity(self):
         cap = 0
         for col in range(self.parallel):
-            cap += min(self.cells[:,col], key=lambda x: x.capacity_value).capacity_value
+            cap += self.cells[0,col].capacity_value
 
         return cap
         

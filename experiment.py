@@ -79,7 +79,7 @@ class Experiment:
         plt.legend()
         plt.show()
 
-    def plot_capacities(self, cycles=[], cells=[]):
+    def plot_capacities(self, cycles=[], strings=[]):
         cyc = self.caps.index
         cap_data = self.caps
         if len(cycles) != 0:
@@ -87,12 +87,8 @@ class Experiment:
             cap_data = self.caps.loc[cycles]
 
         cell_list = self.caps.columns
-        if type(cells) is np.ndarray:
-            # 'cells' looks like self.pack.cells[IND: IND]
-            cell_list = [cell.name for cell in cells.flatten()]
-
-        elif type(cells) is Cell:
-            cell_list = [cells.name]
+        if len(strings) != 0:
+            cell_list = [self.pack.cells[0,i] for i in strings]
 
         fig, ax = plt.subplots()
 

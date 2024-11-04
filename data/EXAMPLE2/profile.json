@@ -1,6 +1,6 @@
 {
     "Experiment": "EXAMPLE2",
-    "Parallel": 2,
+    "Parallel": 5,
     "Series": 2,
     "Temperature": 298,
     "Voltage Window": [
@@ -8,9 +8,9 @@
         8.2
     ],
     "C-rate": 1.0,
-    "I-app": 54.52767323623,
+    "I-app": 136.319183090575,
     "I-app Cut Factor": 0.1,
-    "Cycles": 10,
+    "Cycles": 50,
     "Parameter Variations": {
         "Cathode Diffusion": "(1e-14, Uniform: 0.000%)",
         "Cathode Max Concentration": "(51555, Uniform: 0.000%)",

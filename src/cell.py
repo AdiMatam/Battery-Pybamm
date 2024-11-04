@@ -6,7 +6,7 @@ import params as p
 
 class Cell:
     CELLS = list()
-    def __init__(self, name: str,iapp: pybamm.Variable, charging: pybamm.Parameter,
+    def __init__(self, name: str,iapp: pybamm.Variable, charging: pybamm.Parameter, 
             model: pybamm.BaseModel, geo:dict, parameters:dict
     ):
 

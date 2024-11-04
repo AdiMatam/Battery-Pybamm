@@ -34,4 +34,4 @@ squarepack.reset()
 
 
 ## (MIGHT WORK? STILL PENDING DEBUG) READING DISCHARGE CAPACITY DATA
-squarepack.plot_capacities(cycles=[1] + list(range(10, PACK.cycles, 20)), cells=PACK.cells[3:, :])
+squarepack.plot_capacities(cycles=[1] + list(range(10, PACK.cycles, 20)), strings=[0,1])

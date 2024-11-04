@@ -3,8 +3,8 @@ from consts import THEORETICAL_CAPACITY
 ### CHANGE SIMULATION PROFILE / OPERATING CONDITIONS HERE
 # ------------------
 NUM_SERIES = 2
-NUM_PARALLEL = 2
-NUM_CYCLES = 10
+NUM_PARALLEL = 5
+NUM_CYCLES = 50
 
 ### disable this flag and use I_INPUT to directly apply desired current
 USE_C_RATE = True
