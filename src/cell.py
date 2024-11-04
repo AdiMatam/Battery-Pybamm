@@ -38,6 +38,8 @@ class Cell:
             self.capacity: 0
         })
 
+        self.capacity_value = 0
+
         self.pos.process_model(model)
         self.neg.process_model(model, charging)
 

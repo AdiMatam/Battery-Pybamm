@@ -20,7 +20,6 @@ VOLTAGE_WINDOW = (
 
 CURRENT_CUT_FACTOR = 1/10
 CAPACITY_CUT_FACTOR = 0.95
-CAPACITY_CUT_COUNTER = 5
 
 ## Meshing and Discretization Parameters
 ### Change 'hours' for lower/higher simulation runtime cutoff
@@ -51,7 +50,7 @@ if USE_C_RATE:
       pack.set_charge_protocol(NUM_CYCLES, C_RATE, use_c_rate=True)
 else:
       pack.set_charge_protocol(NUM_CYCLES, I_INPUT, use_c_rate=False)
-pack.set_cutoffs(VOLTAGE_WINDOW, CURRENT_CUT_FACTOR, CAPACITY_CUT_FACTOR, CAPACITY_CUT_COUNTER)
+pack.set_cutoffs(VOLTAGE_WINDOW, CURRENT_CUT_FACTOR, CAPACITY_CUT_FACTOR)
 
 pack.export_profile()
 

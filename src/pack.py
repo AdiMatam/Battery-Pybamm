@@ -55,6 +55,8 @@ class Pack:
         self.charging = pybamm.Parameter("Pack Charging?")
         self.ilock = pybamm.Parameter("Current Lock")
 
+        self.refcap = 0
+
         BIND_VALUES(parameters, 
             {
                 self.ilock: "[input]",
@@ -82,11 +84,10 @@ class Pack:
             self.iappt = crate_or_current
             self.c_rate = self.iappt / (THEORETICAL_CAPACITY * self.parallel)
 
-    def set_cutoffs(self, voltage_window: tuple, current_cut, capacity_cut, capacity_cut_count):
+    def set_cutoffs(self, voltage_window: tuple, current_cut, capacity_cut):
         self.voltage_window = voltage_window
         self.current_cut = current_cut
         self.capacity_cut = capacity_cut
-        self.capacity_cut_count = capacity_cut_count
 
     
     # ------------
@@ -152,9 +153,10 @@ class Pack:
         ## insert at front
         cycle_columns = ['Time (s)', 'Global Time (s)'] + outputs
         cycle_data = {col: [] for col in cycle_columns}
-        cap_data = {cell.name: self.CapStruct(0,0) for cell in self.flat_cells}
+        # cap_data = {"Pack Capacity": 0}
+        # cap_data.update( {cell.name: 0 for cell in self.flat_cells} )
 
-        self.__create_dataframe_files(cycle_columns, cap_data.keys())
+        self.__create_dataframe_files(cycle_columns, ["Pack Capacity"] + [c.name for c in self.flat_cells])
 
         prev_time = 0
         state = 0
@@ -181,13 +183,13 @@ class Pack:
                     
                     ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
                     ## 2) Store discharge capacity in sep capacity_dict
-                    cap_cut = self.__update_pack_state(inps, solution, cap_data, i, state)
+                    capcut = self.__update_pack_state(inps, solution, i, state)
                     
                     executor.submit(self.__cycle_dump, cycle_data, i, state)
                     if (state == 0):
-                        executor.submit(self.__cap_dump, cap_data, i)
+                        executor.submit(self.__cap_dump, i)
 
-                    if (cap_cut >= self.capacity_cut_count):
+                    if (capcut):
                         break
 
                     cycle_data = {col: [] for col in cycle_columns}
@@ -212,11 +214,12 @@ class Pack:
         print(subdf)
         subdf.to_csv(f"data/{self.experiment}/data.csv", mode='a', header=False, index=True)
 
-    def __cap_dump(self, data, i: int):
+    def __cap_dump(self, i: int):
         with open(f"data/{self.experiment}/capacities.csv", mode='a') as f:
             f.write(str(i+1))
-            for cap in data.values():
-                f.write(f",{str(cap.current)}")
+            f.write(f",{self.capacity_value}")
+            for cell in self.flat_cells:
+                f.write(f",{cell.capacity_value}")
             f.write('\n')
 
     def __create_dataframe_files(self, cycle_columns, cell_names):
@@ -258,8 +261,7 @@ class Pack:
         return outputs
 
 
-    def __update_pack_state(self, inps: dict, solution: pybamm.Solution, cap_data: dict, i: int, state: int):
-        a = 0
+    def __update_pack_state(self, inps: dict, solution: pybamm.Solution, i: int, state: int):
         for cell in self.flat_cells:
             BIND_VALUES(inps, 
                 {
@@ -271,21 +273,40 @@ class Pack:
                 }
             )
             if (state == 0):
-                cap_data[cell.name].current = solution[cell.capacity.name].entries[-1] 
-                if (i == 1):
-                    ## store reference capacity at index 0
-                    cap_data[cell.name].reference = solution[cell.capacity.name].entries[-1] 
+                cell.capacity_value = solution[cell.capacity.name].entries[-1]
 
-                elif (i > 1):
-                    ## degradation check
-                    cur = cap_data[cell.name].current
-                    ref = cap_data[cell.name].reference
+        self.capacity_value = self.__compute_pack_capacity()
+        if (i == 1):
+            ## store reference capacities
+            self.capacity_ref = self.capacity_value
 
-                    if (cur <= ref*self.capacity_cut):
-                        print(f"{cell.name} capacity of {cur} below {self.capacity_cut*100}% threshold")
-                        a += 1
+        elif (i > 1):
+            ## degradation check
+            if (self.capacity_value <= self.capacity_ref*self.capacity_cut):
+                print(f"Pack capacity of {self.capacity_value} below {self.capacity_cut*100}% threshold")
+                return True
 
-        return a
+                # if (i == 1):
+                    # ## store reference capacity at index 0
+                    # cap_data[cell.name].reference = solution[cell.capacity.name].entries[-1] 
+
+                # elif (i > 1):
+                    # ## degradation check
+                    # cur = cap_data[cell.name].current
+                    # ref = cap_data[cell.name].reference
+
+                    # if (cur <= ref*self.capacity_cut):
+                        # print(f"{cell.name} capacity of {cur} below {self.capacity_cut*100}% threshold")
+                        # a += 1
+        
+        return False
+
+    def __compute_pack_capacity(self):
+        cap = 0
+        for col in range(self.parallel):
+            cap += min(self.cells[:,col], key=lambda x: x.capacity_value).capacity_value
+
+        return cap
         
     def __next_protocol(self, inps: dict, state: int):
         # CC charge up next
@@ -369,15 +390,6 @@ class Pack:
             pybamm.Event("Max Voltage Cutoff", (self.voltage_window[1] - self.voltage)*self.cc_mode + 1*self.cv_mode),
             pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - min_current),
         ]
-
-        # for cell in self.flat_cells:
-            # self.model.events.extend([
-                # pybamm.Event(f"{cell.name} Min Anode Concentration Cutoff", cell.neg.surf_c - 10),
-                # pybamm.Event(f"{cell.name} Max Cathode Concentration Cutoff", cell.pos.cmax - cell.pos.surf_c),
-
-                # pybamm.Event(f"{cell.name} Max Anode Concentration Cutoff", cell.neg.cmax - cell.neg.surf_c),
-            # ])
-
 
 
 if __name__ == '__main__':
