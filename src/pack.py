@@ -205,7 +205,6 @@ class Pack:
     def __cycle_dump(self, data: dict, i: int, state: int):
         subdf = pd.DataFrame(data)
         subdf = pd.concat({(i+1, Pack.STATEMAP[state]): subdf})
-        print(subdf)
         subdf.to_csv(f"data/{self.experiment}/data.csv", mode='a', header=False, index=True)
 
     def __cap_dump(self, i: int):

@@ -2,8 +2,8 @@ from consts import THEORETICAL_CAPACITY
 
 ### CHANGE SIMULATION PROFILE / OPERATING CONDITIONS HERE
 # ------------------
-NUM_SERIES = 2
-NUM_PARALLEL = 5
+NUM_SERIES = 1
+NUM_PARALLEL = 1
 NUM_CYCLES = 50
 
 ### disable this flag and use I_INPUT to directly apply desired current
@@ -15,7 +15,7 @@ I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
 VOLTAGE_WINDOW = (
       2.5 * NUM_SERIES,
-      4.1 * NUM_SERIES
+      4.0 * NUM_SERIES
 )
 
 CURRENT_CUT_FACTOR = 1/10
@@ -29,7 +29,7 @@ TIME_PTS = 100
 DISCRETE_PTS = 30
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "EXAMPLE2"
+EXPERIMENT = "Case3_1C"
 
 #--------------------
 
@@ -55,5 +55,9 @@ pack.set_cutoffs(VOLTAGE_WINDOW, CURRENT_CUT_FACTOR, CAPACITY_CUT_FACTOR)
 pack.export_profile()
 
 pack.build(DISCRETE_PTS)
-pack.cycler(HOURS, TIME_PTS)
+
+print(model.rhs.keys())
+print(model.algebraic.keys())
+
+# pack.cycler(HOURS, TIME_PTS)
 

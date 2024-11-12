@@ -6,13 +6,13 @@ POS_DIFFUSION       = Variator.from_percent("Cathode Diffusion",       1.0e-14, 
 POS_CSN_MAX         = Variator.from_percent("Cathode Max Concentration", 51555,     0)  
 POS_CSN_INITIAL     = Variator.from_percent("Cathode Initial SOC",      51555*0.5,  0)
 POS_ELEC_THICKNESS  = Variator.from_percent("Cathode Thickness",        80e-6,      0)
-POS_ELEC_POROSITY   = Variator.from_percent("Cathode Porosity",         0.385,      3)   
+POS_ELEC_POROSITY   = Variator.from_percent("Cathode Porosity",         0.385,      0)   
 
 NEG_DIFFUSION       = Variator.from_percent("Anode Diffusion",          2.0e-14,    0)
 NEG_CSN_MAX         = Variator.from_percent("Anode Max Concentration",  30555,      0)   
 NEG_CSN_INITIAL     = Variator.from_percent("Anode Initial SOC",       30555*0.74,  0)
 NEG_ELEC_THICKNESS  = Variator.from_percent("Anode Thickness",          88e-6,      0)
-NEG_ELEC_POROSITY   = Variator.from_percent("Anode Porosity",           0.485,      3)
+NEG_ELEC_POROSITY   = Variator.from_percent("Anode Porosity",           0.485,      0)
 
 PARTICLE_RADIUS     = Variator.from_percent("Particle Radius",          2e-06,      0)
 
