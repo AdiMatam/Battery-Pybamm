@@ -47,6 +47,7 @@ class Pack:
         self.cv_mode = pybamm.Parameter("CV Mode")
         self.cc_mode = pybamm.Negate(self.cv_mode - 1)
         self.charging = pybamm.Parameter("Pack Charging?")
+        self.discharging = pybamm.Negate(self.charging - 1)
         self.ilock = pybamm.Parameter("Current Lock")
 
         self.refcap = 0
@@ -161,8 +162,7 @@ class Pack:
                 while i < self.cycles:
                     solution = solver.solve(self.model, time_steps, inputs=inps)
 
-                    print(f"{i}) {solution.termination}")
-                    print(f"Completed cycle {i+1}, {Pack.STATEMAP[state]}")                
+                    print(f"Completed cycle {i+1}, {Pack.STATEMAP[state]} -- HIT {solution.termination}")                
 
                     cycle_data['Time (s)'] = solution.t
                     cycle_data['Global Time (s)'] = solution.t + prev_time
@@ -370,9 +370,9 @@ class Pack:
         min_current = self.iappt * self.current_cut
 
         self.model.events += [
-            pybamm.Event("Min Voltage Cutoff", self.voltage - self.voltage_window[0]),
-            pybamm.Event("Max Voltage Cutoff", (self.voltage_window[1] - self.voltage)*self.cc_mode + 1*self.cv_mode),
-            pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - min_current),
+            pybamm.Event("Min Voltage Cutoff", (self.voltage - self.voltage_window[0])*self.discharging + 1*self.charging),
+            pybamm.Event("Max Voltage Cutoff", ((self.voltage_window[1] - self.voltage)*self.cc_mode + 1*self.cv_mode)*self.charging + 1*self.discharging),
+            pybamm.Event("Min Current Cutoff", (pybamm.AbsoluteValue(self.i_total) - min_current)*self.charging + 1*self.discharging),
         ]
 
 
