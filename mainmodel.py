@@ -2,20 +2,20 @@ from consts import THEORETICAL_CAPACITY
 
 ### CHANGE SIMULATION PROFILE / OPERATING CONDITIONS HERE
 # ------------------
-NUM_SERIES = 2
+NUM_SERIES = 1
 NUM_PARALLEL = 1
 NUM_CYCLES = 100
 
 ### disable this flag and use I_INPUT to directly apply desired current
 USE_C_RATE = True
-C_RATE = 0.1
+C_RATE = 1.0
 BASE_CURRENT = THEORETICAL_CAPACITY * C_RATE
 I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
 
 VOLTAGE_WINDOW = (
-      3.0 * NUM_SERIES,
-      4.2 * NUM_SERIES
+      2.5 * NUM_SERIES,
+      4.0 * NUM_SERIES
 )
 
 CURRENT_CUT_FACTOR = 1/10
@@ -24,12 +24,12 @@ CAPACITY_CUT_FACTOR = 0.95
 ## Meshing and Discretization Parameters
 ### Change 'hours' for lower/higher simulation runtime cutoff
 ### Change 'time_pts' for more/fewer time outputs
-HOURS = (1./C_RATE) * 1.5 
+HOURS = (1./C_RATE) * 2.0 
 TIME_PTS = 100
 DISCRETE_PTS = 30
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "2by1_(3-4.2)_SLOW"
+EXPERIMENT = "2by1_(2.5-4.0)_1c"
 
 #--------------------
 
