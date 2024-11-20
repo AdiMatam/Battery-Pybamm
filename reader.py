@@ -8,13 +8,16 @@ PACK = squarepack.get_pack()
 print(squarepack)
 
 ## DATA FILTERING, SELECTION
+### Selection of cycles and/or protocols. Both lists are OPTIONAL .
+### If you do not provide cycles= or protocols=, it will automatically include all 
+###      Protocols can be [CC_CHARGE, CV_CHARGE, DISCHARGE]
 
-### Selection of cycles and/or protocols. Both lists are OPTIONAL 
 ### Corresponds to rows in the experiment/data.csv
 squarepack.select_cycles(
     cycles=[1, 5], 
     protocols=[CC_CHARGE]
 )
+
 
 ### Selection of cell attributes (columns)
 ### Uses 'fuzzy' regex searching -- so searching for ['SEI'] will choose ALL columns with SEI in the name
@@ -25,6 +28,9 @@ squarepack.select_attributes(["SEI"])
 ### isolate_cycles =True:  Plot data for EACH cycle as separate line with respect to "local time"
 ###                =False: Plot data with respect to "global time" (no delineation by cycle #)
 squarepack.plotter(isolate_cycles=True)
+
+
+######################### SEE ABOVE THIS
 
 ### To get the dataframe. Modifications can be made outside for those well-versed in pandas...
 df = squarepack.get_data()
