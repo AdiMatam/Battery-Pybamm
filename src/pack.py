@@ -146,7 +146,7 @@ class Pack:
         outputs = self.__setup_initialization_and_outputs(inps)
 
         ## insert at front
-        cycle_columns = ['Time (s)', 'Global Time (s)'] + outputs
+        cycle_columns = ['Time', 'Global Time'] + outputs
         cycle_data = {col: [] for col in cycle_columns}
         # cap_data = {"Pack Capacity": 0}
         # cap_data.update( {cell.name: 0 for cell in self.flat_cells} )
