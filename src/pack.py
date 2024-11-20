@@ -159,13 +159,14 @@ class Pack:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             try:
+                futures = []
                 while i < self.cycles:
                     solution = solver.solve(self.model, time_steps, inputs=inps)
 
                     print(f"Completed cycle {i+1}, {Pack.STATEMAP[state]} -- HIT {solution.termination}")                
 
-                    cycle_data['Time (s)'] = solution.t
-                    cycle_data['Global Time (s)'] = solution.t + prev_time
+                    cycle_data['Time'] = solution.t
+                    cycle_data['Global Time'] = solution.t + prev_time
                     prev_time += solution.t[-1]
 
                     ## KEYS ARE SOLVED VARIABLES
@@ -175,13 +176,18 @@ class Pack:
                             data = data[-1]
                         cycle_data[var].extend(data)
                     
+                    if len(futures) != 0: 
+                        concurrent.futures.wait(futures)
+                        futures.clear()
+
                     ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
                     ## 2) Store discharge capacity in sep capacity_dict
                     capcut = self.__update_pack_state(inps, solution, i, state)
+                    #print(cycle_data)
                     
-                    executor.submit(self.__cycle_dump, cycle_data, i, state)
+                    futures.append(executor.submit(self.__cycle_dump, cycle_data, i, state))
                     if (state == 0):
-                        executor.submit(self.__cap_dump, i)
+                        futures.append(executor.submit(self.__cap_dump, i))
 
                     if (capcut):
                         break

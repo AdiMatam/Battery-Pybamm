@@ -2,9 +2,9 @@ from consts import THEORETICAL_CAPACITY
 
 ### CHANGE SIMULATION PROFILE / OPERATING CONDITIONS HERE
 # ------------------
-NUM_SERIES = 5
-NUM_PARALLEL = 5
-NUM_CYCLES = 500
+NUM_SERIES = 1
+NUM_PARALLEL = 1
+NUM_CYCLES = 30
 
 ### disable this flag and use I_INPUT to directly apply desired current
 USE_C_RATE = True
@@ -14,8 +14,8 @@ I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
 
 VOLTAGE_WINDOW = (
-      2.5 * NUM_SERIES,
-      4.0 * NUM_SERIES
+      3.0 * NUM_SERIES,
+      4.2 * NUM_SERIES
 )
 
 CURRENT_CUT_FACTOR = 1/10
@@ -26,10 +26,10 @@ CAPACITY_CUT_FACTOR = 0.80
 ### Change 'time_pts' for more/fewer time outputs
 HOURS = (1./C_RATE) * 2.0 
 TIME_PTS = 100
-DISCRETE_PTS = 30
+DISCRETE_PTS = 50
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "5by5_1.0C"
+EXPERIMENT = "Single_1.0C_3.0V"
 
 #--------------------
 
