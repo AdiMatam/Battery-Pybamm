@@ -192,6 +192,7 @@ class Pack:
                         futures.append(executor.submit(self.__cap_dump, i))
 
                     if (capcut):
+                        print(f"Pack capacity of {self.capacity_value} below {self.capacity_cut*100}% threshold")
                         break
 
                     cycle_data = {col: [] for col in cycle_columns}
@@ -289,7 +290,6 @@ class Pack:
         elif (i > 1):
             ## degradation check
             if (self.capacity_value <= self.capacity_ref*self.capacity_cut):
-                print(f"Pack capacity of {self.capacity_value} below {self.capacity_cut*100}% threshold")
                 return True
         
         return False
