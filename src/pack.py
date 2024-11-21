@@ -87,7 +87,7 @@ class Pack:
     
     # ------------
 
-    def export_profile(self):
+    def export_profile(self, i):
         data = {
             'Experiment': self.experiment,
             'Parallel': self.parallel,
@@ -97,7 +97,8 @@ class Pack:
             "C-rate": self.c_rate,
             'I-app': self.iappt,
             'I-app Cut Factor': self.current_cut,
-            'Cycles': self.cycles,
+            'Capacity Cut Factor': self.capacity_cut,
+            'Cycles': f"{i}/{self.cycles}",
         }
 
         data.update(Variator.JSON())
@@ -139,7 +140,10 @@ class Pack:
 
 
     def cycler(self, hours, time_pts):
-        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-8, dt_max=1e-10, root_method='casadi', extra_options_setup={"max_num_steps": 1000000}, return_solution_if_failed_early=True)
+        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-6, dt_max=1e-10, max_step_decrease_count=10,
+                    root_method='casadi', extra_options_setup={"max_num_steps": 1000000}, 
+                    return_solution_if_failed_early=True)
+
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
         inps = {}
@@ -148,8 +152,6 @@ class Pack:
         ## insert at front
         cycle_columns = ['Time', 'Global Time'] + outputs
         cycle_data = {col: [] for col in cycle_columns}
-        # cap_data = {"Pack Capacity": 0}
-        # cap_data.update( {cell.name: 0 for cell in self.flat_cells} )
 
         self.__create_dataframe_files(cycle_columns, ["Pack Capacity"] + [c.name for c in self.cells[0]])
 
@@ -201,6 +203,7 @@ class Pack:
             except Exception as e:
                 print(traceback.format_exc())
                 print (f"FAILED AT CYCLE # {i+1}. Dumping collected data so far")
+                self.export_profile(i)
                 self.cycles = i
 
             finally:

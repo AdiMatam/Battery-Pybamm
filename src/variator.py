@@ -1,7 +1,15 @@
 import random
 
+def clamper(val, low, high):
+    if val < low:
+        return low
+    elif val > high:
+        return high
+    return val
+
 class Variator:
     ALL = []    
+    OVERRIDE = False
 
 
     def __init__(self, name: str, mean_value: float, func, string: str):
@@ -24,14 +32,16 @@ class Variator:
         return cls(name, mean, func, f"Gaussian: {percent:.3f}% stddev")
 
     @classmethod
-    def from_gaussian_stddev(cls, name: str, mean: float, stddev: float):
-        func = lambda: random.gauss(mean, stddev)
+    def from_gaussian_stddev(cls, name: str, mean: float, stddev: float, clamp: float):
+        func = lambda: clamper(random.gauss(mean, stddev), mean-clamp, mean+clamp)
         return cls(name, mean, func, f"Gaussian: {stddev:.3f} stddev")
 
     def __str__(self):
         return self.string
 
     def sample(self):
+        if self.OVERRIDE:
+            return self.mean_value
         return self.func()
 
     def get_mean_value(self):

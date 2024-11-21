@@ -2,9 +2,9 @@ from consts import THEORETICAL_CAPACITY
 
 ### CHANGE SIMULATION PROFILE / OPERATING CONDITIONS HERE
 # ------------------
-NUM_SERIES = 1
-NUM_PARALLEL = 1
-NUM_CYCLES = 30
+NUM_SERIES = 5
+NUM_PARALLEL = 5
+NUM_CYCLES = 500
 
 ### disable this flag and use I_INPUT to directly apply desired current
 USE_C_RATE = True
@@ -14,7 +14,7 @@ I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
 
 VOLTAGE_WINDOW = (
-      3.0 * NUM_SERIES,
+      2.8 * NUM_SERIES,
       4.2 * NUM_SERIES
 )
 
@@ -26,10 +26,10 @@ CAPACITY_CUT_FACTOR = 0.80
 ### Change 'time_pts' for more/fewer time outputs
 HOURS = (1./C_RATE) * 2.0 
 TIME_PTS = 100
-DISCRETE_PTS = 50
+DISCRETE_PTS = 100
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "Single_1.0C_3.0V"
+EXPERIMENT = "5by5_1C_2.8V"
 
 #--------------------
 
@@ -51,8 +51,6 @@ if USE_C_RATE:
 else:
       pack.set_charge_protocol(NUM_CYCLES, I_INPUT, use_c_rate=False)
 pack.set_cutoffs(VOLTAGE_WINDOW, CURRENT_CUT_FACTOR, CAPACITY_CUT_FACTOR)
-
-pack.export_profile()
 
 pack.build(DISCRETE_PTS)
 pack.cycler(HOURS, TIME_PTS)
