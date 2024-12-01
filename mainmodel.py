@@ -2,20 +2,20 @@ from consts import THEORETICAL_CAPACITY
 
 ### CHANGE SIMULATION PROFILE / OPERATING CONDITIONS HERE
 # ------------------
-NUM_SERIES = 5
-NUM_PARALLEL = 5
-NUM_CYCLES = 500
+NUM_SERIES = 1
+NUM_PARALLEL = 1
+NUM_CYCLES = 300
 
 ### disable this flag and use I_INPUT to directly apply desired current
 USE_C_RATE = True
-C_RATE = 1.0
+C_RATE = 0.1
 BASE_CURRENT = THEORETICAL_CAPACITY * C_RATE
 I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
 
 VOLTAGE_WINDOW = (
-      2.8 * NUM_SERIES,
-      4.2 * NUM_SERIES
+      2.5 * NUM_SERIES,
+      4.0 * NUM_SERIES
 )
 
 CURRENT_CUT_FACTOR = 1/10
@@ -29,7 +29,7 @@ TIME_PTS = 100
 DISCRETE_PTS = 100
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "5by5_1C_2.8V"
+EXPERIMENT = "Single_0.1C_2.5"
 
 #--------------------
 

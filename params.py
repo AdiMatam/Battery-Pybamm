@@ -1,7 +1,7 @@
 from math import exp
 from src.variator import Variator
 
-# Variator.OVERRIDE = True
+Variator.OVERRIDE = True
 
 ## .from_percent(value, % variation)
 POS_DIFFUSION       = Variator.from_percent("Cathode Diffusion",       1.0e-14,     0)

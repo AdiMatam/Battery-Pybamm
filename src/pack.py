@@ -204,10 +204,10 @@ class Pack:
             except Exception as e:
                 print(traceback.format_exc())
                 print (f"FAILED AT CYCLE # {i+1}. Dumping collected data so far")
-                self.export_profile(i)
-                self.cycles = i
 
             finally:
+                self.cycles = i
+                self.export_profile(i)
                 with open(f"data/{self.experiment}/model.pkl", 'wb') as f:
                     pickle.dump(self, f)
 
