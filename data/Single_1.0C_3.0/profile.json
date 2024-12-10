@@ -1,0 +1,28 @@
+{
+    "Experiment": "Single_1.0C_3.0",
+    "Parallel": 1,
+    "Series": 1,
+    "Temperature": 298,
+    "Voltage Window": [
+        3.0,
+        4.2
+    ],
+    "C-rate": 1.0,
+    "I-app": 27.263836618115,
+    "I-app Cut Factor": 0.1,
+    "Capacity Cut Factor": 0.8,
+    "Cycles": "300/300",
+    "Parameter Variations": {
+        "Cathode Diffusion": "(1e-14, Uniform: 0.000%)",
+        "Cathode Max Concentration": "(51555, Uniform: 0.000%)",
+        "Cathode Initial SOC": "(25777.5, Uniform: 0.000%)",
+        "Cathode Thickness": "(8e-05, Uniform: 0.000%)",
+        "Cathode Porosity": "(0.385, Gaussian: 0.010 stddev)",
+        "Anode Diffusion": "(2e-14, Uniform: 0.000%)",
+        "Anode Max Concentration": "(30555, Uniform: 0.000%)",
+        "Anode Initial SOC": "(22610.7, Uniform: 0.000%)",
+        "Anode Thickness": "(8.8e-05, Uniform: 0.000%)",
+        "Anode Porosity": "(0.485, Gaussian: 0.010 stddev)",
+        "Particle Radius": "(2e-06, Uniform: 0.000%)"
+    }
+}

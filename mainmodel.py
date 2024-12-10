@@ -14,8 +14,8 @@ I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
 
 VOLTAGE_WINDOW = (
-      2.5 * NUM_SERIES,
-      4.0 * NUM_SERIES
+      3.0 * NUM_SERIES,
+      4.2 * NUM_SERIES
 )
 
 CURRENT_CUT_FACTOR = 1/10
@@ -29,7 +29,7 @@ TIME_PTS = 100
 DISCRETE_PTS = 100
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "Single_0.1C_2.5"
+EXPERIMENT = "Single_0.1C_3.0_simpler"
 
 #--------------------
 

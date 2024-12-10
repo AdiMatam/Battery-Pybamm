@@ -16,7 +16,6 @@ class SingleParticle:
         self.cmax = WrappedParameter(name + " pMax Concentration")
         self.D = WrappedParameter(name + " pDiffusion Coefficient")
         self.R = WrappedParameter(name + " pParticle Radius")
-        self.phi0 = WrappedParameter(name + " pInitial Potential")
 
         self.iapp = iapp
 

@@ -43,12 +43,11 @@ class Cell:
         self.pos.process_model(model)
         self.neg.process_model(model, charging)
 
-        self.pos.attach_parameters(parameters)
-        self.neg.attach_parameters(parameters)
-        # self.__attach_parameters(parameters)
-        
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)
+
+        self.pos.attach_parameters(parameters)
+        self.neg.attach_parameters(parameters)
 
         model.variables.update({
             self.voltage.name: self.vvolt,

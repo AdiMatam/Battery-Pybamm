@@ -63,8 +63,7 @@ class Anode(SingleParticle):
 
         model.initial_conditions.update({
             self.c: self.c0,
-            # self.phi: NEG_OCP(self.c0 / self.cmax),
-            self.phi: self.phi0,
+            self.phi: self.OCP_INIT,
             self.i_sei: 1e-8,
             self.i_int: 1e-2,
             self.sei_L: self.sei0,
@@ -79,9 +78,11 @@ class Anode(SingleParticle):
         })
 
         # model.variables.update{}
+        model.variables.update({
+            self.c.name: pybamm.PrimaryBroadcast(self.surf_c, self.domain),
+        })
         SET_MODEL_VARS(model,
             [
-                self.c, 
                 self.phi, 
                 self.i_int, 
                 self.i_sei,
@@ -92,7 +93,6 @@ class Anode(SingleParticle):
     def attach_parameters(self, parameters: dict):
         BIND_VALUES(parameters, {
             self.c0:               "[input]",
-            self.phi0:             "[input]",
             self.L:                p.NEG_ELEC_THICKNESS.sample(),
             self.eps_n:            p.NEG_ELEC_POROSITY.sample(),
             self.cmax:             p.NEG_CSN_MAX.sample(),
@@ -104,7 +104,6 @@ class Anode(SingleParticle):
         })
 
         self.c0.set_value(p.NEG_CSN_INITIAL.sample()) 
-        self.phi0.set_value(p.NEG_OCP(self.c0.value / self.cmax.value))
 
 if __name__ == '__main__':
     import params as p

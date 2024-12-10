@@ -50,8 +50,6 @@ class Pack:
         self.discharging = pybamm.Negate(self.charging - 1)
         self.ilock = pybamm.Parameter("Current Lock")
 
-        self.refcap = 0
-
         BIND_VALUES(parameters, 
             {
                 self.ilock: "[input]",
@@ -254,13 +252,11 @@ class Pack:
         )
         
         for cell in self.flat_cells:
-            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage])
+            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.neg.i_sei, cell.neg.i_int])
             BIND_VALUES(inps, 
                 {
                     cell.pos.c0: cell.pos.c0.value,
                     cell.neg.c0: cell.neg.c0.value,
-                    cell.pos.phi0: cell.pos.phi0.value,
-                    cell.neg.phi0: cell.neg.phi0.value,
                     cell.neg.sei0: 5.e-9,
                 }
             )
@@ -274,8 +270,6 @@ class Pack:
                 {
                     cell.pos.c0: solution[cell.pos.c.name].entries[-1][-1],
                     cell.neg.c0: solution[cell.neg.c.name].entries[-1][-1],
-                    cell.pos.phi0: solution[cell.pos.phi.name].entries[-1],
-                    cell.neg.phi0: solution[cell.neg.phi.name].entries[-1],
                     cell.neg.sei0: solution[cell.neg.sei_L.name].entries[-1],
                 }
             )

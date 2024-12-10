@@ -35,8 +35,7 @@ class Cathode(SingleParticle):
 
         model.initial_conditions.update({
             self.c: self.c0,
-            #self.phi: POS_OCP(self.c0.value / self.cmax.value) #Cathode.OCP_INIT,
-            self.phi: self.phi0
+            self.phi: self.OCP_INIT
         }) 
 
         model.boundary_conditions.update({
@@ -47,17 +46,14 @@ class Cathode(SingleParticle):
         })
 
         # model.variables.update{}
-        SET_MODEL_VARS(model,
-            [
-                self.c, 
-                self.phi, 
-            ]
-        )
+        model.variables.update({
+            self.c.name: pybamm.PrimaryBroadcast(self.surf_c, self.domain),
+            self.phi.name: self.phi
+        })
 
     def attach_parameters(self, parameters: dict):
         BIND_VALUES(parameters, {
             self.c0:               "[input]",
-            self.phi0:             "[input]",
             self.L:                p.POS_ELEC_THICKNESS.sample(),
             self.eps_n:            p.POS_ELEC_POROSITY.sample(),
             self.cmax:             p.POS_CSN_MAX.sample(),
@@ -68,7 +64,6 @@ class Cathode(SingleParticle):
         })
 
         self.c0.set_value(p.POS_CSN_INITIAL.sample()) 
-        self.phi0.set_value(p.POS_OCP(self.c0.value / self.cmax.value))
 
 if __name__ == '__main__':
     import params as p
