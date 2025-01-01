@@ -3,12 +3,13 @@ import consts as cc
 from consts import SET_MODEL_VARS, SET_OUTPUTS, BIND_VALUES
 from params import NEG_OCP
 from src.single_particle import SingleParticle
+from src.wrapped_parameter import WrappedParameter
 import params as p
 
 #pybamm.set_logging_level("DEBUG")
 
 class Anode(SingleParticle): 
-    OCP_INIT = 0.08352811644995728
+    OCP_INIT = 0.09280796340471076
 
     def __init__(self, name: str, iapp: pybamm.Variable):
 
@@ -17,16 +18,12 @@ class Anode(SingleParticle):
         self.i_sei = pybamm.Variable(name + " Side Current")
         self.i_int = pybamm.Variable(name + " Intercalation Current")
         self.sei_L = pybamm.Variable(name + " SEI Length")
-        self.sei0 = pybamm.Parameter(name + " Initial SEI Length")
+        self.sei0 = WrappedParameter(name + " Initial SEI Length")
 
     def process_model(self, model: pybamm.BaseModel, charging):
         flux = self.D * -pybamm.grad(self.c)
         # dc/dt = d^2c/dr^2
         dcdt = -pybamm.div(flux)
-
-        ## see params.py
-        # self.eps_n <- NEG_ELEC_POROSITY
-        # self.L     <- NEG_ELEC_THICKNESS
 
         KSEI = 5.0e-6
         M_SEI = 0.162
@@ -34,7 +31,7 @@ class Anode(SingleParticle):
         KINT = 2.07e-11
 
         ## -- SEI START -- 
-        dLdt = (-self.i_sei / (2*cc.F)) * (M_SEI / RHO_SEI)
+        dLdt = p.AGING*(-self.i_sei / (2*cc.F)) * (M_SEI / RHO_SEI)
 
         # solve the ODEs -- diffusion equation (del * del(c))
         model.rhs.update({
@@ -48,7 +45,7 @@ class Anode(SingleParticle):
         ## SEE PAPER
         kfs = 1.36e-12 #* 10
         cec_init = 0.05 * 4541
-        is_rhs = charging * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
+        is_rhs = p.AGING * charging * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
 
         j0 = cc.F * KINT * self.surf_c**0.5 * (self.cmax - self.surf_c)**0.5 
 
@@ -59,12 +56,14 @@ class Anode(SingleParticle):
             self.phi: j0 * 2*pybamm.sinh(x) - self.i_int,
             self.i_sei: is_rhs - self.i_sei,
             self.i_int: -self.i_int - self.i_sei + self.j
+            #self.phi: j0 * 2 * pybamm.sinh(x) - self.j,
+
         })
 
         model.initial_conditions.update({
             self.c: self.c0,
             self.phi: self.OCP_INIT,
-            self.i_sei: 1e-8,
+            self.i_sei: 0,
             self.i_int: 1e-2,
             self.sei_L: self.sei0,
         }) 
@@ -74,6 +73,7 @@ class Anode(SingleParticle):
             self.c: {
                 "left":  (0, "Neumann"),
                 "right": (-self.i_int / (cc.F * self.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
+                #"right": (-self.j / (cc.F * self.D), "Neumann") # outer boundary condition (dc/dr behavior @r=R)
             },
         })
 
@@ -104,6 +104,7 @@ class Anode(SingleParticle):
         })
 
         self.c0.set_value(p.NEG_CSN_INITIAL.sample()) 
+        self.sei0.set_value(p.SEI_INITIAL.sample()) 
 
 if __name__ == '__main__':
     import params as p

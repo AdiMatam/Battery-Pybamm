@@ -7,7 +7,7 @@ from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 
 
 class Cathode(SingleParticle):
-    OCP_INIT = 4.08138601219583
+    OCP_INIT = 4.234963004675769
 
     def __init__(self, name: str, 
             iapp: pybamm.Variable):

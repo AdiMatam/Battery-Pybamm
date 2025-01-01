@@ -154,6 +154,7 @@ class Pack:
         self.__create_dataframe_files(cycle_columns, ["Pack Capacity"] + [c.name for c in self.cells[0]])
 
         prev_time = 0
+        prev_cycle_time = 0
         state = 0
         i = 0
 
@@ -165,8 +166,9 @@ class Pack:
 
                     print(f"Completed cycle {i+1}, {Pack.STATEMAP[state]} -- HIT {solution.termination}")                
 
-                    cycle_data['Time'] = solution.t
+                    cycle_data['Time'] = solution.t + prev_cycle_time
                     cycle_data['Global Time'] = solution.t + prev_time
+                    prev_cycle_time += solution.t[-1]
                     prev_time += solution.t[-1]
 
                     ## KEYS ARE SOLVED VARIABLES
@@ -197,6 +199,7 @@ class Pack:
 
                     state = self.__next_protocol(inps, state)
                     if (state == 0):
+                        prev_cycle_time = 0
                         i += 1
                     
             except Exception as e:
@@ -253,11 +256,12 @@ class Pack:
         
         for cell in self.flat_cells:
             SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.neg.i_sei, cell.neg.i_int])
+            # SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage])
             BIND_VALUES(inps, 
                 {
                     cell.pos.c0: cell.pos.c0.value,
                     cell.neg.c0: cell.neg.c0.value,
-                    cell.neg.sei0: 5.e-9,
+                    cell.neg.sei0: cell.neg.sei0.value, # 0 #5.e-9,
                 }
             )
 

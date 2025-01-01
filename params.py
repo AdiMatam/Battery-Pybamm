@@ -2,6 +2,7 @@ from math import exp
 from src.variator import Variator
 
 Variator.OVERRIDE = True
+AGING = False
 
 ## .from_percent(value, % variation)
 POS_DIFFUSION       = Variator.from_percent("Cathode Diffusion",       1.0e-14,     0)
@@ -15,6 +16,8 @@ NEG_CSN_MAX         = Variator.from_percent("Anode Max Concentration",  30555,  
 NEG_CSN_INITIAL     = Variator.from_percent("Anode Initial SOC",       30555*0.74,  0)
 NEG_ELEC_THICKNESS  = Variator.from_percent("Anode Thickness",          88e-6,      0)
 NEG_ELEC_POROSITY   = Variator.from_gaussian_stddev("Anode Porosity",   0.485,      0.01, 0.02)
+
+SEI_INITIAL         = Variator.from_percent("SEI Thickness Init",       5e-9,      0)
 
 PARTICLE_RADIUS     = Variator.from_percent("Particle Radius",          2e-06,      0)
 
@@ -44,5 +47,5 @@ def POS_OCP(sto):
 
 
 if __name__ == '__main__':
-    for _ in range(10):
-        print(POS_ELEC_POROSITY.sample())
+    print(POS_OCP(POS_CSN_INITIAL.get_mean_value() / POS_CSN_MAX.get_mean_value()))
+    print(NEG_OCP2(NEG_CSN_INITIAL.get_mean_value() / NEG_CSN_MAX.get_mean_value()))

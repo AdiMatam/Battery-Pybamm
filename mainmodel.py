@@ -8,7 +8,7 @@ NUM_CYCLES = 300
 
 ### disable this flag and use I_INPUT to directly apply desired current
 USE_C_RATE = True
-C_RATE = 0.1
+C_RATE = 1.0
 BASE_CURRENT = THEORETICAL_CAPACITY * C_RATE
 I_INPUT = BASE_CURRENT * NUM_PARALLEL
 
@@ -29,7 +29,7 @@ TIME_PTS = 100
 DISCRETE_PTS = 100
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "Single_0.1C_3.0_simpler"
+EXPERIMENT = "Single_1.0C_3.0_300noage"
 
 #--------------------
 

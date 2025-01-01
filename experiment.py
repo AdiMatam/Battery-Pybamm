@@ -64,7 +64,7 @@ class Experiment:
         def plot_columns(data, t, label_prefix=''):
             """Helper function to plot columns."""
             for col in data.columns.drop(['Time', 'Global Time']):
-                label = f'{label_prefix}{col}' if label_prefix else col
+                label = f'{label_prefix}{col}'
                 plt.plot(data[t], data[col], label=label)
         
         if isolate_cycles:
@@ -76,8 +76,6 @@ class Experiment:
             plot_columns(self.data, t)
 
         plt.xlabel(t)
-        plt.legend()
-        plt.show()
 
     def plot_capacities(self, cycles=[], strings=[]):
         cyc = self.caps.index
