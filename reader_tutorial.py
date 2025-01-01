@@ -1,7 +1,7 @@
 from experiment import Experiment, CHARGE, CC_CHARGE, CV_CHARGE, DISCHARGE
 
-## LOADING AN EXPERIMENT (folder name within data/)
-squarepack = Experiment("5by5_100cycles_const")
+## LOADING AN EXPERIMENT 
+squarepack = Experiment("../data/5by5_100cycles_const")
 PACK = squarepack.get_pack()
 
 ## PRINTS THE `PROFILE.JSON` as string (operating condition data)

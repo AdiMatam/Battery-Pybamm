@@ -138,7 +138,7 @@ class Pack:
 
 
     def cycler(self, hours, time_pts):
-        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-6, dt_max=1e-10, max_step_decrease_count=10,
+        solver = pybamm.CasadiSolver(atol=1e-8, rtol=1e-7, root_tol=1e-8, dt_max=1e-12, max_step_decrease_count=15,
                     root_method='casadi', extra_options_setup={"max_num_steps": 1000000}, 
                     return_solution_if_failed_early=True)
 

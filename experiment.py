@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 import json
 from src.pack import Pack
 from src.cell import Cell
-import sys
 import os
+import sys
 import pickle
 
 DISCHARGE = "CC-discharge"
@@ -77,7 +77,7 @@ class Experiment:
 
         plt.xlabel(t)
 
-    def plot_capacities(self, cycles=[], strings=[]):
+    def plot_capacities(self, cycles=[], strings=[], label_prefix=''):
         cyc = self.caps.index
         cap_data = self.caps
         if len(cycles) != 0:
@@ -86,30 +86,33 @@ class Experiment:
 
         cell_list = self.caps.columns
         if len(strings) != 0:
-            cell_list = [self.pack.cells[0,i] for i in strings]
-
-        fig, ax = plt.subplots()
+            # cell_list = [self.pack.cells[0,i] for i in strings]
+            cell_list = []
+            for i in strings:
+                if i.lower() == 'pack':
+                    cell_list.append("Pack Capacity")
+                else:
+                    cell_list.append(self.pack.cells[0,i])
+                
+        # fig, ax = plt.subplots()
 
         # Plot data with a legend
         for column in cell_list:
-            ax.scatter(cyc, cap_data[column], label=column)
+            plt.scatter(cyc, cap_data[column], label=f'{label_prefix}_{column}')
 
         # Customize labels and title
-        ax.set_xlabel('Cycle #')
-        ax.set_ylabel('Discharge Capacity (A/m2)')
-        ax.set_title('Discharge Capacity by Cycle #')
+        plt.xlabel('Cycle #')
+        plt.ylabel('Discharge Capacity (A/m2)')
+        plt.title('Discharge Capacity by Cycle #')
 
-        # Move the legend (just annoying configuration)
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0 + box.height * 0.2,
-                        box.width, box.height * 0.8])
+        # # Move the legend (just annoying configuration)
+        # box = ax.get_position()
+        # ax.set_position([box.x0, box.y0 + box.height * 0.2,
+        #                 box.width, box.height * 0.8])
 
-        ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.4), 
-                ncol=self.pack.series, fancybox=True, shadow=True)
+        # ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.4), 
+        #         ncol=self.pack.series, fancybox=True, shadow=True)
 
-        # Add grid and show plot
-        ax.grid()
-        plt.show()
 
     def get_capacities(self) -> pd.DataFrame:
         return self.caps

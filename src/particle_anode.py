@@ -31,7 +31,7 @@ class Anode(SingleParticle):
         KINT = 2.07e-11
 
         ## -- SEI START -- 
-        dLdt = p.AGING*(-self.i_sei / (2*cc.F)) * (M_SEI / RHO_SEI)
+        dLdt = (-self.i_sei / (2*cc.F)) * (M_SEI / RHO_SEI)
 
         # solve the ODEs -- diffusion equation (del * del(c))
         model.rhs.update({
@@ -43,9 +43,9 @@ class Anode(SingleParticle):
         x = cc.F / (2 * cc.R_GAS * cc.T) * (self.phi - self.ocp - (self.sei_L/KSEI)*self.j)
 
         ## SEE PAPER
-        kfs = 1.36e-12 #* 10
+        kfs = p.AGING * 1.36e-12 #* 10
         cec_init = 0.05 * 4541
-        is_rhs = p.AGING * charging * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
+        is_rhs = charging * -cc.F*kfs*cec_init * pybamm.exp( (-0.5*cc.F)/(cc.R_GAS*cc.T) * (self.phi - (self.sei_L/KSEI)*self.j) ) 
 
         j0 = cc.F * KINT * self.surf_c**0.5 * (self.cmax - self.surf_c)**0.5 
 

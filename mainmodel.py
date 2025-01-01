@@ -4,7 +4,7 @@ from consts import THEORETICAL_CAPACITY
 # ------------------
 NUM_SERIES = 1
 NUM_PARALLEL = 1
-NUM_CYCLES = 300
+NUM_CYCLES = 100
 
 ### disable this flag and use I_INPUT to directly apply desired current
 USE_C_RATE = True
@@ -19,7 +19,7 @@ VOLTAGE_WINDOW = (
 )
 
 CURRENT_CUT_FACTOR = 1/10
-CAPACITY_CUT_FACTOR = 0.80
+CAPACITY_CUT_FACTOR = 0.50
 
 ## Meshing and Discretization Parameters
 ### Change 'hours' for lower/higher simulation runtime cutoff
@@ -29,7 +29,7 @@ TIME_PTS = 100
 DISCRETE_PTS = 100
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "Single_1.0C_3.0_300noage"
+EXPERIMENT = "S_1.0C_100_noage"
 
 #--------------------
 

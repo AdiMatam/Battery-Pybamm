@@ -17,7 +17,7 @@ NEG_CSN_INITIAL     = Variator.from_percent("Anode Initial SOC",       30555*0.7
 NEG_ELEC_THICKNESS  = Variator.from_percent("Anode Thickness",          88e-6,      0)
 NEG_ELEC_POROSITY   = Variator.from_gaussian_stddev("Anode Porosity",   0.485,      0.01, 0.02)
 
-SEI_INITIAL         = Variator.from_percent("SEI Thickness Init",       5e-9,      0)
+SEI_INITIAL         = Variator.from_percent("SEI Thickness Init",       AGING*5e-9,      0)
 
 PARTICLE_RADIUS     = Variator.from_percent("Particle Radius",          2e-06,      0)
 
