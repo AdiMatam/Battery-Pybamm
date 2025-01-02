@@ -191,9 +191,9 @@ class Pack:
                     if (state == 0):
                         futures.append(executor.submit(self.__cap_dump, i))
 
-                    if (capcut):
-                        print(f"Pack capacity of {self.capacity_value} below {self.capacity_cut*100}% threshold")
-                        break
+                    # if (capcut):
+                    #     print(f"Pack capacity of {self.capacity_value} below {self.capacity_cut*100}% threshold")
+                    #     break
 
                     cycle_data = {col: [] for col in cycle_columns}
 
@@ -221,7 +221,7 @@ class Pack:
     def __cap_dump(self, i: int):
         with open(f"data/{self.experiment}/capacities.csv", mode='a') as f:
             f.write(str(i+1))
-            f.write(f",{self.capacity_value}")
+            # f.write(f",{self.capacity_value}")
 
             ## Only need to look at the first row of cells (first cell in each parallel branch)
             ## Each cell in a branch will have the same 'real' capacity (same current integrated over time)
@@ -255,13 +255,14 @@ class Pack:
         )
         
         for cell in self.flat_cells:
-            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.neg.i_sei, cell.neg.i_int])
+            # SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.neg.i_sei, cell.neg.i_int])
+            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.voltage, cell.capacity])
             # SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage])
             BIND_VALUES(inps, 
                 {
                     cell.pos.c0: cell.pos.c0.value,
                     cell.neg.c0: cell.neg.c0.value,
-                    cell.neg.sei0: cell.neg.sei0.value, # 0 #5.e-9,
+                    # cell.neg.sei0: cell.neg.sei0.value, # 0 #5.e-9,
                 }
             )
 
@@ -274,23 +275,25 @@ class Pack:
                 {
                     cell.pos.c0: solution[cell.pos.c.name].entries[-1][-1],
                     cell.neg.c0: solution[cell.neg.c.name].entries[-1][-1],
-                    cell.neg.sei0: solution[cell.neg.sei_L.name].entries[-1],
+                    # cell.neg.sei0: solution[cell.neg.sei_L.name].entries[-1],
                 }
             )
             if (state == 0):
                 cell.capacity_value = solution[cell.capacity.name].entries[-1]
 
-        self.capacity_value = self.__compute_pack_capacity()
-        if (i == 1):
-            ## store reference capacities
-            self.capacity_ref = self.capacity_value
-
-        elif (i > 1):
-            ## degradation check
-            if (self.capacity_value <= self.capacity_ref*self.capacity_cut):
-                return True
-        
         return False
+
+        # self.capacity_value = self.__compute_pack_capacity()
+        # if (i == 1):
+        #     ## store reference capacities
+        #     self.capacity_ref = self.capacity_value
+
+        # elif (i > 1):
+        #     ## degradation check
+        #     if (self.capacity_value <= self.capacity_ref*self.capacity_cut):
+        #         return True
+        
+        # return False
 
     def __compute_pack_capacity(self):
         cap = 0
@@ -314,8 +317,9 @@ class Pack:
         elif (state == 1):
             BIND_VALUES(inps, 
                 {
+                    # self.ilock: -self.iappt,
                     self.charging: 1,
-                    self.cv_mode: 1 
+                    self.cv_mode: 1
                 }
             )
 

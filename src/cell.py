@@ -23,7 +23,7 @@ class Cell:
         self.neg = Anode(name + " Anode", iapp)
 
         ## cell-level 'reference' to sei length 
-        self.sei = self.neg.sei_L
+        # self.sei = self.neg.sei_L
 
         self.voltage = pybamm.Variable(name + " Voltage")
         self.vvolt = self.pos.phi - self.neg.phi

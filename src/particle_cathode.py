@@ -47,7 +47,7 @@ class Cathode(SingleParticle):
 
         # model.variables.update{}
         model.variables.update({
-            self.c.name: pybamm.PrimaryBroadcast(self.surf_c, self.domain),
+            self.c.name: self.c, # pybamm.PrimaryBroadcast(self.surf_c, self.domain),
             self.phi.name: self.phi
         })
 
