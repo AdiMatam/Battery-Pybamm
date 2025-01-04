@@ -10,8 +10,8 @@ class Cell:
             model: pybamm.BaseModel, geo:dict, parameters:dict
     ):
 
-        if name in self.CELLS:
-            raise ValueError("Must have unique cell names/IDs")
+        # if name in self.CELLS:
+        #     raise ValueError("Must have unique cell names/IDs")
 
         self.CELLS.append(name)
         self.name = name

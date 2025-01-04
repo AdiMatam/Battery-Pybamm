@@ -19,9 +19,7 @@ class Pack:
         2: 'CV-charge'
     }
 
-    def __init__(self, experiment: str, parallel, series,
-        model:pybamm.BaseModel, geo:dict, parameters:dict
-    ):
+    def __init__(self, experiment: str, parallel, series):
 
         self.experiment = experiment
         if os.path.exists(f"data/{self.experiment}"):
@@ -35,9 +33,9 @@ class Pack:
         self.series = series
         self.temperature = T
 
-        self.model = model
-        self.geo = geo
-        self.parameters = parameters
+        # self.model = model
+        # self.geo = geo
+        # self.parameters = parameters
         self.i_total = pybamm.Variable("Pack Current")
 
         self.iapps = [
@@ -50,22 +48,8 @@ class Pack:
         self.discharging = pybamm.Negate(self.charging - 1)
         self.ilock = pybamm.Parameter("Current Lock")
 
-        BIND_VALUES(parameters, 
-            {
-                self.ilock: "[input]",
-                self.charging: "[input]",
-                # self.cv_mode: "[input]"
-            }
-        )
 
-        self.shape = (series, parallel)
-
-        cells = np.empty(self.shape, dtype=Cell)
-        for i in range(series):
-            for j in range(parallel):
-                cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", self.iapps[j], self.charging, model, geo, parameters)
-
-        self.cells = cells
+        self.shape = (self.series, self.parallel)
 
 
     def set_charge_protocol(self, cycles, crate_or_current, use_c_rate=True):
@@ -107,8 +91,8 @@ class Pack:
 
     def build(self, discrete_pts):
         
-        self.__setupDAE()
-        self.__IC_and_StopC()
+        # self.__setupDAE(cc=True)
+        # self.__IC_and_StopC()
 
         self.param_ob = pybamm.ParameterValues(self.parameters)
         self.param_ob.process_model(self.model)
@@ -134,14 +118,13 @@ class Pack:
         disc = pybamm.Discretisation(mesh, 
             { p.domain: pybamm.FiniteVolume() for p in particles }
         )
-        disc.process_model(self.model)
-
-
-    def cycler(self, hours, time_pts):
-        solver = pybamm.CasadiSolver(atol=1e-8, rtol=1e-7, root_tol=1e-8, dt_max=1e-12, max_step_decrease_count=15,
+        self.model = disc.process_model(self.model, inplace=False)
+        self.solver = pybamm.CasadiSolver(atol=1e-8, rtol=1e-7, root_tol=1e-8, dt_max=1e-12, max_step_decrease_count=15,
                     root_method='casadi', extra_options_setup={"max_num_steps": 1000000}, 
                     return_solution_if_failed_early=True)
 
+
+    def cycler(self, hours, time_pts):
         time_steps = np.linspace(0, 3600 * hours, time_pts)
         
         inps = {}
@@ -162,7 +145,7 @@ class Pack:
             try:
                 futures = []
                 while i < self.cycles:
-                    solution = solver.solve(self.model, time_steps, inputs=inps)
+                    solution = self.solver.solve(self.model, time_steps, inputs=inps)
 
                     print(f"Completed cycle {i+1}, {Pack.STATEMAP[state]} -- HIT {solution.termination}")                
 
@@ -242,7 +225,31 @@ class Pack:
         ).to_csv(f"data/{self.experiment}/capacities.csv", index=True)
     
 
+    def __reconstruct(self):
+        self.model = pybamm.BaseModel()
+        self.geo = {}
+        self.parameters = {}
+
+        BIND_VALUES(self.parameters, 
+            {
+                self.ilock: "[input]",
+                self.charging: "[input]",
+                # self.cv_mode: "[input]"
+            }
+        )
+
+        cells = np.empty(self.shape, dtype=Cell)
+        for i in range(self.series):
+            for j in range(self.parallel):
+                cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", self.iapps[j], self.charging, self.model, self.geo, self.parameters)
+
+        self.cells = cells
+        self.flat_cells = self.cells.flatten()
+
     def __setup_initialization_and_outputs(self, inps: dict):
+
+        self.__reconstruct()
+
         outputs = ["Pack Voltage", "Pack Current"]
         SET_OUTPUTS(outputs, self.iapps)
 
@@ -265,6 +272,10 @@ class Pack:
                     # cell.neg.sei0: cell.neg.sei0.value, # 0 #5.e-9,
                 }
             )
+
+        self.__setupDAE(cc=True)
+        self.__IC_and_StopC()
+        self.build(100)
 
         return outputs
 
@@ -312,44 +323,63 @@ class Pack:
                     # self.cv_mode: 0 
                 }
             )
+            # REDISCRETIZATION
+            self.__reconstruct()
+            self.__setupDAE(cc=True)
+            self.__IC_and_StopC()
+            self.build(100)
+
 
         # CV charge up next
         elif (state == 1):
             BIND_VALUES(inps, 
                 {
-                    self.ilock: -self.iappt,
-                    self.charging: 0,
+                    self.ilock: self.iappt,
+                    self.charging: 1,
                     # self.cv_mode: 0
                 }
             )
+            self.__reconstruct()
+            self.__setupDAE(cc=False)
+            self.__IC_and_StopC()
+            self.build(100)
 
         # Discharge next
-        # else:
-        #     BIND_VALUES(inps, 
-        #         {
-        #             self.ilock: -self.iappt,
-        #             self.charging: 0,
-        #             self.cv_mode: 0 
-        #         }
+        else:
+            BIND_VALUES(inps, 
+                {
+                    self.ilock: -self.iappt,
+                    self.charging: 0,
+                    # self.cv_mode: 0 
+                }
+            )
+            # REDISCRETIZATION
+            self.__reconstruct()
+            self.__setupDAE(cc=True)
+            self.__IC_and_StopC()
+            self.build(100)
 
-        #     )
-    
-        nstate = (state + 1) % 2
+        nstate = (state + 1) % 3
 
         return nstate
 
 
 
-    def __setupDAE(self):
+    def __setupDAE(self, cc=True):
         self.voltage = 0
         for i in range(self.series):
             self.voltage += self.cells[i, 0].vvolt
 
         # cutoffs[1] (max V-cut is effectively the vlock)
         # 'boolean algebra' to switch state from CC <-> CV
-        self.model.algebraic.update({
-            self.i_total: self.ilock - self.i_total
-        })
+        if cc:
+            self.model.algebraic.update({
+                self.i_total: self.ilock - self.i_total
+            })
+        else:
+            self.model.algebraic.update({
+                self.i_total: (self.voltage_window[1] - self.voltage)
+            })
 
         self.model.algebraic.update({
             self.iapps[0]: self.i_total - sum(self.iapps),
@@ -364,8 +394,18 @@ class Pack:
 
             #expr = cells[0, i].vvolt - cells[0, i-1].vvolt
             self.model.algebraic[self.iapps[i]] = vbalance #expr
-    
 
+        if cc:
+            self.model.events = [
+                pybamm.Event("Min Voltage Cutoff", (self.voltage - self.voltage_window[0])*self.discharging + 1*self.charging),
+                pybamm.Event("Max Voltage Cutoff", (self.voltage_window[1] - self.voltage)*self.charging + 1*self.discharging),
+            ]
+        else:
+            min_current = self.iappt * self.current_cut
+            self.model.events = [
+                pybamm.Event("Min Current Cutoff", (pybamm.AbsoluteValue(self.i_total) - min_current)*self.charging + 1*self.discharging),
+            ]  
+    
     def __IC_and_StopC(self):
         self.model.initial_conditions.update({
             self.i_total: self.ilock
@@ -375,15 +415,11 @@ class Pack:
             **{ self.iapps[i]: self.ilock / self.parallel for i in range(self.parallel) },
         })
 
-        self.flat_cells = self.cells.flatten()
-
-        min_current = self.iappt * self.current_cut
-
-        self.model.events += [
-            pybamm.Event("Min Voltage Cutoff", (self.voltage - self.voltage_window[0])*self.discharging + 1*self.charging),
-            pybamm.Event("Max Voltage Cutoff", (self.voltage_window[1] - self.voltage)*self.charging + 1*self.discharging),
-            # pybamm.Event("Min Current Cutoff", (pybamm.AbsoluteValue(self.i_total) - min_current)*self.charging + 1*self.discharging),
-        ]
+        # self.model.events += [
+        #     pybamm.Event("Min Voltage Cutoff", (self.voltage - self.voltage_window[0])*self.discharging + 1*self.charging),
+        #     pybamm.Event("Max Voltage Cutoff", (self.voltage_window[1] - self.voltage)*self.charging + 1*self.discharging),
+        #     # pybamm.Event("Min Current Cutoff", (pybamm.AbsoluteValue(self.i_total) - min_current)*self.charging + 1*self.discharging),
+        # ]
 
 
 if __name__ == '__main__':
