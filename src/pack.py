@@ -44,8 +44,8 @@ class Pack:
             pybamm.Variable(f"String {i+1} Iapp") for i in range(parallel)
         ]
 
-        self.cv_mode = pybamm.Parameter("CV Mode")
-        self.cc_mode = pybamm.Negate(self.cv_mode - 1)
+        # self.cv_mode = pybamm.Parameter("CV Mode")
+        # self.cc_mode = pybamm.Negate(self.cv_mode - 1)
         self.charging = pybamm.Parameter("Pack Charging?")
         self.discharging = pybamm.Negate(self.charging - 1)
         self.ilock = pybamm.Parameter("Current Lock")
@@ -54,7 +54,7 @@ class Pack:
             {
                 self.ilock: "[input]",
                 self.charging: "[input]",
-                self.cv_mode: "[input]"
+                # self.cv_mode: "[input]"
             }
         )
 
@@ -249,7 +249,7 @@ class Pack:
         BIND_VALUES(inps, 
             {
                 self.ilock: -self.iappt,
-                self.cv_mode: 0,
+                # self.cv_mode: 0,
                 self.charging: 0,
             }
         )
@@ -309,7 +309,7 @@ class Pack:
                 {
                     self.ilock: +self.iappt,
                     self.charging: 1,
-                    self.cv_mode: 0 
+                    # self.cv_mode: 0 
                 }
             )
 
@@ -317,24 +317,24 @@ class Pack:
         elif (state == 1):
             BIND_VALUES(inps, 
                 {
-                    # self.ilock: -self.iappt,
-                    self.charging: 1,
-                    self.cv_mode: 1
+                    self.ilock: -self.iappt,
+                    self.charging: 0,
+                    # self.cv_mode: 0
                 }
             )
 
         # Discharge next
-        else:
-            BIND_VALUES(inps, 
-                {
-                    self.ilock: -self.iappt,
-                    self.charging: 0,
-                    self.cv_mode: 0 
-                }
+        # else:
+        #     BIND_VALUES(inps, 
+        #         {
+        #             self.ilock: -self.iappt,
+        #             self.charging: 0,
+        #             self.cv_mode: 0 
+        #         }
 
-            )
+        #     )
     
-        nstate = (state + 1) % 3
+        nstate = (state + 1) % 2
 
         return nstate
 
@@ -348,8 +348,7 @@ class Pack:
         # cutoffs[1] (max V-cut is effectively the vlock)
         # 'boolean algebra' to switch state from CC <-> CV
         self.model.algebraic.update({
-            self.i_total: (self.ilock - self.i_total)*self.cc_mode + 
-            (self.voltage_window[1] - self.voltage)*self.cv_mode
+            self.i_total: self.ilock - self.i_total
         })
 
         self.model.algebraic.update({
@@ -382,8 +381,8 @@ class Pack:
 
         self.model.events += [
             pybamm.Event("Min Voltage Cutoff", (self.voltage - self.voltage_window[0])*self.discharging + 1*self.charging),
-            pybamm.Event("Max Voltage Cutoff", ((self.voltage_window[1] - self.voltage)*self.cc_mode + 1*self.cv_mode)*self.charging + 1*self.discharging),
-            pybamm.Event("Min Current Cutoff", (pybamm.AbsoluteValue(self.i_total) - min_current)*self.charging + 1*self.discharging),
+            pybamm.Event("Max Voltage Cutoff", (self.voltage_window[1] - self.voltage)*self.charging + 1*self.discharging),
+            # pybamm.Event("Min Current Cutoff", (pybamm.AbsoluteValue(self.i_total) - min_current)*self.charging + 1*self.discharging),
         ]
 
 

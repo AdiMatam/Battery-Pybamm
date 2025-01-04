@@ -3,18 +3,21 @@ from experiment import Experiment, CHARGE, CC_CHARGE, CV_CHARGE, DISCHARGE
 from matplotlib import pyplot as plt
 
 ## LOADING AN EXPERIMENT (folder name within data/)
-noaged = Experiment("../data/S_1.0C_100_noage")
-noaged.select_cycles(
-    cycles=[1] + list(range(10,100,10))
+cc = Experiment("../data/100_noage_cc")
+cc.select_cycles(
+    cycles=[10, 30, 50]
 )
-noaged.select_attributes(["Cathode.*?Concentration"])
+cc.select_attributes(["Capacity"])
 
-### Plot the CURRENT dataset (i.e. after all predecessing filters)
-### isolate_cycles =True:  Plot data for EACH cycle as separate line with respect to "local time"
-###                =False: Plot data with respect to "global time" (no delineation by cycle #)
-noaged.plotter(isolate_cycles=True)
+single = Experiment("../data/100_noage_cc_SINGLEMODE")
+single.select_cycles(
+    cycles=[10, 30, 50]
+)
+single.select_attributes(["Capacity"])
+
+cc.plotter(isolate_cycles=True)
+single.plotter(isolate_cycles=True)
 
 plt.legend()
-
 plt.grid(True)
 plt.show()

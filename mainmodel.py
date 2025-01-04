@@ -29,7 +29,7 @@ TIME_PTS = 100
 DISCRETE_PTS = 100
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "S_1.0C_100_noage_c25"
+EXPERIMENT = "100_noage_cc_SINGLEMODE"
 
 #--------------------
 
