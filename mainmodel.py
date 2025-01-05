@@ -29,7 +29,7 @@ TIME_PTS = 100
 DISCRETE_PTS = 100
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "100_noage_cccv_CONTEXTSW"
+EXPERIMENT = "100_noage_cccv_CONTEXTSW_CRAZY"
 
 #--------------------
 
@@ -41,16 +41,19 @@ import pybamm
 from src.pack import Pack
 pybamm.set_logging_level("WARNING")
 
-# model = pybamm.BaseModel()
-# geo = {}
-# parameters = {}
-
 pack = Pack(EXPERIMENT, NUM_PARALLEL, NUM_SERIES)
 if USE_C_RATE:
       pack.set_charge_protocol(NUM_CYCLES, C_RATE, use_c_rate=True)
 else:
       pack.set_charge_protocol(NUM_CYCLES, I_INPUT, use_c_rate=False)
 pack.set_cutoffs(VOLTAGE_WINDOW, CURRENT_CUT_FACTOR, CAPACITY_CUT_FACTOR)
+
+# pack.init()
+# pybamm.step.current(1, duration="1 hour", termination="2.5 V")
+# experiment = pybamm.Experiment([pybamm.step.current(I_INPUT, duration=f"{HOURS} hours", termination="3.0V")])
+# sim = pybamm.Simulation(pack.model, experiment=experiment)
+# sim.solve()
+# sim.plot()
 
 # pack.build(DISCRETE_PTS)
 pack.cycler(HOURS, TIME_PTS)

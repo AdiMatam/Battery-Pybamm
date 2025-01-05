@@ -30,7 +30,7 @@ class Experiment:
         self.profile_str =json.dumps(self.profile, indent=4)
 
         self.data = pd.read_csv(self.path+"data.csv", index_col=[0,1,2])
-        self.caps = pd.read_csv(self.path+"capacities.csv", index_col=0)
+        self.caps = 0 #pd.read_csv(self.path+"capacities.csv", index_col=0)
         self.CYCLE = self.data.index.get_level_values(0)
         self.PROTOCOL = self.data.index.get_level_values(1)
 

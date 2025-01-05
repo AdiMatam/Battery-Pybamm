@@ -118,11 +118,11 @@ class Pack:
         disc = pybamm.Discretisation(mesh, 
             { p.domain: pybamm.FiniteVolume() for p in particles }
         )
-        self.model = disc.process_model(self.model, inplace=False)
-        self.solver = pybamm.CasadiSolver(atol=1e-8, rtol=1e-7, root_tol=1e-8, dt_max=1e-12, max_step_decrease_count=15,
-                    root_method='casadi', extra_options_setup={"max_num_steps": 1000000}, 
-                    return_solution_if_failed_early=True)
+        disc.process_model(self.model)
 
+        self.solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-8, dt_max=1e-12, max_step_decrease_count=15,
+                    root_method='casadi')
+        # self.solver =pybamm.IDAKLUSolver(root_tol=1e-10)
 
     def cycler(self, hours, time_pts):
         time_steps = np.linspace(0, 3600 * hours, time_pts)
@@ -168,15 +168,10 @@ class Pack:
                     ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
                     ## 2) Store discharge capacity in sep capacity_dict
                     capcut = self.__update_pack_state(inps, solution, i, state)
-                    #print(cycle_data)
                     
                     futures.append(executor.submit(self.__cycle_dump, cycle_data, i, state))
                     if (state == 0):
                         futures.append(executor.submit(self.__cap_dump, i))
-
-                    # if (capcut):
-                    #     print(f"Pack capacity of {self.capacity_value} below {self.capacity_cut*100}% threshold")
-                    #     break
 
                     cycle_data = {col: [] for col in cycle_columns}
 
@@ -202,16 +197,17 @@ class Pack:
         subdf.to_csv(f"data/{self.experiment}/data.csv", mode='a', header=False, index=True)
 
     def __cap_dump(self, i: int):
-        with open(f"data/{self.experiment}/capacities.csv", mode='a') as f:
-            f.write(str(i+1))
-            # f.write(f",{self.capacity_value}")
+        pass
+        # with open(f"data/{self.experiment}/capacities.csv", mode='a') as f:
+        #     f.write(str(i+1))
+        #     # f.write(f",{self.capacity_value}")
 
-            ## Only need to look at the first row of cells (first cell in each parallel branch)
-            ## Each cell in a branch will have the same 'real' capacity (same current integrated over time)
-            for cell in self.cells[0]:
-                f.write(f",{cell.capacity_value}")
+        #     ## Only need to look at the first row of cells (first cell in each parallel branch)
+        #     ## Each cell in a branch will have the same 'real' capacity (same current integrated over time)
+        #     for cell in self.cells[0]:
+        #         f.write(f",{cell.capacity_value}")
 
-            f.write('\n')
+        #     f.write('\n')
 
     def __create_dataframe_files(self, cycle_columns, cell_names):
         pd.DataFrame(
@@ -219,10 +215,10 @@ class Pack:
             index=pd.MultiIndex.from_product([[], [], []], names=["Cycle", "Protocol", "Stamps"])
         ).to_csv(f"data/{self.experiment}/data.csv", index=True)
 
-        pd.DataFrame(
-            columns=cell_names,
-            index=pd.MultiIndex.from_product([[]], names=["Cycle"])
-        ).to_csv(f"data/{self.experiment}/capacities.csv", index=True)
+        # pd.DataFrame(
+        #     columns=cell_names,
+        #     index=pd.MultiIndex.from_product([[]], names=["Cycle"])
+        # ).to_csv(f"data/{self.experiment}/capacities.csv", index=True)
     
 
     def __reconstruct(self):
@@ -286,32 +282,10 @@ class Pack:
                 {
                     cell.pos.c0: solution[cell.pos.c.name].entries[-1][-1],
                     cell.neg.c0: solution[cell.neg.c.name].entries[-1][-1],
-                    # cell.neg.sei0: solution[cell.neg.sei_L.name].entries[-1],
                 }
             )
-            if (state == 0):
-                cell.capacity_value = solution[cell.capacity.name].entries[-1]
 
         return False
-
-        # self.capacity_value = self.__compute_pack_capacity()
-        # if (i == 1):
-        #     ## store reference capacities
-        #     self.capacity_ref = self.capacity_value
-
-        # elif (i > 1):
-        #     ## degradation check
-        #     if (self.capacity_value <= self.capacity_ref*self.capacity_cut):
-        #         return True
-        
-        # return False
-
-    def __compute_pack_capacity(self):
-        cap = 0
-        for col in range(self.parallel):
-            cap += self.cells[0,col].capacity_value
-
-        return cap
         
     def __next_protocol(self, inps: dict, state: int):
         # CC charge up next
