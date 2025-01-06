@@ -2,9 +2,8 @@ import pybamm
 import consts as c
 from params import POS_OCP
 import params as p
-from src.single_particle import SingleParticle
+from single_particle import SingleParticle
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
-
 
 class Cathode(SingleParticle):
     OCP_INIT = 4.234963004675769
@@ -19,13 +18,12 @@ class Cathode(SingleParticle):
         flux = self.D * -pybamm.grad(self.c)
         dcdt = -pybamm.div(flux)
 
-        KINT = 1.04e-11
-
         # solve the diffusion equation (del * del(c))
         model.rhs.update({
             self.c: dcdt,
         })
 
+        KINT = 1.04e-11
         x = c.F / (2 * c.R_GAS * c.T) * (self.phi - self.ocp)
         j0 = c.F * KINT * self.surf_c**0.5 * (self.cmax - self.surf_c)**0.5 
 
@@ -70,42 +68,36 @@ if __name__ == '__main__':
     import numpy as np
     import pandas as pd
 
-    HOURS = 2 
-    I_INPUT = 13.3
+    C_RATE = 1.0
+    I_INPUT = 27.263836618115 * C_RATE
+    HOURS = (1./C_RATE)
     DISCRETE_PTS = 100
     TIME_PTS = 100
 
-    geo = {}
     model = pybamm.BaseModel()
     iapp = pybamm.Parameter("Input Current") 
+    geo = {}
     parameters = {}
 
-    cc = Cathode("Cathode", iapp)
-    cc.process_model(model)
-    cc.process_geometry(geo)
+    cath = Cathode("Cathode", iapp)
+    cath.process_model(model)
+    cath.process_geometry(geo)
+    cath.attach_parameters(parameters)
 
     BIND_VALUES(parameters, {
-        iapp:               "[input]",
-        cc.c0:               "[input]",
-        cc.L:                p.POS_ELEC_THICKNESS.sample(),
-        cc.eps_n:            p.POS_ELEC_POROSITY.sample(),
-        cc.cmax:             p.POS_CSN_MAX.sample(),
-
-        cc.ocp:              p.POS_OCP,
-        cc.D:                p.POS_DIFFUSION.sample(),
-        cc.R:                p.PARTICLE_RADIUS.sample(),
+        iapp: "[input]",
     })
 
-    model.events += [
-        pybamm.Event("Min Concentration", cc.surf_c - 500),
-        pybamm.Event("Max Concentration", cc.cmax.value + 100 - cc.surf_c)
-    ]
+    # model.events += [
+    #     pybamm.Event("Min Concentration", cath.surf_c - 500),
+    #     pybamm.Event("Max Concentration", cath.cmax.value + 100 - cath.surf_c)
+    # ]
 
     param_ob = pybamm.ParameterValues(parameters)
     param_ob.process_model(model)
     param_ob.process_geometry(geo)
 
-    particles = [cc]
+    particles = [cath]
     mesh = pybamm.Mesh(geo, 
         { d.domain: pybamm.Uniform1DSubMesh for d in particles },
         { d.r: DISCRETE_PTS for d in particles }
@@ -115,10 +107,9 @@ if __name__ == '__main__':
         { d.domain: pybamm.FiniteVolume() for d in particles }
     )
 
-
     disc.process_model(model)
 
-    cycles = 2
+    cycles = 1
     solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, extra_options_setup={"max_num_steps": 100000})
 
     time_steps = np.linspace(0, 3600 * HOURS, TIME_PTS)
@@ -126,11 +117,40 @@ if __name__ == '__main__':
 
     inps = {
         iapp.name: -1 * I_INPUT,
-        cc.c0.name: p.POS_CSN_INITIAL.sample(),
+        cath.c0.name: p.POS_CSN_INITIAL.sample(),
     }
 
     solution = solver.solve(model, time_steps, inputs=inps)
-    solution.plot([cc.c.name])
+    # solution.plot([cath.c.name])
+
+    subdf = pd.DataFrame(columns=['Time', 'Cathode Concentration', 'Cathode Potential'])
+    subdf['Time'] = solution.t
+    subdf['Cathode Concentration'] = solution[cath.c.name].entries[-1]
+    subdf['Cathode Potential'] = solution[cath.phi.name].entries
+
+    t = []
+    conc = []
+    pot = []
+
+    with open("sundata.txt") as f:
+        for line in f:
+            data = line.split("|")[:-1]
+            t.append(float(data[0].strip()))
+            conc.append(float(data[1].strip()))
+            pot.append(float(data[3].strip()))
+
+    from matplotlib import pyplot as plt
+    
+    fig, ax = plt.subplots(2)
+    
+    ax[0].plot(solution.t, subdf['Cathode Concentration'], label="Pybamm")
+    ax[0].plot(t, conc, label="Sundials")
+    ax[1].plot(solution.t, subdf['Cathode Potential'], label="Pybamm")
+    ax[1].plot(t, pot, label="Pybamm")
+    ax[0].legend()
+    ax[1].legend()
+    
+    plt.show()
     
     # sign = -1
 

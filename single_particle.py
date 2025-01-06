@@ -1,6 +1,6 @@
 import pybamm
 from abc import abstractmethod
-from src.wrapped_parameter import WrappedParameter
+from wrapped_parameter import WrappedParameter
 
 class SingleParticle:
     def __init__(self, name: str, charge: int, 

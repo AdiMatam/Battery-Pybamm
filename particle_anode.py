@@ -2,8 +2,8 @@ import pybamm
 import consts as cc
 from consts import SET_MODEL_VARS, SET_OUTPUTS, BIND_VALUES
 from params import NEG_OCP
-from src.single_particle import SingleParticle
-from src.wrapped_parameter import WrappedParameter
+from single_particle import SingleParticle
+from wrapped_parameter import WrappedParameter
 import params as p
 
 #pybamm.set_logging_level("DEBUG")
@@ -20,7 +20,8 @@ class Anode(SingleParticle):
         #self.sei_L = pybamm.Variable(name + " SEI Length")
         #self.sei0 = WrappedParameter(name + " Initial SEI Length")
 
-    def process_model(self, model: pybamm.BaseModel, charging):
+    # def process_model(self, model: pybamm.BaseModel, charging):
+    def process_model(self, model: pybamm.BaseModel):
         flux = self.D * -pybamm.grad(self.c)
         # dc/dt = d^2c/dr^2
         dcdt = -pybamm.div(flux)
@@ -109,50 +110,42 @@ class Anode(SingleParticle):
         self.c0.set_value(p.NEG_CSN_INITIAL.sample()) 
         # self.sei0.set_value(p.SEI_INITIAL.sample()) 
 
+
 if __name__ == '__main__':
     import params as p
     import numpy as np
     import pandas as pd
 
-    HOURS = 10 
-    I_INPUT = 2.4
-    DISCRETE_PTS = 30
-    TIME_PTS = 250
+    C_RATE = 1.0
+    I_INPUT = 27.263836618115 * C_RATE
+    HOURS = (1./C_RATE)
+    DISCRETE_PTS = 100
+    TIME_PTS = 100
 
-    geo = {}
     model = pybamm.BaseModel()
-
     iapp = pybamm.Parameter("Input Current") 
+    geo = {}
     parameters = {}
 
-    a = Anode("Anode", iapp)
-    a.process_model(model)
-    a.process_geometry(geo)
+    ano = Anode("Anode", iapp)
+    ano.process_model(model)
+    ano.process_geometry(geo)
+    ano.attach_parameters(parameters)
 
     BIND_VALUES(parameters, {
-        iapp:               "[input]",
-        a.c0:               "[input]",
-        a.L:                p.NEG_ELEC_THICKNESS.sample(),
-        a.eps_n:            p.NEG_ELEC_POROSITY.sample(),
-        a.cmax:             p.NEG_CSN_MAX.sample(),
-
-        a.ocp:              p.NEG_OCP,
-        a.D:                p.NEG_DIFFUSION.sample(),
-        a.R:                p.PARTICLE_RADIUS.sample(),
-        a.sei0:             "[input]",
-        a.charging:            "[input]",
+        iapp: "[input]",
     })
 
-    model.events += [
-        pybamm.Event("Min Concentration", a.surf_c - 500),
-        pybamm.Event("Max Concentration", p.NEG_CSN_INITIAL.get_value() + 100 - a.surf_c)
-    ]
+    # model.events += [
+    #     pybamm.Event("Min Concentration", ano.surf_c - 500),
+    #     pybamm.Event("Max Concentration", ano.cmax.value + 100 - ano.surf_c)
+    # ]
 
     param_ob = pybamm.ParameterValues(parameters)
     param_ob.process_model(model)
     param_ob.process_geometry(geo)
 
-    particles = [a]
+    particles = [ano]
     mesh = pybamm.Mesh(geo, 
         { d.domain: pybamm.Uniform1DSubMesh for d in particles },
         { d.r: DISCRETE_PTS for d in particles }
@@ -162,66 +155,47 @@ if __name__ == '__main__':
         { d.domain: pybamm.FiniteVolume() for d in particles }
     )
 
-
     disc.process_model(model)
 
-    cycles = 3
+    cycles = 1
     solver = pybamm.CasadiSolver(mode='safe', atol=1e-6, rtol=1e-5, extra_options_setup={"max_num_steps": 100000})
 
     time_steps = np.linspace(0, 3600 * HOURS, TIME_PTS)
     total_time_steps = np.linspace(0, 3600 * HOURS * cycles, TIME_PTS * cycles)
-    
-    sign = -1
+
     inps = {
-        iapp.name: sign * I_INPUT,
-        a.c0.name: p.NEG_CSN_INITIAL.get_value(),
-        a.sei0.name: 5.e-9,
-        a.charging.name: 0 if (sign == -1) else 1
+        iapp.name: -1 * I_INPUT,
+        ano.c0.name: p.NEG_CSN_INITIAL.sample(),
     }
 
-    ### EVERYTHING BELOW THIS IS JUST RUNNING / CAPTURING SIMULATION DATA.
-    ### NO PARAMETER-RELEVANT CODE BELOW
+    solution = solver.solve(model, time_steps, inputs=inps)
+    # solution.plot([ano.c.name])
 
-    outputs = SET_OUTPUTS([a.c, a.phi, a.sei_L])
-    caps = []
-    subdfs = []
+    subdf = pd.DataFrame(columns=['Time', 'Anode Concentration', 'Anode Potential'])
+    subdf['Time'] = solution.t
+    subdf['Anode Concentration'] = solution[ano.c.name].entries[-1]
+    subdf['Anode Potential'] = solution[ano.phi.name].entries
 
-    solution = None
-    prev_time = 0
+    t = []
+    conc = []
+    pot = []
 
-    for _ in range(cycles):
+    with open("sundata.txt") as f:
+        for line in f:
+            data = line.split("|")[:-1]
+            t.append(float(data[0].strip()))
+            conc.append(float(data[2].strip()))
+            pot.append(float(data[4].strip()))
 
-        solution = solver.solve(model, time_steps, inputs=inps)
-
-        subdf = pd.DataFrame(columns=['Time'] + outputs)
-        subdf['Time'] = solution.t + prev_time
-        prev_time += solution.t[-1]
-
-        caps.append( I_INPUT * solution.t[-1] / 3600 )
-
-        ## KEYS ARE VARIABLES
-        for key in outputs:
-            data = solution[key].entries
-            if len(data.shape) == 2:
-                data = data[-1] # last node (all nodes 'equal' due to broadcasted surface concentration)
-
-            subdf[key] = data
-
-        subdfs.append(subdf)
-
-        sign *= -1
-        BIND_VALUES(inps, 
-            {
-                iapp: sign * I_INPUT,
-                a.c0: solution[a.c.name].entries[-1][-1],
-                a.sei0: solution[a.sei_L.name].entries[-1],
-                a.charging: 0 if (sign == -1) else 1
-            }
-        )
-
-    df = pd.concat(subdfs, ignore_index=True)
+    from matplotlib import pyplot as plt
     
-    print(df)
-    print(caps)
+    fig, ax = plt.subplots(2)
+    
+    ax[0].plot(solution.t, subdf['Anode Concentration'], label="Pybamm")
+    ax[0].plot(t, conc, label="Sundials")
+    ax[1].plot(solution.t, subdf['Anode Potential'], label="Pybamm")
+    ax[1].plot(t, pot, label="Pybamm")
+    ax[0].legend()
+    ax[1].legend()
+    plt.show()
 
-    df.to_csv(f"ANODE_{cycles}.csv", index=False)

@@ -4,7 +4,7 @@ T = 298 # kelvin
 THEORETICAL_CAPACITY = 27.263836618115
 
 
-from src.wrapped_parameter import WrappedParameter
+from wrapped_parameter import WrappedParameter
 F = 96485
 R_GAS = 8.314
 RTF = R_GAS * T / F

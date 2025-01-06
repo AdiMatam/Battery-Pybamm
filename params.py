@@ -1,5 +1,5 @@
 from math import exp
-from src.variator import Variator
+from variator import Variator
 
 Variator.OVERRIDE = True
 AGING = False
