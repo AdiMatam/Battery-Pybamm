@@ -1,6 +1,6 @@
 import pybamm
-from src.particle_anode import Anode
-from src.particle_cathode import Cathode
+from particle_anode import Anode
+from particle_cathode import Cathode
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS
 import params as p
 
@@ -41,7 +41,7 @@ class Cell:
         self.capacity_value = 0
 
         self.pos.process_model(model)
-        self.neg.process_model(model, charging)
+        self.neg.process_model(model)
 
         self.pos.process_geometry(geo)
         self.neg.process_geometry(geo)

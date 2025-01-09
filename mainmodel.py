@@ -29,7 +29,7 @@ TIME_PTS = 100
 DISCRETE_PTS = 100
 
 # Data is outputted to this subfolder of 'data/'.
-EXPERIMENT = "100_noage_cccv_CONTEXTSW_CRAZY"
+EXPERIMENT = "100_noage_cccv_CONTEXTSW"
 
 #--------------------
 
@@ -38,7 +38,7 @@ EXPERIMENT = "100_noage_cccv_CONTEXTSW_CRAZY"
 ### DON'T CHANGE BELOW THIS!
 
 import pybamm
-from src.pack import Pack
+from pack import Pack
 pybamm.set_logging_level("WARNING")
 
 pack = Pack(EXPERIMENT, NUM_PARALLEL, NUM_SERIES)

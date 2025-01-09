@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd 
 from matplotlib import pyplot as plt
 import json
-from src.pack import Pack
-from src.cell import Cell
+from pack import Pack
+from cell import Cell
 import os
 import sys
 import pickle
@@ -17,7 +17,7 @@ class Experiment:
     def __init__(self, experiment: str):
         self.path = f"data/{experiment}/"
 
-        sys.path.append(os.path.join(os.getcwd(), "src"))
+        # sys.path.append(os.path.join(os.getcwd(), "src"))
 
         self.pack = None
         with open(self.path+"model.pkl", 'rb') as f:
@@ -59,13 +59,16 @@ class Experiment:
         joined = '|'.join(attrs)
         self.data = self.data.filter(regex=f'Time|{joined}')
 
-    def plotter(self, isolate_cycles=True):
+    def plotter(self, isolate_cycles=True, plot=None):
+        if not plot:
+            plot = plt
+
         # Helper function to encapsulate the plotting logic
         def plot_columns(data, t, label_prefix=''):
             """Helper function to plot columns."""
             for col in data.columns.drop(['Time', 'Global Time']):
                 label = f'{label_prefix}{col}'
-                plt.plot(data[t], data[col], label=label)
+                plot.plot(data[t], data[col], label=label)
         
         if isolate_cycles:
             t = 'Time'
@@ -74,8 +77,6 @@ class Experiment:
         else:
             t = 'Global Time'
             plot_columns(self.data, t)
-
-        plt.xlabel(t)
 
     def plot_capacities(self, cycles=[], strings=[], label_prefix=''):
         cyc = self.caps.index

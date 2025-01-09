@@ -2,14 +2,14 @@ import json
 import traceback
 import pybamm
 import numpy as np
-from src.cell import Cell
+from cell import Cell
 from consts import BIND_VALUES, SET_MODEL_VARS, SET_OUTPUTS, T, THEORETICAL_CAPACITY
 import pandas as pd
 import os
 import pickle
 import time
 
-from src.variator import Variator
+from variator import Variator
 import concurrent.futures
 
 class Pack:
