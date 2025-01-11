@@ -145,6 +145,9 @@ class Pack:
             try:
                 futures = []
                 while i < self.cycles:
+                    if i == 1:
+                        time_steps = time_steps[1:]
+
                     solution = self.solver.solve(self.model, time_steps, inputs=inps)
 
                     print(f"Completed cycle {i+1}, {Pack.STATEMAP[state]} -- HIT {solution.termination}")                
@@ -259,13 +262,13 @@ class Pack:
         
         for cell in self.flat_cells:
             # SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.neg.i_sei, cell.neg.i_int])
-            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.voltage, cell.capacity])
-            # SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage])
+            # SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.voltage, cell.capacity])
+            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
             BIND_VALUES(inps, 
                 {
                     cell.pos.c0: cell.pos.c0.value,
                     cell.neg.c0: cell.neg.c0.value,
-                    # cell.neg.sei0: cell.neg.sei0.value, # 0 #5.e-9,
+                    cell.neg.sei0: cell.neg.sei0.value, # 0 #5.e-9,
                 }
             )
 
@@ -282,6 +285,7 @@ class Pack:
                 {
                     cell.pos.c0: solution[cell.pos.c.name].entries[-1][-1],
                     cell.neg.c0: solution[cell.neg.c.name].entries[-1][-1],
+                    cell.neg.sei0: solution[cell.sei.name].entries[-1],
                 }
             )
 
