@@ -29,7 +29,7 @@ PROTOCOL_NAMES = {
 }
 
 class Pack:
-    def __init__(self, experiment: str, parallel, series,
+    def __init__(self, experiment: str, parallel, series, discrete_pts: int,
         model:pybamm.BaseModel, geo:dict, parameters:dict, aging: bool
     ):
 
@@ -56,27 +56,13 @@ class Pack:
             pybamm.Variable(f"String {i+1} Iapp") for i in range(parallel)
         ]
 
-        self.cv_mode = pybamm.Parameter("CV Mode")
-        self.cc_mode = pybamm.Negate(self.cv_mode - 1)
-        self.charging = pybamm.Parameter("Pack Charging?")
-        self.discharging = pybamm.Negate(self.charging - 1)
-        self.ilock = pybamm.Parameter("Current Lock")
-
-        self.voltage_high = pybamm.Parameter("Voltage High")
-        self.voltage_low = pybamm.Parameter("Voltage Low")
-        self.min_current = pybamm.Parameter("Min Current Ratio")
-
         self.aging = aging
+        self.charging = pybamm.Parameter("Pack Charging?")
         self.p_aging = pybamm.Parameter("Aging On?")
 
         BIND_VALUES(parameters, 
             {
-                self.ilock: "[input]",
                 self.charging: "[input]",
-                self.cv_mode: "[input]",
-                self.voltage_high: "[input]",
-                self.voltage_low:  "[input]",
-                self.min_current:  "[input]",
                 self.p_aging: 1 if aging else 0
             }
         )
@@ -90,83 +76,34 @@ class Pack:
 
 
         self.cells = cells
-        self.cutoff_chain = []
-        self.iapp_chain = []
-        self.protocol_chain = []
-        self.cycle_number_chain = []
+        self.flat_cells = self.cells.flatten()
 
-    def export_profile(self):
-        data = {
-            'Experiment': self.experiment,
-            'Parallel': self.parallel,
-            'Series': self.series,
-            'Temperature': self.temperature,
-            'Aging': self.aging,
+        self.discrete_pts = discrete_pts
 
-            'Protocols': self.protocol_chain,
-            'Cutoffs': self.cutoff_chain,
-            'I_apps': self.iapp_chain,
-            'Cycles': self.cycle_number_chain,
-        }
+        self.particles = [] 
+        for cell in self.flat_cells:
+            self.particles.append(cell.pos)
+            self.particles.append(cell.neg)
 
-        data.update(Variator.JSON())
+        self.voltage = 0
+        for i in range(self.series):
+            self.voltage += self.cells[i, 0].vvolt
 
-        file_path = f"data/{self.experiment}/profile.json"
-        with open(file_path, 'w') as json_file:
-            json.dump(data, json_file, indent=4)
+        self.outputs = ["Pack Voltage", "Pack Current"]
+        for cell in self.flat_cells:
+            for var in (cell.pos.c, cell.neg.c, cell.voltage, cell.neg.sei_L, cell.capacity):
+                self.outputs.append(var.name)
 
-    def build(self, discrete_pts):
-        
-        self.__setupDAE()
-        self.__IC_and_StopC()
-
-        self.param_ob = pybamm.ParameterValues(self.parameters)
-        self.param_ob.process_model(self.model)
-        self.param_ob.process_geometry(self.geo)
+        self.inps = {}
+        for cell in self.flat_cells:
+            binder = {param: param.value for param in (cell.pos.c0, cell.neg.c0, cell.pos.phi0, cell.neg.phi0, cell.neg.sei0)}
+            BIND_VALUES(self.inps, binder)
 
         self.model.variables.update({
             "Pack Voltage": self.voltage,
             "Pack Current": self.i_total
         })
-        ## SET_MODEL_VARS(self.model, self.iapps)
 
-
-        particles = [] 
-        for cell in self.flat_cells:
-            particles.append(cell.pos)
-            particles.append(cell.neg)
-
-        mesh = pybamm.Mesh(self.geo, 
-            { p.domain: pybamm.Uniform1DSubMesh for p in particles },
-            { p.r: discrete_pts for p in particles }
-        )
-
-        disc = pybamm.Discretisation(mesh, 
-            { p.domain: pybamm.FiniteVolume() for p in particles }
-        )
-        disc.process_model(self.model)
-
-        self.solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-10, dt_max=1e-10, root_method='lm', extra_options_setup={"max_num_steps": 100000})
-        self.inps = {}
-
-        for cell in self.flat_cells:
-            binder = {param: param.value for param in (cell.pos.c0, cell.neg.c0, cell.pos.phi0, cell.neg.phi0, cell.neg.sei0)}
-            BIND_VALUES(self.inps, binder)
-                # {
-                    # cell.pos.c0: cell.pos.c0.value,
-                    # cell.neg.c0: cell.neg.c0.value,
-                    # cell.pos.phi0: cell.pos.phi0.value,
-                    # cell.neg.phi0: cell.neg.phi0.value,
-                    # cell.neg.sei0: cell.neg.sei0.value,
-                # }
-            # )
-
-        self.outputs = ["Pack Voltage", "Pack Current"]
-
-        for cell in self.flat_cells:
-            for var in (cell.pos.c, cell.neg.c, cell.voltage, cell.neg.sei_L, cell.capacity):
-                self.outputs.append(var.name)
-            #self.outputs.append(cell.neg.j_name)
 
         self.reset()
 
@@ -193,47 +130,86 @@ class Pack:
             else:
                 iappt = iapp
 
+            self.latest_current = iappt
+
             if protocol == Protocol.CC_Discharge:
-                iappt *= -1
-                BIND_VALUES(self.inps, 
-                    {
-                        self.ilock: iappt,
-                        self.cv_mode: 0,
-                        self.charging: 0,
-                        self.voltage_low: until,
-                        self.voltage_high: 0,
-                        self.min_current: 0
-                    }
-                )
+                self.model.algebraic.update({
+                    self.i_total: (-iappt - self.i_total)
+                })
+                self.__setupDAE()
+                BIND_VALUES(self.inps, { self.charging: 0 })
+
+                self.model.initial_conditions.update({
+                    self.i_total: -iappt
+                })
+                self.model.initial_conditions.update({
+                    **{ self.iapps[i]: -iappt / self.parallel for i in range(self.parallel) },
+                })
+
+                self.model.events = [
+                    pybamm.Event("Min Voltage Cutoff", (self.voltage - until)),
+                ]
+
             else:
-                BIND_VALUES(self.inps, 
-                    {
-                        self.ilock: +iappt,
-                        self.cv_mode: 0,
-                        self.charging: 1,
-                        self.voltage_high: until,
-                        self.voltage_low: 0,
-                        self.min_current: 0
-                    }
-                )
+                self.model.algebraic.update({
+                    self.i_total: (iappt - self.i_total)
+                })
+                self.__setupDAE()
+                BIND_VALUES(self.inps, { self.charging: 1 })
+
+                self.model.initial_conditions.update({
+                    self.i_total: +iappt
+                })
+                self.model.initial_conditions.update({
+                    **{ self.iapps[i]: +iappt / self.parallel for i in range(self.parallel) },
+                })
+
+                self.model.events = [
+                    pybamm.Event("Max Voltage Cutoff", (until - self.voltage)),
+                ]
 
         elif protocol == Protocol.CV_Charge:
             print("[NOTICE]: 'until' parameter interpreted as min current")
-            BIND_VALUES(self.inps, 
-                {
-                    self.cv_mode: 1,
-                    self.charging: 1,
-                    self.min_current: until,
-                    self.voltage_high: self.latest_voltage,
-                    self.voltage_low: 0
-                }
-            )
+            self.model.algebraic.update({
+                self.i_total: (self.latest_voltage - self.voltage)
+            })
+            self.__setupDAE()
+            BIND_VALUES(self.inps, { self.charging: 1 })
+
+            self.model.initial_conditions.update({
+                self.i_total: self.latest_current
+            })
+            self.model.initial_conditions.update({
+                **{ self.iapps[i]: self.latest_current / self.parallel for i in range(self.parallel) },
+            })
+
+            self.model.events = [
+                pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - until),
+            ]
 
         else:
             raise ValueError("Given protocol has not been implemented")
 
+
+        self.param_ob = pybamm.ParameterValues(self.parameters)
+        self.param_ob.process_model(self.model)
+        self.param_ob.process_geometry(self.geo)
+
+        mesh = pybamm.Mesh(self.geo, 
+            { p.domain: pybamm.Uniform1DSubMesh for p in self.particles },
+            { p.r: self.discrete_pts for p in self.particles }
+        )
+
+        self.disc = pybamm.Discretisation(mesh, 
+            { p.domain: pybamm.FiniteVolume() for p in self.particles }
+        )
+
+        temp = self.disc.process_model(self.model, inplace=False)
+
         time_steps = np.linspace(0, final_time, 100)
-        solution = self.solver.solve(self.model, time_steps, inputs=self.inps)
+
+        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-10, dt_max=1e-10, root_method='lm', extra_options_setup={"max_num_steps": 100000})
+        solution = solver.solve(temp, time_steps, inputs=self.inps)
         
         print(f"[TERMINATED BY]: {solution.termination}")
 
@@ -256,13 +232,13 @@ class Pack:
         results_df["protocol"] = PROTOCOL_NAMES[protocol]
         results_df.set_index(["#", "protocol"], inplace=True)
 
-        self.protocol_chain.append(PROTOCOL_NAMES[protocol])
-        self.iapp_chain.append(iappt)
-        if ('final time' in solution.termination):
-            self.cutoff_chain.append(-1.0)
-        else:
-            self.cutoff_chain.append(until)
-        self.cycle_number_chain.append(self.cycle_number)
+        # self.protocol_chain.append(PROTOCOL_NAMES[protocol])
+        # self.iapp_chain.append(iappt)
+        # if ('final time' in solution.termination):
+            # self.cutoff_chain.append(-1.0)
+        # else:
+            # self.cutoff_chain.append(until)
+        # self.cycle_number_chain.append(self.cycle_number)
 
         # write the column header ONLY on first attempt
         write_header = not os.path.exists(self.data_path) or os.stat(self.data_path).st_size == 0
@@ -306,17 +282,9 @@ class Pack:
         
 
     def __setupDAE(self):
-        self.voltage = 0
-        for i in range(self.series):
-            self.voltage += self.cells[i, 0].vvolt
 
         # cutoffs[1] (max V-cut is effectively the vlock)
         # 'boolean algebra' to switch state from CC <-> CV
-        self.model.algebraic.update({
-            self.i_total: (self.ilock - self.i_total)*self.cc_mode + 
-            (self.voltage_high - self.voltage)*self.cv_mode
-        })
-
         self.model.algebraic.update({
             self.iapps[0]: self.i_total - sum(self.iapps),
         })
@@ -332,27 +300,22 @@ class Pack:
             self.model.algebraic[self.iapps[i]] = vbalance #expr
     
 
-    def __IC_and_StopC(self):
-        self.model.initial_conditions.update({
-            self.i_total: self.ilock
-        })
+    def export_profile(self):
+        data = {
+            'Experiment': self.experiment,
+            'Parallel': self.parallel,
+            'Series': self.series,
+            'Temperature': self.temperature,
+            'Aging': self.aging,
 
-        self.model.initial_conditions.update({
-            **{ self.iapps[i]: self.ilock / self.parallel for i in range(self.parallel) },
-        })
+            'Protocols': self.protocol_chain,
+            'Cutoffs': self.cutoff_chain,
+            'I_apps': self.iapp_chain,
+            'Cycles': self.cycle_number_chain,
+        }
 
-        self.flat_cells = self.cells.flatten()
+        data.update(Variator.JSON())
 
-        self.model.events += [
-            pybamm.Event("Min Voltage Cutoff", (self.voltage - self.voltage_low)*self.discharging + 1*self.charging),
-            pybamm.Event("Max Voltage Cutoff", ((self.voltage_high - self.voltage)*self.cc_mode + 1*self.cv_mode)*self.charging + 1*self.discharging),
-            pybamm.Event("Min Current Cutoff", (pybamm.AbsoluteValue(self.i_total) - self.min_current)*self.charging + 1*self.discharging),
-        ]
-
-        # for cell in self.flat_cells:
-            # self.model.events.extend([
-                # pybamm.Event(f"{cell.name} Min Anode Concentration Cutoff", cell.neg.surf_c - 10),
-                # pybamm.Event(f"{cell.name} Max Cathode Concentration Cutoff", cell.pos.cmax - cell.pos.surf_c),
-
-                # pybamm.Event(f"{cell.name} Max Anode Concentration Cutoff", cell.neg.cmax - cell.neg.surf_c),
-            # ])
+        file_path = f"data/{self.experiment}/profile.json"
+        with open(file_path, 'w') as json_file:
+            json.dump(data, json_file, indent=4)
