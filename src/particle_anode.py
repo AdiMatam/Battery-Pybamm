@@ -3,6 +3,7 @@ import consts as cc
 from consts import SET_MODEL_VARS, SET_OUTPUTS, BIND_VALUES
 from params import NEG_OCP
 from src.single_particle import SingleParticle
+from src.wrapped_parameter import WrappedParameter
 import params as p
 
 #pybamm.set_logging_level("DEBUG")
@@ -10,14 +11,17 @@ import params as p
 class Anode(SingleParticle): 
     OCP_INIT = 0.08352811644995728
 
-    def __init__(self, name: str, iapp: pybamm.Variable):
+    def __init__(self, name: str, iapp: pybamm.Variable, aging: pybamm.Parameter):
 
         super().__init__(name, -1, iapp)
 
         self.i_sei = pybamm.Variable(name + " Side Current")
         self.i_int = pybamm.Variable(name + " Intercalation Current")
         self.sei_L = pybamm.Variable(name + " SEI Length")
-        self.sei0 = pybamm.Parameter(name + " Initial SEI Length")
+        self.sei0 = WrappedParameter(name + " Initial SEI Length")
+        self.j_name = f"{self.name} J-current"
+
+        self.aging = aging
 
     def process_model(self, model: pybamm.BaseModel, charging):
         flux = self.D * -pybamm.grad(self.c)
@@ -39,7 +43,7 @@ class Anode(SingleParticle):
         # solve the ODEs -- diffusion equation (del * del(c))
         model.rhs.update({
             self.c: dcdt,
-            self.sei_L: dLdt
+            self.sei_L: dLdt * self.aging
         })
 
         ## anode (SEI case)
@@ -88,6 +92,9 @@ class Anode(SingleParticle):
                 self.sei_L
             ]
         )
+        model.variables.update(
+            {self.j_name: self.j}
+        )
 
     def attach_parameters(self, parameters: dict):
         BIND_VALUES(parameters, {
@@ -105,6 +112,7 @@ class Anode(SingleParticle):
 
         self.c0.set_value(p.NEG_CSN_INITIAL.sample()) 
         self.phi0.set_value(p.NEG_OCP(self.c0.value / self.cmax.value))
+        self.sei0.set_value(p.SEI0.sample())
 
 if __name__ == '__main__':
     import params as p

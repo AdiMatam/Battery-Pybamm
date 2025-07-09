@@ -6,7 +6,7 @@ import params as p
 
 class Cell:
     CELLS = list()
-    def __init__(self, name: str,iapp: pybamm.Variable, charging: pybamm.Parameter,
+    def __init__(self, name: str,iapp: pybamm.Variable, charging: pybamm.Parameter, aging: pybamm.Parameter,
             model: pybamm.BaseModel, geo:dict, parameters:dict
     ):
 
@@ -20,7 +20,7 @@ class Cell:
         self.iapp = iapp
         
         self.pos = Cathode(name + " Cathode", iapp)
-        self.neg = Anode(name + " Anode", iapp)
+        self.neg = Anode(name + " Anode", iapp, aging)
 
         ## cell-level 'reference' to sei length 
         self.sei = self.neg.sei_L

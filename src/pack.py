@@ -11,22 +11,26 @@ import time
 
 from src.variator import Variator
 import concurrent.futures
+import warnings
+from enum import IntEnum, unique
+
+@unique
+class Protocol(IntEnum):
+    CC_Discharge = 0
+    CC_Charge = 1
+    CV_Charge = 2
+    Rest = 3
+
+PROTOCOL_NAMES = {
+    Protocol.CC_Discharge: "CC_Discharge",
+    Protocol.CC_Charge   : "CC_Charge",
+    Protocol.CV_Charge   : "CV_Charge",
+    Protocol.Rest        : "Rest"
+}
 
 class Pack:
-    STATEMAP = {
-        0: 'CC-discharge',
-        1: 'CC-charge',
-        2: 'CV-charge'
-    }
-
-    class CapStruct:
-        def __init__(self, reference, current):
-            self.reference = reference
-            self.current = current
-
-
     def __init__(self, experiment: str, parallel, series,
-        model:pybamm.BaseModel, geo:dict, parameters:dict
+        model:pybamm.BaseModel, geo:dict, parameters:dict, aging: bool
     ):
 
         self.experiment = experiment
@@ -36,6 +40,8 @@ class Pack:
                 raise ValueError("Experiment already exists!")
         else:
             os.makedirs(f"data/{self.experiment}")
+
+        self.data_path = f"data/{self.experiment}/data.csv"
 
         self.parallel = parallel
         self.series = series
@@ -53,13 +59,25 @@ class Pack:
         self.cv_mode = pybamm.Parameter("CV Mode")
         self.cc_mode = pybamm.Negate(self.cv_mode - 1)
         self.charging = pybamm.Parameter("Pack Charging?")
+        self.discharging = pybamm.Negate(self.charging - 1)
         self.ilock = pybamm.Parameter("Current Lock")
+
+        self.voltage_high = pybamm.Parameter("Voltage High")
+        self.voltage_low = pybamm.Parameter("Voltage Low")
+        self.min_current = pybamm.Parameter("Min Current Ratio")
+
+        self.aging = aging
+        self.p_aging = pybamm.Parameter("Aging On?")
 
         BIND_VALUES(parameters, 
             {
                 self.ilock: "[input]",
                 self.charging: "[input]",
-                self.cv_mode: "[input]"
+                self.cv_mode: "[input]",
+                self.voltage_high: "[input]",
+                self.voltage_low:  "[input]",
+                self.min_current:  "[input]",
+                self.p_aging: 1 if aging else 0
             }
         )
 
@@ -68,28 +86,14 @@ class Pack:
         cells = np.empty(self.shape, dtype=Cell)
         for i in range(series):
             for j in range(parallel):
-                cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", self.iapps[j], self.charging, model, geo, parameters)
+                cells[i, j] = Cell(f"Cell {i + 1},{j + 1}", self.iapps[j], self.charging, self.p_aging, model, geo, parameters)
+
 
         self.cells = cells
-
-
-    def set_charge_protocol(self, cycles, crate_or_current, use_c_rate=True):
-        self.cycles = cycles
-        if use_c_rate:
-            self.c_rate = crate_or_current
-            self.iappt = THEORETICAL_CAPACITY * self.c_rate * self.parallel
-        else:
-            self.iappt = crate_or_current
-            self.c_rate = self.iappt / (THEORETICAL_CAPACITY * self.parallel)
-
-    def set_cutoffs(self, voltage_window: tuple, current_cut, capacity_cut, capacity_cut_count):
-        self.voltage_window = voltage_window
-        self.current_cut = current_cut
-        self.capacity_cut = capacity_cut
-        self.capacity_cut_count = capacity_cut_count
-
-    
-    # ------------
+        self.cutoff_chain = []
+        self.iapp_chain = []
+        self.protocol_chain = []
+        self.cycle_number_chain = []
 
     def export_profile(self):
         data = {
@@ -97,11 +101,12 @@ class Pack:
             'Parallel': self.parallel,
             'Series': self.series,
             'Temperature': self.temperature,
-            'Voltage Window': self.voltage_window,
-            "C-rate": self.c_rate,
-            'I-app': self.iappt,
-            'I-app Cut Factor': self.current_cut,
-            'Cycles': self.cycles,
+            'Aging': self.aging,
+
+            'Protocols': self.protocol_chain,
+            'Cutoffs': self.cutoff_chain,
+            'I_apps': self.iapp_chain,
+            'Cycles': self.cycle_number_chain,
         }
 
         data.update(Variator.JSON())
@@ -123,7 +128,7 @@ class Pack:
             "Pack Voltage": self.voltage,
             "Pack Current": self.i_total
         })
-        SET_MODEL_VARS(self.model, self.iapps)
+        ## SET_MODEL_VARS(self.model, self.iapps)
 
 
         particles = [] 
@@ -141,127 +146,150 @@ class Pack:
         )
         disc.process_model(self.model)
 
+        self.solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-10, dt_max=1e-10, root_method='lm', extra_options_setup={"max_num_steps": 100000})
+        self.inps = {}
 
-    def cycler(self, hours, time_pts):
-        solver = pybamm.CasadiSolver(atol=1e-6, rtol=1e-5, root_tol=1e-10, dt_max=1e-10, root_method='lm', extra_options_setup={"max_num_steps": 100000}, return_solution_if_failed_early=True)
-        time_steps = np.linspace(0, 3600 * hours, time_pts)
-        
-        inps = {}
-        outputs = self.__setup_initialization_and_outputs(inps)
-
-        ## insert at front
-        cycle_columns = ['Time (s)', 'Global Time (s)'] + outputs
-        cycle_data = {col: [] for col in cycle_columns}
-        cap_data = {cell.name: self.CapStruct(0,0) for cell in self.flat_cells}
-
-        self.__create_dataframe_files(cycle_columns, cap_data.keys())
-
-        prev_time = 0
-        state = 0
-        i = 0
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            try:
-                while i < self.cycles:
-                    solution = solver.solve(self.model, time_steps, inputs=inps)
-
-                    print(f"{i}) {solution.termination}")
-                    print(f"Completed cycle {i+1}, {Pack.STATEMAP[state]}")                
-
-                    cycle_data['Time (s)'] = solution.t
-                    cycle_data['Global Time (s)'] = solution.t + prev_time
-                    prev_time += solution.t[-1]
-
-                    ## KEYS ARE SOLVED VARIABLES
-                    for var in outputs:
-                        data = solution[var].entries
-                        if len(data.shape) == 2:
-                            data = data[-1]
-                        cycle_data[var].extend(data)
-                    
-                    ## 1) set initial conditions for the next cycle (with 'last' data from this cycle)
-                    ## 2) Store discharge capacity in sep capacity_dict
-                    cap_cut = self.__update_pack_state(inps, solution, cap_data, i, state)
-                    
-                    executor.submit(self.__cycle_dump, cycle_data, i, state)
-                    if (state == 0):
-                        executor.submit(self.__cap_dump, cap_data, i)
-
-                    if (cap_cut >= self.capacity_cut_count):
-                        break
-
-                    cycle_data = {col: [] for col in cycle_columns}
-
-                    state = self.__next_protocol(inps, state)
-                    if (state == 0):
-                        i += 1
-                    
-            except Exception as e:
-                print(traceback.format_exc())
-                print (f"FAILED AT CYCLE # {i+1}. Dumping collected data so far")
-                self.cycles = i
-
-            finally:
-                with open(f"data/{self.experiment}/model.pkl", 'wb') as f:
-                    pickle.dump(self, f)
-
-
-    def __cycle_dump(self, data: dict, i: int, state: int):
-        subdf = pd.DataFrame(data)
-        subdf = pd.concat({(i+1, Pack.STATEMAP[state]): subdf})
-        print(subdf)
-        subdf.to_csv(f"data/{self.experiment}/data.csv", mode='a', header=False, index=True)
-
-    def __cap_dump(self, data, i: int):
-        with open(f"data/{self.experiment}/capacities.csv", mode='a') as f:
-            f.write(str(i+1))
-            for cap in data.values():
-                f.write(f",{str(cap.current)}")
-            f.write('\n')
-
-    def __create_dataframe_files(self, cycle_columns, cell_names):
-        pd.DataFrame(
-            columns=cycle_columns, 
-            index=pd.MultiIndex.from_product([[], [], []], names=["Cycle", "Protocol", "Stamps"])
-        ).to_csv(f"data/{self.experiment}/data.csv", index=True)
-
-        pd.DataFrame(
-            columns=cell_names,
-            index=pd.MultiIndex.from_product([[]], names=["Cycle"])
-        ).to_csv(f"data/{self.experiment}/capacities.csv", index=True)
-    
-
-    def __setup_initialization_and_outputs(self, inps: dict):
-        outputs = ["Pack Voltage", "Pack Current"]
-        SET_OUTPUTS(outputs, self.iapps)
-
-        BIND_VALUES(inps, 
-            {
-                self.ilock: -self.iappt,
-                self.cv_mode: 0,
-                self.charging: 0,
-            }
-        )
-        
         for cell in self.flat_cells:
-            SET_OUTPUTS(outputs, [cell.pos.c, cell.neg.c, cell.sei, cell.voltage, cell.capacity])
-            BIND_VALUES(inps, 
+            binder = {param: param.value for param in (cell.pos.c0, cell.neg.c0, cell.pos.phi0, cell.neg.phi0, cell.neg.sei0)}
+            BIND_VALUES(self.inps, binder)
+                # {
+                    # cell.pos.c0: cell.pos.c0.value,
+                    # cell.neg.c0: cell.neg.c0.value,
+                    # cell.pos.phi0: cell.pos.phi0.value,
+                    # cell.neg.phi0: cell.neg.phi0.value,
+                    # cell.neg.sei0: cell.neg.sei0.value,
+                # }
+            # )
+
+        self.outputs = ["Pack Voltage", "Pack Current"]
+
+        for cell in self.flat_cells:
+            for var in (cell.pos.c, cell.neg.c, cell.voltage, cell.neg.sei_L, cell.capacity):
+                self.outputs.append(var.name)
+            #self.outputs.append(cell.neg.j_name)
+
+        self.reset()
+
+    def simulate(self, protocol: Protocol, final_time: float, c_rate=None, iapp=None, until=None):
+        assert(isinstance(protocol, Protocol))
+
+        # TODO: determined by the input arguments to this function
+        if c_rate and iapp:
+            warnings.warn("Either c_rate and iapp should be given (but not both). C_rate argument will take precedence by default", UserWarning)
+        elif (c_rate or iapp) and protocol == Protocol.CV_Charge:
+            warnings.warn("For CV charge, c_rate and iapp will be ignored. Current voltage will be held until final time or until=<current_cut_ratio>, whichever is reached first", UserWarning)
+        elif (not c_rate and not iapp) and (protocol == Protocol.CC_Charge or protocol == Protocol.CC_Discharge):
+            raise ValueError("Please provide either a c_rate or iapp to perform a CC_charge/discharge protocol!")
+
+        if until is None:
+            warnings.warn("No stop condition given. Simulation will progress until the provided 'final_time'", UserWarning)
+            until = 0.0
+
+        iappt = -1.0
+        if protocol == Protocol.CC_Charge or protocol == Protocol.CC_Discharge:
+            print("[NOTICE]: 'until' parameter interpreted as voltage cutoff")
+            if c_rate:
+                iappt = THEORETICAL_CAPACITY * c_rate * self.parallel
+            else:
+                iappt = iapp
+
+            if protocol == Protocol.CC_Discharge:
+                iappt *= -1
+                BIND_VALUES(self.inps, 
+                    {
+                        self.ilock: iappt,
+                        self.cv_mode: 0,
+                        self.charging: 0,
+                        self.voltage_low: until,
+                        self.voltage_high: 0,
+                        self.min_current: 0
+                    }
+                )
+            else:
+                BIND_VALUES(self.inps, 
+                    {
+                        self.ilock: +iappt,
+                        self.cv_mode: 0,
+                        self.charging: 1,
+                        self.voltage_high: until,
+                        self.voltage_low: 0,
+                        self.min_current: 0
+                    }
+                )
+
+        elif protocol == Protocol.CV_Charge:
+            print("[NOTICE]: 'until' parameter interpreted as min current")
+            BIND_VALUES(self.inps, 
                 {
-                    cell.pos.c0: cell.pos.c0.value,
-                    cell.neg.c0: cell.neg.c0.value,
-                    cell.pos.phi0: cell.pos.phi0.value,
-                    cell.neg.phi0: cell.neg.phi0.value,
-                    cell.neg.sei0: 5.e-9,
+                    self.cv_mode: 1,
+                    self.charging: 1,
+                    self.min_current: until,
+                    self.voltage_high: self.latest_voltage,
+                    self.voltage_low: 0
                 }
             )
 
-        return outputs
+        else:
+            raise ValueError("Given protocol has not been implemented")
 
+        time_steps = np.linspace(0, final_time, 100)
+        solution = self.solver.solve(self.model, time_steps, inputs=self.inps)
+        
+        print(f"[TERMINATED BY]: {solution.termination}")
 
-    def __update_pack_state(self, inps: dict, solution: pybamm.Solution, cap_data: dict, i: int, state: int):
-        a = 0
+        # 1) Start a dict with the time‐vector
+        data = {"Time": solution.t, "Clock": solution.t + self.prev_time}
+
+        # 2) Loop over every cell and pull out the five variables you asked for
+        for var in self.outputs:
+            # use the variable’s .name as the column header
+            entries = solution[var].entries
+            if (len(entries.shape) == 2):
+                data[var] = entries[-1]
+            else:
+                data[var] = entries
+
+        # inject your cycle & protocol columns and set MultiIndex
+        results_df = pd.DataFrame(data)
+
+        results_df["#"] = self.cycle_number
+        results_df["protocol"] = PROTOCOL_NAMES[protocol]
+        results_df.set_index(["#", "protocol"], inplace=True)
+
+        self.protocol_chain.append(PROTOCOL_NAMES[protocol])
+        self.iapp_chain.append(iappt)
+        if ('final time' in solution.termination):
+            self.cutoff_chain.append(-1.0)
+        else:
+            self.cutoff_chain.append(until)
+        self.cycle_number_chain.append(self.cycle_number)
+
+        # write the column header ONLY on first attempt
+        write_header = not os.path.exists(self.data_path) or os.stat(self.data_path).st_size == 0
+        results_df.to_csv(
+            self.data_path,
+            mode="a",
+            header=write_header,
+            index=True,
+            index_label=["#", "protocol"],
+        )
+
+        self.__update_pack_state(solution)
+        self.prev_time += solution.t[-1]
+
+    def reset(self):
+        if os.path.exists(self.data_path):
+            open(self.data_path, 'w').close()
+
+        self.prev_time = 0
+        self.cycle_number = 1
+
+    def next_cycle(self):
+        self.cycle_number += 1
+
+    def __update_pack_state(self, solution: pybamm.Solution):
         for cell in self.flat_cells:
-            BIND_VALUES(inps, 
+            BIND_VALUES(self.inps, 
                 {
                     cell.pos.c0: solution[cell.pos.c.name].entries[-1][-1],
                     cell.neg.c0: solution[cell.neg.c.name].entries[-1][-1],
@@ -270,59 +298,12 @@ class Pack:
                     cell.neg.sei0: solution[cell.neg.sei_L.name].entries[-1],
                 }
             )
-            if (state == 0):
-                cap_data[cell.name].current = solution[cell.capacity.name].entries[-1] 
-                if (i == 1):
-                    ## store reference capacity at index 0
-                    cap_data[cell.name].reference = solution[cell.capacity.name].entries[-1] 
 
-                elif (i > 1):
-                    ## degradation check
-                    cur = cap_data[cell.name].current
-                    ref = cap_data[cell.name].reference
-
-                    if (cur <= ref*self.capacity_cut):
-                        print(f"{cell.name} capacity of {cur} below {self.capacity_cut*100}% threshold")
-                        a += 1
-
-        return a
+        self.latest_voltage = 0
+        for i in range(self.series):
+            c = self.cells[i, 0]
+            self.latest_voltage += solution[c.voltage.name].entries[-1]
         
-    def __next_protocol(self, inps: dict, state: int):
-        # CC charge up next
-        if (state == 0):
-            BIND_VALUES(inps, 
-                {
-                    self.ilock: +self.iappt,
-                    self.charging: 1,
-                    self.cv_mode: 0 
-                }
-            )
-
-        # CV charge up next
-        elif (state == 1):
-            BIND_VALUES(inps, 
-                {
-                    self.charging: 1,
-                    self.cv_mode: 1 
-                }
-            )
-
-        # Discharge next
-        else:
-            BIND_VALUES(inps, 
-                {
-                    self.ilock: -self.iappt,
-                    self.charging: 0,
-                    self.cv_mode: 0 
-                }
-
-            )
-    
-        nstate = (state + 1) % 3
-
-        return nstate
-
-
 
     def __setupDAE(self):
         self.voltage = 0
@@ -333,7 +314,7 @@ class Pack:
         # 'boolean algebra' to switch state from CC <-> CV
         self.model.algebraic.update({
             self.i_total: (self.ilock - self.i_total)*self.cc_mode + 
-            (self.voltage_window[1] - self.voltage)*self.cv_mode
+            (self.voltage_high - self.voltage)*self.cv_mode
         })
 
         self.model.algebraic.update({
@@ -362,12 +343,10 @@ class Pack:
 
         self.flat_cells = self.cells.flatten()
 
-        min_current = self.iappt * self.current_cut
-
         self.model.events += [
-            pybamm.Event("Min Voltage Cutoff", self.voltage - self.voltage_window[0]),
-            pybamm.Event("Max Voltage Cutoff", (self.voltage_window[1] - self.voltage)*self.cc_mode + 1*self.cv_mode),
-            pybamm.Event("Min Current Cutoff", pybamm.AbsoluteValue(self.i_total) - min_current),
+            pybamm.Event("Min Voltage Cutoff", (self.voltage - self.voltage_low)*self.discharging + 1*self.charging),
+            pybamm.Event("Max Voltage Cutoff", ((self.voltage_high - self.voltage)*self.cc_mode + 1*self.cv_mode)*self.charging + 1*self.discharging),
+            pybamm.Event("Min Current Cutoff", (pybamm.AbsoluteValue(self.i_total) - self.min_current)*self.charging + 1*self.discharging),
         ]
 
         # for cell in self.flat_cells:
@@ -377,8 +356,3 @@ class Pack:
 
                 # pybamm.Event(f"{cell.name} Max Anode Concentration Cutoff", cell.neg.cmax - cell.neg.surf_c),
             # ])
-
-
-
-if __name__ == '__main__':
-    pass
