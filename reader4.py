@@ -7,7 +7,7 @@ import re
 #fig, ax = plt.subplots(1)
 
 i = 0
-for name in ("cc_noage_200","cccv_noage_200"):
+for name in ("cccv_noage_200","cccv_noage_200_prime"):
 
     df = pd.read_csv(f"data/{name}/data.csv", index_col=[0,1])
     cols = [col for col in list(df.columns) if "Capacity" in col]
@@ -28,5 +28,5 @@ for name in ("cc_noage_200","cccv_noage_200"):
     plt.legend()
     #i += 1
     
-#plt.savefig(f"{name}.png")
+plt.savefig(f"CCCV_identical_modes.png")
 plt.show()
